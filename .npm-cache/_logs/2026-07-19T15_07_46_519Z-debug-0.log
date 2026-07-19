@@ -1,0 +1,19 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Users\HP\AppData\Roaming\npm\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.13.0
+2 info using node@v22.20.0
+3 silly config load:file:C:\Users\HP\AppData\Roaming\npm\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\HP\mamaai\.npmrc
+5 silly config load:file:C:\Users\HP\.npmrc
+6 silly config load:file:C:\Users\HP\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm view react version
+8 verbose argv "view" "react" "version" "--cache" ".npm-cache"
+9 verbose logfile logs-max:10 dir:C:\Users\HP\mamaai\.npm-cache\_logs\2026-07-19T15_07_46_519Z-
+10 verbose logfile C:\Users\HP\mamaai\.npm-cache\_logs\2026-07-19T15_07_46_519Z-debug-0.log
+11 silly logfile done cleaning log files
+12 http fetch GET 200 https://registry.npmjs.org/react 563ms (cache revalidated)
+13 verbose cwd C:\Users\HP\mamaai
+14 verbose os Windows_NT 10.0.19045
+15 verbose node v22.20.0
+16 verbose npm  v11.13.0
+17 verbose exit 0
+18 info ok

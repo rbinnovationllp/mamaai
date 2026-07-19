@@ -1,0 +1,101 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Users\HP\AppData\Roaming\npm\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.13.0
+2 info using node@v22.20.0
+3 silly config load:file:C:\Users\HP\AppData\Roaming\npm\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\HP\mamaai\.npmrc
+5 silly config load:file:C:\Users\HP\.npmrc
+6 silly config load:file:C:\Users\HP\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm install
+8 verbose argv "install" "--cache" ".npm-cache"
+9 verbose logfile logs-max:10 dir:C:\Users\HP\mamaai\.npm-cache\_logs\2026-07-19T15_08_23_405Z-
+10 verbose logfile C:\Users\HP\mamaai\.npm-cache\_logs\2026-07-19T15_08_23_405Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:2197815296 maxSize:549453824 maxEntrySize:274726912
+13 silly idealTree buildDeps
+14 silly fetch manifest next@16.2.10
+15 silly packumentCache full:https://registry.npmjs.org/next cache-miss
+16 http cache https://registry.npmjs.org/next 198ms (cache hit)
+17 silly packumentCache full:https://registry.npmjs.org/next set size:30949142 disposed:false
+18 silly fetch manifest @opentelemetry/api@^1.1.0
+19 silly packumentCache full:https://registry.npmjs.org/@opentelemetry%2fapi cache-miss
+20 http cache https://registry.npmjs.org/@opentelemetry%2fapi 92ms (cache hit)
+21 silly packumentCache full:https://registry.npmjs.org/@opentelemetry%2fapi set size:272967 disposed:false
+22 silly fetch manifest @playwright/test@^1.51.1
+23 silly packumentCache full:https://registry.npmjs.org/@playwright%2ftest cache-miss
+24 http cache https://registry.npmjs.org/@playwright%2ftest 86ms (cache hit)
+25 silly packumentCache full:https://registry.npmjs.org/@playwright%2ftest set size:9323993 disposed:false
+26 silly fetch manifest babel-plugin-react-compiler@*
+27 silly packumentCache full:https://registry.npmjs.org/babel-plugin-react-compiler cache-miss
+28 http fetch GET 200 https://registry.npmjs.org/babel-plugin-react-compiler 269ms (cache miss)
+29 silly packumentCache full:https://registry.npmjs.org/babel-plugin-react-compiler set size:undefined disposed:false
+30 silly fetch manifest react@19.2.7
+31 silly packumentCache full:https://registry.npmjs.org/react cache-miss
+32 http cache https://registry.npmjs.org/react 312ms (cache hit)
+33 silly packumentCache full:https://registry.npmjs.org/react set size:6805811 disposed:false
+34 silly fetch manifest react-dom@19.2.7
+35 silly packumentCache full:https://registry.npmjs.org/react-dom cache-miss
+36 http cache https://registry.npmjs.org/react-dom 179ms (cache hit)
+37 silly packumentCache full:https://registry.npmjs.org/react-dom set size:9121038 disposed:false
+38 silly fetch manifest sass@^1.3.0
+39 silly packumentCache full:https://registry.npmjs.org/sass cache-miss
+40 http cache https://registry.npmjs.org/sass 101ms (cache hit)
+41 silly packumentCache full:https://registry.npmjs.org/sass set size:730445 disposed:false
+42 silly fetch manifest @types/react@19.2.7
+43 silly packumentCache full:https://registry.npmjs.org/@types%2freact cache-miss
+44 http cache https://registry.npmjs.org/@types%2freact 107ms (cache hit)
+45 silly packumentCache full:https://registry.npmjs.org/@types%2freact set size:2632776 disposed:false
+46 silly fetch manifest @types/react-dom@19.2.3
+47 silly packumentCache full:https://registry.npmjs.org/@types%2freact-dom cache-miss
+48 http cache https://registry.npmjs.org/@types%2freact-dom 26ms (cache hit)
+49 silly packumentCache full:https://registry.npmjs.org/@types%2freact-dom set size:429026 disposed:false
+50 silly fetch manifest eslint-config-next@16.2.10
+51 silly packumentCache full:https://registry.npmjs.org/eslint-config-next cache-miss
+52 http cache https://registry.npmjs.org/eslint-config-next 72ms (cache hit)
+53 silly packumentCache full:https://registry.npmjs.org/eslint-config-next set size:6916076 disposed:false
+54 silly fetch manifest eslint@8.57.0
+55 silly packumentCache full:https://registry.npmjs.org/eslint cache-miss
+56 http cache https://registry.npmjs.org/eslint 215ms (cache hit)
+57 silly packumentCache full:https://registry.npmjs.org/eslint set size:2033084 disposed:false
+58 silly fetch manifest eslint@>=9.0.0
+59 silly packumentCache full:https://registry.npmjs.org/eslint cache-miss
+60 http cache https://registry.npmjs.org/eslint 42ms (cache hit)
+61 silly packumentCache full:https://registry.npmjs.org/eslint set size:2033084 disposed:false
+62 verbose stack Error: unable to resolve dependency tree
+62 verbose stack     at #failPeerConflict (C:\Users\HP\AppData\Roaming\npm\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\build-ideal-tree.js:1403:25)
+62 verbose stack     at #loadPeerSet (C:\Users\HP\AppData\Roaming\npm\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\build-ideal-tree.js:1369:33)
+62 verbose stack     at async #buildDepStep (C:\Users\HP\AppData\Roaming\npm\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\build-ideal-tree.js:917:11)
+62 verbose stack     at async Arborist.buildIdealTree (C:\Users\HP\AppData\Roaming\npm\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\build-ideal-tree.js:170:7)
+62 verbose stack     at async Promise.all (index 1)
+62 verbose stack     at async Arborist.reify (C:\Users\HP\AppData\Roaming\npm\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\reify.js:111:5)
+62 verbose stack     at async Install.exec (C:\Users\HP\AppData\Roaming\npm\node_modules\npm\lib\commands\install.js:146:5)
+62 verbose stack     at async Npm.exec (C:\Users\HP\AppData\Roaming\npm\node_modules\npm\lib\npm.js:193:9)
+62 verbose stack     at async module.exports (C:\Users\HP\AppData\Roaming\npm\node_modules\npm\lib\cli\entry.js:67:5)
+63 error code ERESOLVE
+64 error ERESOLVE unable to resolve dependency tree
+65 error
+66 error While resolving: mama-ai@0.1.0
+66 error Found: eslint@8.57.0
+66 error node_modules/eslint
+66 error   dev eslint@"8.57.0" from the root project
+66 error
+66 error Could not resolve dependency:
+66 error peer eslint@">=9.0.0" from eslint-config-next@16.2.10
+66 error node_modules/eslint-config-next
+66 error   dev eslint-config-next@"16.2.10" from the root project
+66 error
+66 error Fix the upstream dependency conflict, or retry this command with --force or --legacy-peer-deps to accept an incorrect (and potentially broken) dependency resolution.
+67 error
+67 error
+67 error For a full report see:
+67 error C:\Users\HP\mamaai\.npm-cache\_logs\2026-07-19T15_08_23_405Z-eresolve-report.txt
+68 silly unfinished npm timer reify 1784473707185
+69 silly unfinished npm timer reify:loadTrees 1784473707187
+70 silly unfinished npm timer idealTree:buildDeps 1784473707685
+71 silly unfinished npm timer idealTree:#root 1784473707686
+72 verbose cwd C:\Users\HP\mamaai
+73 verbose os Windows_NT 10.0.19045
+74 verbose node v22.20.0
+75 verbose npm  v11.13.0
+76 verbose exit 1
+77 verbose code 1
+78 error A complete log of this run can be found in: C:\Users\HP\mamaai\.npm-cache\_logs\2026-07-19T15_08_23_405Z-debug-0.log
