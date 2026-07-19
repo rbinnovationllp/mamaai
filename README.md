@@ -6,6 +6,8 @@ The Wisdom of Maa. The Intelligence of AI.
 
 One Family. Different Needs. One Intelligent Meal Plan.
 
+MAMA AI is an AI-powered Family Food Operating System that creates one intelligent family meal plan with personalized nutrition, portions, health-aware adjustments, grocery planning, and regional and seasonal food intelligence.
+
 ## Hackathon MVP
 
 The current build prioritizes one end-to-end vertical slice:
