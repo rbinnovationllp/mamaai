@@ -21,6 +21,18 @@ Supported architecture:
 - Apple login adapter-ready
 - Guest mode with limited persistence
 
+## Judge/Demo Access
+
+Judge/Demo Access is allowed for the Codex Hackathon review flow only.
+
+Rules:
+
+- Use fictional demo family data only.
+- Require no registration or payment.
+- Bypass RevenueCat/Google Play Billing only inside demo mode.
+- Do not persist real health information through judge mode.
+- Do not reuse judge bypass logic for normal production entitlement checks.
+
 ## Authorization
 
 Consumer users may only access their own families, members, meal plans, grocery lists, and feedback.
@@ -65,6 +77,7 @@ Use environment variables for:
 - AWS credentials
 - Auth secret
 - RevenueCat keys
+- RevenueCat webhook secret
 - YouTube API key
 - Webhook secrets
 

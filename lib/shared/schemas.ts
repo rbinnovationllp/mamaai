@@ -148,3 +148,14 @@ export const feedbackRequestSchema = z.object({
   rating: z.enum(["loved", "good", "average", "dont_suggest_again"]),
   notes: z.string().optional()
 });
+
+export const revenueCatWebhookSchema = z.object({
+  event: z.object({
+    type: z.string().min(1),
+    app_user_id: z.string().min(1).optional(),
+    original_app_user_id: z.string().optional(),
+    product_id: z.string().optional(),
+    entitlement_ids: z.array(z.string()).optional(),
+    expiration_at_ms: z.number().optional()
+  })
+});

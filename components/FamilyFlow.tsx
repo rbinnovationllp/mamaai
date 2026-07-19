@@ -18,6 +18,19 @@ type DemoResponse = {
   mealPlan: FamilyMealPlan;
 };
 
+const demoSteps = [
+  "Fictional family profile",
+  "Multiple family members",
+  "Nutrition context",
+  "One common family meal",
+  "Personal portions and adjustments",
+  "Fruit and hydration",
+  "Replace meal",
+  "Updated grocery list",
+  "MAMA Family Table",
+  "Feedback"
+];
+
 const initialMember: CreateFamilyMemberInput = {
   name: "New Member",
   relationship: "Family member",
@@ -48,6 +61,7 @@ function joinList(value: string[]) {
 }
 
 export function FamilyFlow() {
+  const [judgeMode, setJudgeMode] = useState(true);
   const [familyName, setFamilyName] = useState("Bhartiya Demo Family");
   const [city, setCity] = useState("Bengaluru");
   const [state, setState] = useState("Karnataka");
@@ -66,9 +80,11 @@ export function FamilyFlow() {
     loadDemo();
   }, []);
 
-  async function loadDemo() {
+  async function loadDemo(mode: "judge" | "standard" = "standard") {
+    setJudgeMode(mode === "judge");
     setError("");
-    setStatus("Loading fictional demo family...");
+    setFeedbackSaved(false);
+    setStatus(mode === "judge" ? "Opening Judge Access with fictional demo data..." : "Loading fictional demo family...");
     const response = await fetch("/api/demo");
     const data = (await response.json()) as DemoResponse;
     setCreatedFamily(data.family);
@@ -78,7 +94,12 @@ export function FamilyFlow() {
     setFamilyName(data.family.name);
     setCity(data.family.city);
     setState(data.family.state);
-    setStatus("Demo family loaded. You can edit members, recreate the family, or replace the meal.");
+    setMembers(data.members.map(({ memberId: _memberId, familyId: _familyId, ...member }) => member));
+    setStatus(
+      mode === "judge"
+        ? "Judge Access ready. Review the family profile, common meal, personal guidance, fruit, hydration, grocery list, and try Replace Meal."
+        : "Demo family loaded. You can edit members, recreate the family, or replace the meal."
+    );
   }
 
   function updateMember(index: number, patch: Partial<CreateFamilyMemberInput>) {
@@ -222,6 +243,19 @@ export function FamilyFlow() {
         <section className="hero">
           <p className="eyebrow">One Family. Different Needs. One Intelligent Meal Plan.</p>
           <h1>What Shall MAMA Plan for Your Family Today?</h1>
+          <div className="judge-banner">
+            <div>
+              <p className="eyebrow">Codex Hackathon Judge Access</p>
+              <h2>Try the full MAMA AI demo without registration or payment.</h2>
+              <p>
+                Uses only fictional family data and shows the core innovation in minutes: one common family meal with
+                personalized portions, modifications, fruit, hydration, replacement, grocery update, and the MAMA Family Table.
+              </p>
+            </div>
+            <button className="button judge-button" onClick={() => loadDemo("judge")}>
+              Try Demo / Judge Access
+            </button>
+          </div>
           <p className="lead">
             Create a family, add the needs of each family member, and generate one practical common meal with personal portions,
             fruit, hydration, and a grocery list that updates when the meal changes.
@@ -230,19 +264,37 @@ export function FamilyFlow() {
             <button className="button" onClick={generateMeal} disabled={!canGenerate}>
               Plan Today
             </button>
-            <button className="button secondary" onClick={loadDemo}>
+            <button className="button secondary" onClick={() => loadDemo("standard")}>
               Load Demo Family
             </button>
             <button className="button secondary" onClick={replaceMeal} disabled={!mealPlan}>
               Replace Meal
             </button>
           </div>
+          {judgeMode ? (
+            <div className="demo-steps" aria-label="Judge demo checklist">
+              {demoSteps.map((step, index) => (
+                <span key={step}>
+                  {index + 1}. {step}
+                </span>
+              ))}
+            </div>
+          ) : null}
           <p className={error ? "status error" : "status"}>{error || status}</p>
         </section>
 
         <div className="grid">
           <section className="panel">
-            <h2>Create Family</h2>
+            <div className="member-header">
+              <h2>{judgeMode ? "Fictional Judge Demo Family" : "Create Family"}</h2>
+              {judgeMode ? <span className="pill">Payment bypass: demo only</span> : null}
+            </div>
+            {judgeMode ? (
+              <p className="notice">
+                Judge Access uses preloaded fictional profiles only. It does not use real personal or medical data and does
+                not require RevenueCat, Google Play Billing, or account registration.
+              </p>
+            ) : null}
             <div className="field-grid">
               <div className="row">
                 <label>
@@ -354,7 +406,7 @@ export function FamilyFlow() {
                 ))}
               </div>
               <button className="button" onClick={createFamily}>
-                Create Family
+                {judgeMode ? "Recreate Demo Family" : "Create Family"}
               </button>
             </div>
           </section>
@@ -380,6 +432,28 @@ export function FamilyFlow() {
                     Estimated meal cost: INR {mealPlan.estimatedCost.mealCost.amount} · Daily estimate: INR{" "}
                     {mealPlan.estimatedCost.dailyCost.amount}
                   </p>
+                </section>
+
+                <section className="panel subscription-panel">
+                  <h2>Subscription Architecture</h2>
+                  <p className="muted">
+                    Judge Access safely bypasses payment for demo review. Production entitlement remains server-side and
+                    RevenueCat-ready.
+                  </p>
+                  <div className="plan-grid">
+                    <div>
+                      <p className="mini-title">Family Starter</p>
+                      <p className="muted">INR 199/month · 4 members</p>
+                    </div>
+                    <div>
+                      <p className="mini-title">Family Premium</p>
+                      <p className="muted">INR 399/month · 6 members</p>
+                    </div>
+                    <div>
+                      <p className="mini-title">Family Plus</p>
+                      <p className="muted">INR 599/month · 10 members</p>
+                    </div>
+                  </div>
                 </section>
 
                 <section className="panel">

@@ -137,6 +137,53 @@ h1 {
   background: var(--tomato);
 }
 
+.judge-banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  border: 2px solid var(--leaf);
+  border-radius: 8px;
+  background: #f5fff9;
+  box-shadow: 0 14px 34px rgba(36, 116, 90, 0.14);
+}
+
+.judge-banner h2 {
+  margin: 4px 0 8px;
+  font-size: clamp(1.25rem, 4vw, 2rem);
+}
+
+.judge-banner p:last-child {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.judge-button {
+  min-height: 52px;
+  background: var(--tomato);
+}
+
+.demo-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.demo-steps span,
+.pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #fff7df;
+  border: 1px solid #efd09b;
+  color: #5f4519;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .grid {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
@@ -263,6 +310,20 @@ textarea {
   gap: 8px;
 }
 
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.plan-grid > div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fffdf9;
+}
+
 .grocery-item {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -288,8 +349,17 @@ textarea {
   .grid,
   .family-table,
   .grocery,
+  .plan-grid,
   .row {
     grid-template-columns: 1fr;
+  }
+
+  .judge-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .judge-button {
+    width: 100%;
   }
 
   .topbar {

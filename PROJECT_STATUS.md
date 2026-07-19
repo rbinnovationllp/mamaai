@@ -16,10 +16,20 @@
 - Validation passed: `npm run typecheck`, `npm run lint`, and `npm run build`.
 - Local dev server started at `http://127.0.0.1:3000`.
 - Demo API smoke test passed for `GET /api/demo`, returning fictional family data and a complete common meal plan.
+- Added prominent Judge Access / Try Demo path for Devpost reviewers.
+- Judge Access loads fictional family data without registration, payment, or subscription barriers.
+- Added on-screen judge demo checklist for the core innovation flow.
+- Added RevenueCat-ready plan metadata for Family Starter, Family Premium, and Family Plus.
+- Added `GET /api/subscriptions/plans` for subscription plan metadata.
+- Added `POST /api/revenuecat/webhook` contract endpoint; entitlement persistence remains pending DynamoDB repository integration.
+- Validation passed after Judge Access and RevenueCat contract work: `npm run typecheck`, `npm run lint`, and `npm run build`.
+- Smoke test passed for `GET /api/subscriptions/plans`.
+- Smoke test passed for `POST /api/revenuecat/webhook` with a sample RevenueCat-style event.
 
 ## In Progress
 
-- Manual browser click-through of the full UI flow.
+- Final manual browser click-through of the judge-facing flow.
+- Public deployment preparation.
 - Replacing MVP in-memory persistence with production DynamoDB repositories when infrastructure is available.
 
 ## Not Started
@@ -37,6 +47,8 @@
 - `npm audit` reports a moderate PostCSS advisory inherited through `next@16.2.10`. npm suggests `npm audit fix --force`, but that would downgrade Next to `9.3.3`, which is not an acceptable fix. Track upstream Next/PostCSS patch availability.
 - Runtime browser click-through is pending.
 - Dev server logs warn about a non-standard `NODE_ENV` value from the surrounding environment.
+- RevenueCat webhook currently validates and acknowledges events but does not persist entitlement changes until the production subscription repository is connected.
+- Git working tree currently has normal uncommitted changes from Judge Access and RevenueCat contract work.
 
 ## Architecture Decisions
 
@@ -48,6 +60,8 @@
 - Prioritize the Family -> Meal Plan -> Replacement -> Grocery -> MAMA Family Table flow over future modules.
 - Pin Next workspace root through `next.config.mjs` because a parent `C:\Users\HP\package-lock.json` caused Turbopack to infer the wrong root.
 - Keep admin/CRM as documented contracts until the core family planning flow is fully hardened.
+- Judge Access bypasses payment only for fictional demo data and must stay separate from production entitlement checks.
+- RevenueCat/Google Play Billing must not block the hackathon submission; production billing follows core MVP, judge demo, testing, deployment, and Devpost demo readiness.
 
 ## Required Environment Variables
 
@@ -58,10 +72,28 @@
 - `AWS_REGION`
 - `MAMA_AI_TABLE_NAME`
 - `REVENUECAT_WEBHOOK_SECRET`
+- `REVENUECAT_PROJECT_ID`
+- `REVENUECAT_API_KEY`
+- `REVENUECAT_ENTITLEMENT_STARTER`
+- `REVENUECAT_ENTITLEMENT_PREMIUM`
+- `REVENUECAT_ENTITLEMENT_PLUS`
 - `YOUTUBE_API_KEY`
+- `MAMA_AI_DEMO_MODE`
+- `MAMA_AI_JUDGE_ACCESS_ENABLED`
+
+## Demo/Judge Access Instructions
+
+- Open the deployed app.
+- Select `Try Demo / Judge Access` on the home page.
+- Review the fictional multi-generation family profiles.
+- Review the generated common meal, individual portions/modifications, fruit and hydration recommendations, grocery list, and MAMA Family Table.
+- Select `Replace Meal` to verify grocery recalculation.
+- Submit feedback from the Family Feedback section.
+- No registration, payment, subscription, real personal data, or real medical data is required.
 
 ## Deployment Status
 
 - Not deployed.
 - Local build is production-valid.
 - Dev server is running locally at `http://127.0.0.1:3000`.
+- Public Devpost-ready deployment pending.

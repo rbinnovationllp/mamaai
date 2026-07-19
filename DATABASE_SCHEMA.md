@@ -140,6 +140,20 @@ Stored on generated plans or computed on demand:
 
 Member limits must be enforced in backend services and API routes, not only in UI.
 
+RevenueCat-ready fields:
+
+- `revenueCatCustomerId`
+- `revenueCatEntitlementId`
+- `revenueCatProductId`
+- `googlePlayProductId`
+- `status`
+- `source`
+- `currentPeriodEndsAt`
+- `lastRevenueCatEventType`
+- `lastRevenueCatEventAt`
+
+Judge/Demo Access uses `source = demo_judge_access`, `isActive = true`, and `bypassPaymentForDemo = true` only for fictional demo data.
+
 ## Sensitive Data Rules
 
 - Health conditions, doctor restrictions, allergies, recovery status, pregnancy/lactation, and AI memory require explicit consent.
