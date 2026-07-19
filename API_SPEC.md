@@ -25,6 +25,33 @@ Response:
 }
 ```
 
+Judge/Demo Access uses this endpoint so Devpost reviewers can test the core workflow without registration, payment, or subscription setup. This endpoint must only return fictional demo data.
+
+## GET /api/subscriptions/plans
+
+Returns RevenueCat-ready subscription plan metadata and judge-demo payment-bypass status.
+
+Response:
+
+```ts
+{
+  plans: SubscriptionPlanDefinition[];
+  judgeDemoAccess: {
+    bypassesPayment: true;
+    usesFictionalDataOnly: true;
+    purpose: string;
+  };
+}
+```
+
+Plans:
+
+- Family Starter: INR 199/month, up to 4 members.
+- Family Premium: INR 399/month, up to 6 members.
+- Family Plus: INR 599/month, up to 10 members.
+
+Judge/Demo Access bypass must not be used for normal production entitlement checks.
+
 ## POST /api/families
 
 Creates a family with members after enforcing subscription member limits.
@@ -125,6 +152,43 @@ Request:
   memberId?: string;
   rating: "loved" | "good" | "average" | "dont_suggest_again";
   notes?: string;
+}
+```
+
+## POST /api/revenuecat/webhook
+
+RevenueCat webhook contract for subscription events. This is integration-ready for the hackathon but does not yet persist entitlement changes until the DynamoDB subscription repository is connected.
+
+Headers:
+
+```ts
+{
+  authorization?: "Bearer ${REVENUECAT_WEBHOOK_SECRET}";
+}
+```
+
+Request:
+
+```ts
+{
+  event: {
+    type: string;
+    app_user_id?: string;
+    original_app_user_id?: string;
+    product_id?: string;
+    entitlement_ids?: string[];
+    expiration_at_ms?: number;
+  };
+}
+```
+
+Response:
+
+```ts
+{
+  received: true;
+  persisted: false;
+  message: string;
 }
 ```
 

@@ -8,6 +8,21 @@ Create Family -> Add Members -> Analyze Profiles -> Generate One Common Family M
 
 Advanced modules such as YouTube recipes, pantry automation, monthly planning, analytics, and full payment production integration remain roadmap items until the MVP flow works end to end.
 
+## 40-Hour Hackathon Priority
+
+Current priority order:
+
+1. Working core MVP.
+2. Judge/Demo Access.
+3. AI integration.
+4. Testing.
+5. Production deployment.
+6. Devpost-ready demo.
+7. RevenueCat integration.
+8. Non-critical features.
+
+RevenueCat and Google Play Billing must not delay the judge-facing demo. Billing remains integration-ready, while Judge Access uses a safe fictional-data-only payment bypass.
+
 ## Application Stack
 
 - Frontend: Next.js App Router, React, TypeScript, Tailwind CSS-compatible styling.
@@ -96,6 +111,8 @@ The shared contract layer defines database entities, API payloads, AI structured
 
 MVP supports a demo/guest user and contract-ready authenticated users. API routes assume a current user via `x-demo-user-id` in demo mode or a future verified session/JWT. The database schema stores `authProvider`, `role`, `healthDataConsentAt`, and `aiMemoryConsentAt`.
 
+Judge/Demo Access is a deliberate guest mode for Codex Hackathon judges. It loads fictional family profiles immediately and does not require registration, payment, or subscription setup.
+
 Production-ready next steps:
 
 - Add NextAuth/Auth.js or equivalent managed auth.
@@ -138,3 +155,5 @@ Repositories own key construction. Services must not know DynamoDB key shapes.
 - Service and repository boundaries are implemented from day one to avoid UI/database coupling.
 - DynamoDB is documented as production target, while the local in-memory store enables immediate hackathon iteration.
 - Admin/CRM contracts are documented but not prioritized over the family meal vertical slice.
+- RevenueCat plan metadata is defined in code, but production billing is not allowed to block hackathon submission.
+- Judge Access bypasses payment only for fictional demo data and does not weaken normal production entitlement logic.

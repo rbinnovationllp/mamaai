@@ -15,6 +15,18 @@
 11. Show MAMA Family Table.
 12. Collect feedback.
 
+## Judge/Demo Access Tests
+
+- Home page shows a prominent Try Demo / Judge Access option on mobile and desktop.
+- Judge Access loads without registration, login, payment, or subscription setup.
+- Judge Access uses only fictional demo family profiles.
+- Judge can see multiple family members immediately.
+- Judge can see one common family meal and member-specific adjustments.
+- Judge can see fruits, hydration, grocery list, and disclaimer.
+- Judge can click Replace Meal and see the grocery list update.
+- Judge can submit feedback.
+- Judge mode payment bypass does not alter normal subscription member-limit checks.
+
 ## Unit Tests
 
 - Subscription member limits.
@@ -50,6 +62,8 @@
 - Allergy/prohibited ingredient rejection works.
 - Admin health data access requires authorized role.
 - Guest mode cannot access long-term saved history in production mode.
+- Judge/Demo Access cannot expose real personal or medical data.
+- RevenueCat webhook secrets are not exposed to the frontend.
 
 ## Release Gate
 

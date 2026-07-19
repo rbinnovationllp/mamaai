@@ -10,6 +10,30 @@ export type PlanType = "daily" | "weekly" | "monthly";
 
 export type SubscriptionPlan = "family_starter" | "family_premium" | "family_plus";
 
+export type EntitlementSource = "demo_judge_access" | "local_demo" | "revenuecat" | "manual_admin";
+
+export interface SubscriptionPlanDefinition {
+  plan: SubscriptionPlan;
+  displayName: string;
+  priceMonthlyInr: number;
+  memberLimit: number;
+  revenueCatEntitlementId: string;
+  revenueCatProductId: string;
+  googlePlayProductId: string;
+}
+
+export interface SubscriptionEntitlement {
+  userId: ID;
+  plan: SubscriptionPlan;
+  memberLimit: number;
+  source: EntitlementSource;
+  isActive: boolean;
+  bypassPaymentForDemo: boolean;
+  revenueCatCustomerId?: string;
+  expiresAt?: string;
+  checkedAt: string;
+}
+
 export type MealReplacementReason =
   | "dont_like_it"
   | "ate_recently"

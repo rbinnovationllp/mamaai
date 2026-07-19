@@ -14,6 +14,20 @@ The current build prioritizes one end-to-end vertical slice:
 
 Create Family -> Add Members -> Analyze Profiles -> Generate One Common Family Meal -> Member-Specific Modifications and Portions -> Fruits/Hydration -> Replace Meal -> Auto-Update Grocery List -> MAMA Family Table.
 
+## Judge Access
+
+Devpost judges should use the prominent `Try Demo / Judge Access` button on the home page.
+
+Judge Access:
+
+- Uses fictional family data only.
+- Requires no registration.
+- Requires no payment.
+- Shows the full family meal planning flow immediately.
+- Allows meal replacement and grocery-list update testing.
+
+Production subscriptions remain RevenueCat-ready and are separate from the judge demo bypass.
+
 ## Setup
 
 ```bash
