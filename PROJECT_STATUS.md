@@ -25,6 +25,8 @@
 - Validation passed after Judge Access and RevenueCat contract work: `npm run typecheck`, `npm run lint`, and `npm run build`.
 - Smoke test passed for `GET /api/subscriptions/plans`.
 - Smoke test passed for `POST /api/revenuecat/webhook` with a sample RevenueCat-style event.
+- Updated `README.md` for Devpost judging with Judge Access, Built With, OpenAI Codex usage, GPT-5.6/OpenAI API architecture, RevenueCat readiness, setup, safety notes, and limitations.
+- Validation passed after README update: `npm run typecheck` and `npm run lint`.
 
 ## In Progress
 
