@@ -5,6 +5,7 @@ import { AskMamaWidget } from "./AskMamaWidget";
 import { MamaFamilyTable } from "./MamaFamilyTable";
 import { trackAnalyticsEvent } from "@/lib/shared/client-analytics";
 import type {
+  BudgetProfile,
   CreateFamilyMemberInput,
   Family,
   FamilyDietPreference,
@@ -18,6 +19,11 @@ import type {
   NutritionContext
 } from "@/lib/shared/contracts";
 import { demoMemberInputs } from "@/lib/shared/demo-data";
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+}
 
 type DemoResponse = {
   family: Family;
@@ -258,6 +264,61 @@ function mealLabel(mealTime: MealTime) {
       : mealTime.charAt(0).toUpperCase() + mealTime.slice(1);
 }
 
+function budgetTypeLabel(type: BudgetProfile["type"]) {
+  const labels: Record<BudgetProfile["type"], string> = {
+    per_meal: "Per meal",
+    daily: "Daily",
+    weekly: "Weekly",
+    monthly: "Monthly",
+    none: "No fixed budget"
+  };
+  return labels[type];
+}
+
+function budgetAmountForComparison(budget: BudgetProfile, comparison: "meal" | "daily") {
+  if (!budget.amount || budget.type === "none") return null;
+  if (budget.type === "per_meal") return comparison === "meal" ? budget.amount : budget.amount * 3;
+  if (budget.type === "daily") return comparison === "daily" ? budget.amount : budget.amount / 3;
+  if (budget.type === "weekly") return comparison === "daily" ? budget.amount / 7 : budget.amount / 21;
+  return comparison === "daily" ? budget.amount / 30 : budget.amount / 90;
+}
+
+function budgetStatusText(budget: BudgetProfile | undefined, mealPlan: FamilyMealPlan) {
+  if (!budget || budget.type === "none" || !budget.amount) {
+    return "No fixed food budget was set for this family profile.";
+  }
+
+  const comparisonType = budget.type === "per_meal" ? "meal" : "daily";
+  const limit = budgetAmountForComparison(budget, comparisonType);
+  const estimate =
+    comparisonType === "meal" ? mealPlan.estimatedCost.mealCost.amount : mealPlan.estimatedCost.dailyCost.amount;
+
+  if (!limit) return "Budget comparison is unavailable for this plan.";
+
+  const status = estimate <= limit ? "within" : "above";
+  const priority = budget.priority === "strict" ? "strict" : "flexible";
+  const lowCost = budget.preferLowCostMeals ? " Low-cost meals are preferred." : "";
+  return `Budget check: estimated ${comparisonType} cost is INR ${estimate}, ${status} the ${priority} ${budgetTypeLabel(
+    budget.type
+  ).toLowerCase()} budget of about INR ${Math.round(limit)}.${lowCost}`;
+}
+
+function billingMarketForCountry(countryName: string) {
+  return countryName.trim().toLowerCase() === "india" ? "india" : "international";
+}
+
+function planPriceLabel(plan: "starter" | "premium" | "plus", countryName: string) {
+  const prices = {
+    starter: { inr: 399, usd: 4.99 },
+    premium: { inr: 599, usd: 6.99 },
+    plus: { inr: 799, usd: 8.99 }
+  };
+  const price = prices[plan];
+  return billingMarketForCountry(countryName) === "india"
+    ? `India: INR ${price.inr}/month`
+    : `International: US$${price.usd}/month`;
+}
+
 export function FamilyFlow() {
   const [judgeMode, setJudgeMode] = useState(true);
   const [familyName, setFamilyName] = useState("Bhartiya Demo Family");
@@ -266,6 +327,10 @@ export function FamilyFlow() {
   const [state, setState] = useState("Karnataka");
   const [dietPreference, setDietPreference] = useState<FamilyDietPreference>("vegetarian");
   const [cuisineText, setCuisineText] = useState("Indian, Home-style");
+  const [budgetType, setBudgetType] = useState<BudgetProfile["type"]>("daily");
+  const [budgetAmount, setBudgetAmount] = useState(450);
+  const [budgetPriority, setBudgetPriority] = useState<NonNullable<BudgetProfile["priority"]>>("flexible");
+  const [preferLowCostMeals, setPreferLowCostMeals] = useState(true);
   const [members, setMembers] = useState<CreateFamilyMemberInput[]>(demoMemberInputs);
   const [createdFamily, setCreatedFamily] = useState<Family | null>(null);
   const [createdMembers, setCreatedMembers] = useState<FamilyMember[]>([]);
@@ -296,6 +361,9 @@ export function FamilyFlow() {
   const [error, setError] = useState("");
   const [feedbackSaved, setFeedbackSaved] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installMessage, setInstallMessage] = useState("");
 
   const canGenerate = useMemo(() => Boolean(createdFamily), [createdFamily]);
   const adjustedNutrition = useMemo(() => {
@@ -308,6 +376,22 @@ export function FamilyFlow() {
     loadDemo();
     // Demo data should load once on first visit; later reloads are user-triggered.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {
+        setInstallMessage("Install support is limited in this browser, but MAMAAI still works in the mobile browser.");
+      });
+    }
+
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
   }, []);
 
   function syncMealAttendance(nextMembers: FamilyMember[]) {
@@ -363,6 +447,40 @@ export function FamilyFlow() {
     });
   }
 
+  function closeMobileMenu() {
+    setMobileMenuOpen(false);
+  }
+
+  function scrollToPlanner() {
+    closeMobileMenu();
+    scrollToSection("planner");
+  }
+
+  function scrollToFamilyProfile() {
+    closeMobileMenu();
+    scrollToSection("family-profile");
+  }
+
+  async function installMamaAi() {
+    if (installPrompt) {
+      await installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      setInstallPrompt(null);
+      setInstallMessage(
+        choice.outcome === "accepted"
+          ? "MAMAAI install started. You can open it from your phone home screen after installation finishes."
+          : "Install was dismissed. You can still use MAMAAI in the browser or add it from your browser menu."
+      );
+      trackAnalyticsEvent("pwa_install_prompt", { category: choice.outcome, label: choice.platform });
+      return;
+    }
+
+    setInstallMessage(
+      "To install on iPhone: open Safari share menu and tap Add to Home Screen. On Android: open browser menu and tap Install app or Add to Home screen."
+    );
+    trackAnalyticsEvent("pwa_install_prompt", { category: "manual_instructions" });
+  }
+
   async function loadDemo(mode: "judge" | "standard" = "standard") {
     if (mode === "judge") {
       trackAnalyticsEvent("try_demo_click");
@@ -388,6 +506,10 @@ export function FamilyFlow() {
       setState(data.family.state);
       setDietPreference(data.family.dietPreference);
       setCuisineText(data.family.cuisinePreferences.join(", "));
+      setBudgetType(data.family.budget.type);
+      setBudgetAmount(data.family.budget.amount ?? 0);
+      setBudgetPriority(data.family.budget.priority ?? "flexible");
+      setPreferLowCostMeals(data.family.budget.preferLowCostMeals ?? false);
       setMembers(data.members.map(({ memberId: _memberId, familyId: _familyId, ...member }) => member));
       syncMealAttendance(data.members);
       setStatus(
@@ -414,6 +536,7 @@ export function FamilyFlow() {
     trackAnalyticsEvent("get_started_click");
     setJudgeMode(false);
     setStatus("Custom family mode ready. Edit the family members, create the family, then plan today.");
+    closeMobileMenu();
     scrollToSection("family-profile");
   }
 
@@ -434,7 +557,13 @@ export function FamilyFlow() {
           city,
           dietPreference,
           cuisinePreferences: splitList(cuisineText),
-          budget: { type: "daily", amount: 450, currency: "INR" },
+          budget: {
+            type: budgetType,
+            amount: budgetType === "none" ? undefined : Math.max(1, budgetAmount),
+            currency: "INR",
+            priority: budgetPriority,
+            preferLowCostMeals
+          },
           kitchenProfile: {
             equipment: ["Gas stove", "Pressure cooker", "Mixer/grinder"],
             cookingTimePreference: "under_30"
@@ -505,7 +634,10 @@ export function FamilyFlow() {
 
     setNutritionContexts(data.nutritionContexts);
     setMealPlan(data.mealPlan);
-    trackAnalyticsEvent("meal_plan_generated");
+    trackAnalyticsEvent("meal_plan_generated", {
+      category: familyForPlan.subscriptionPlan,
+      label: selectedMealTime
+    });
     setStatus(
       userPlanningMode === "returning_user_weekly_editable"
         ? "Weekly editable planning mode selected. This demo shows the next meal while preserving the lower-cost reuse strategy."
@@ -538,6 +670,10 @@ export function FamilyFlow() {
     }
 
     setMealPlan(data.mealPlan);
+    trackAnalyticsEvent("meal_replaced", {
+      category: createdFamily?.subscriptionPlan ?? "unknown",
+      label: "ingredient_unavailable"
+    });
     setStatus("Meal replaced. Grocery list and estimated cost have been updated.");
   }
 
@@ -598,15 +734,45 @@ export function FamilyFlow() {
           <span className="brand-mark">M</span>
           <span>MAMAAI</span>
         </div>
-        <nav className="nav-links" aria-label="Main navigation">
-          <a href="#home">Home</a>
-          <a href="#how-it-works">How It Works</a>
-          <a href="#features">Features</a>
-          <a href="#about">About</a>
-          <a href="#pricing">Pricing</a>
+        <button
+          className="mobile-menu-button"
+          type="button"
+          onClick={() => setMobileMenuOpen((current) => !current)}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="main-navigation"
+        >
+          Menu
+        </button>
+        <nav className={mobileMenuOpen ? "nav-links open" : "nav-links"} id="main-navigation" aria-label="Main navigation">
+          <a href="#home" onClick={closeMobileMenu}>
+            Home
+          </a>
+          <a href="#how-it-works" onClick={closeMobileMenu}>
+            How It Works
+          </a>
+          <a href="#features" onClick={closeMobileMenu}>
+            Features
+          </a>
+          <a href="#about" onClick={closeMobileMenu}>
+            About
+          </a>
+          <a href="#pricing" onClick={closeMobileMenu}>
+            Pricing
+          </a>
+          <button className="nav-link-button" type="button" onClick={scrollToPlanner}>
+            Planner
+          </button>
         </nav>
-        <div className="nav-actions">
-          <button className="button secondary" type="button" onClick={() => loadDemo("judge")} disabled={demoLoading}>
+        <div className={mobileMenuOpen ? "nav-actions open" : "nav-actions"}>
+          <button
+            className="button secondary"
+            type="button"
+            onClick={() => {
+              closeMobileMenu();
+              loadDemo("judge");
+            }}
+            disabled={demoLoading}
+          >
             {demoLoading ? "Opening Demo..." : "Try Demo"}
           </button>
           <button className="button" type="button" onClick={startCustomFamily}>
@@ -636,6 +802,18 @@ export function FamilyFlow() {
               You are using a testing version of MAMAAI. Some features that depend on external services may be limited or temporarily
               unavailable. These integrations are planned to be enabled or expanded as the application progresses toward production.
             </p>
+            <div className="install-card">
+              <div>
+                <p className="mini-title">Use MAMAAI like an app</p>
+                <p className="muted">
+                  Add MAMAAI to your phone home screen for quick daily access. The current build supports the web/PWA path first.
+                </p>
+              </div>
+              <button className="button secondary" type="button" onClick={installMamaAi}>
+                Install MAMAAI
+              </button>
+              {installMessage ? <p className="notice">{installMessage}</p> : null}
+            </div>
           </div>
           <div className="hero-visual" aria-label="MAMAAI meal planner preview">
             <div className="family-illustration">
@@ -655,9 +833,9 @@ export function FamilyFlow() {
                 <span>Extra protein for Son</span>
               </div>
               <div className="preview-actions">
-                <span>View Recipe</span>
-                <span>Replace Meal</span>
-                <span>Grocery List</span>
+                <span>Recipe opens in planner</span>
+                <span>Replace works after plan</span>
+                <span>Grocery list below</span>
               </div>
             </div>
           </div>
@@ -760,10 +938,10 @@ export function FamilyFlow() {
               </div>
             ))}
             <div className="preview-actions">
-              <span>View Recipe</span>
-              <span>Replace Meal</span>
-              <span>View Ingredients</span>
-              <span>Grocery List</span>
+              <span>Recipe in live planner</span>
+              <span>Replace after plan</span>
+              <span>Ingredients in planner</span>
+              <span>Grocery list in planner</span>
             </div>
           </div>
         </section>
@@ -815,13 +993,13 @@ export function FamilyFlow() {
                 <option value="returning_user_weekly_editable">Returning user - weekly editable</option>
               </select>
             </label>
-            <button className="button" onClick={() => generateMeal()} disabled={!canGenerate}>
+            <button className="button" type="button" onClick={() => generateMeal()} disabled={!canGenerate}>
               Plan Today
             </button>
             <button className="button secondary" type="button" onClick={() => loadDemo("standard")} disabled={demoLoading}>
               {demoLoading ? "Loading Demo..." : "Load Demo Family"}
             </button>
-            <button className="button secondary" onClick={replaceMeal} disabled={!mealPlan}>
+            <button className="button secondary" type="button" onClick={replaceMeal} disabled={!mealPlan}>
               Replace Meal
             </button>
           </div>
@@ -885,7 +1063,7 @@ export function FamilyFlow() {
           </p>
           <p className="notice">
             Cost-control rule: new users get a focused next-meal plan. Returning users should reuse and edit a weekly plan
-            so AI calls stay low and the INR 199 plan can remain financially sustainable.
+            so AI calls stay low and subscriptions remain financially sustainable.
           </p>
           {judgeMode ? (
             <div className="demo-steps" aria-label="Judge demo checklist">
@@ -917,6 +1095,14 @@ export function FamilyFlow() {
                     {createdFamily?.city ?? city}, {createdFamily?.state ?? state} - Family Premium demo entitlement
                   </p>
                   <p className="muted">Food pattern: {familyDietOptions.find((option) => option.value === createdFamily?.dietPreference)?.label ?? "Vegetarian"}</p>
+                  <p className="muted">
+                    Budget:{" "}
+                    {createdFamily?.budget.type === "none"
+                      ? "No fixed budget"
+                      : `${budgetTypeLabel(createdFamily?.budget.type ?? budgetType)} INR ${
+                          createdFamily?.budget.amount ?? budgetAmount
+                        } (${createdFamily?.budget.priority ?? budgetPriority})`}
+                  </p>
                 </div>
                 <div className="member-list">
                   {createdMembers.map((member) => (
@@ -997,6 +1183,65 @@ export function FamilyFlow() {
                     ))}
                   </select>
                 </label>
+                <section className="budget-box" aria-label="Meal budget constraint">
+                  <div>
+                    <p className="mini-title">Meal Budget Constraint</p>
+                    <p className="muted">
+                      Tell MAMAAI the family&apos;s food budget so meal choices and grocery estimates can stay practical.
+                    </p>
+                  </div>
+                  <div className="row">
+                    <label>
+                      Budget period
+                      <select value={budgetType} onChange={(event) => setBudgetType(event.target.value as BudgetProfile["type"])}>
+                        <option value="per_meal">Per meal</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="none">No fixed budget</option>
+                      </select>
+                    </label>
+                    <label>
+                      Amount in INR
+                      <input
+                        type="number"
+                        min="1"
+                        value={budgetAmount}
+                        disabled={budgetType === "none"}
+                        onChange={(event) => setBudgetAmount(Number(event.target.value))}
+                      />
+                    </label>
+                  </div>
+                  <div className="row">
+                    <label>
+                      Budget priority
+                      <select
+                        value={budgetPriority}
+                        disabled={budgetType === "none"}
+                        onChange={(event) => setBudgetPriority(event.target.value as NonNullable<BudgetProfile["priority"]>)}
+                      >
+                        <option value="flexible">Flexible</option>
+                        <option value="strict">Strict</option>
+                      </select>
+                    </label>
+                    <label className="checkbox-line">
+                      <input
+                        type="checkbox"
+                        checked={preferLowCostMeals}
+                        disabled={budgetType === "none"}
+                        onChange={(event) => setPreferLowCostMeals(event.target.checked)}
+                      />
+                      Prefer low-cost meals
+                    </label>
+                  </div>
+                  <p className="notice">
+                    {budgetType === "none"
+                      ? "MAMAAI will show estimated cost, but will not enforce a budget cap."
+                      : `${budgetTypeLabel(budgetType)} budget: INR ${budgetAmount || 0}. ${
+                          budgetPriority === "strict" ? "Keep suggestions close to this limit." : "Use this as a flexible planning guide."
+                        }`}
+                  </p>
+                </section>
                 <div className="member-list">
                   <div className="member-header">
                     <h2>Add Members</h2>
@@ -1311,6 +1556,7 @@ export function FamilyFlow() {
                     Estimated meal cost: INR {mealPlan.estimatedCost.mealCost.amount} - Daily estimate: INR{" "}
                     {mealPlan.estimatedCost.dailyCost.amount}
                   </p>
+                  <p className="notice">{budgetStatusText(createdFamily?.budget, mealPlan)}</p>
                 </section>
 
                 <section className="panel subscription-panel">
@@ -1319,20 +1565,32 @@ export function FamilyFlow() {
                     Judge Access safely bypasses payment for demo review. Production entitlement remains server-side and
                     RevenueCat-ready.
                   </p>
+                  <p className="feature-status">
+                    <span>Testing-stage billing status</span>
+                    Payment is not live in this hackathon build, and MAMAAI does not use fake payment buttons. Production will
+                    activate subscriptions only after backend webhook verification and secure entitlement storage.
+                  </p>
                   <div className="plan-grid">
                     <div>
                       <p className="mini-title">Family Starter</p>
-                      <p className="muted">INR 199/month - 4 members</p>
+                      <p className="muted">{planPriceLabel("starter", createdFamily?.country ?? country)} - 4 members</p>
+                      <p className="muted">Other markets: US$4.99/month</p>
                     </div>
                     <div>
                       <p className="mini-title">Family Premium</p>
-                      <p className="muted">INR 399/month - 6 members</p>
+                      <p className="muted">{planPriceLabel("premium", createdFamily?.country ?? country)} - 6 members</p>
+                      <p className="muted">Other markets: US$6.99/month</p>
                     </div>
                     <div>
                       <p className="mini-title">Family Plus</p>
-                      <p className="muted">INR 599/month - 10 members</p>
+                      <p className="muted">{planPriceLabel("plus", createdFamily?.country ?? country)} - 10 members</p>
+                      <p className="muted">Other markets: US$8.99/month</p>
                     </div>
                   </div>
+                  <p className="notice">
+                    Recommended web/PWA payment path: use a production web payment provider with server-side verification, then
+                    sync the user&apos;s single MAMAAI entitlement record with future RevenueCat, Google Play, and iOS channels.
+                  </p>
                 </section>
 
                 <section className="panel">

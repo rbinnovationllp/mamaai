@@ -36,6 +36,9 @@ Response:
 ```ts
 {
   plans: SubscriptionPlanDefinition[];
+  monetizationFlow: string;
+  webPaymentRecommendation: string;
+  productionPaymentStatus: "planned_not_enabled_in_hackathon_build";
   judgeDemoAccess: {
     bypassesPayment: true;
     usesFictionalDataOnly: true;
@@ -46,11 +49,42 @@ Response:
 
 Plans:
 
-- Family Starter: INR 199/month, up to 4 members.
-- Family Premium: INR 399/month, up to 6 members.
-- Family Plus: INR 599/month, up to 10 members.
+- Family Starter: India INR 399/month; international US$4.99/month; up to 4 members.
+- Family Premium: India INR 599/month; international US$6.99/month; up to 6 members.
+- Family Plus: India INR 799/month; international US$8.99/month; up to 10 members.
+
+Regional prices are configured tiers, not live currency conversions. Before enabling production checkout, verify that RevenueCat, Google Play, and the selected web payment provider have matching products/prices.
 
 Judge/Demo Access bypass must not be used for normal production entitlement checks.
+
+## GET /api/subscriptions/status
+
+Returns the server-resolved entitlement status for the current user or demo user. This endpoint is the backend source of truth for feature access. The frontend must not unlock premium behavior using only a local `isPremium` flag.
+
+Query:
+
+```ts
+{
+  userId?: string;
+  mode?: "judge";
+}
+```
+
+Response:
+
+```ts
+{
+  entitlement: SubscriptionEntitlement;
+  sourceOfTruth: "server";
+  productionStatus: string;
+  billingAvailability: {
+    webPayment: "planned";
+    revenueCat: "contract_ready";
+    googlePlayBilling: "planned_for_mobile_app";
+    fakePaymentsEnabled: false;
+  };
+}
+```
 
 ## POST /api/analytics/track
 
@@ -163,7 +197,13 @@ Request:
     }>;
     indianRegionalPreferences?: string[];
     localIngredientAvailabilityNotes?: string[];
-    budget: BudgetProfile;
+    budget: {
+      type: "per_meal" | "daily" | "weekly" | "monthly" | "none";
+      amount?: number;
+      currency: "INR";
+      priority?: "strict" | "flexible";
+      preferLowCostMeals?: boolean;
+    };
     kitchenProfile: KitchenProfile;
     subscriptionPlan: SubscriptionPlan;
   };

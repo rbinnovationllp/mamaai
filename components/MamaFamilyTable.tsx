@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { trackAnalyticsEvent } from "@/lib/shared/client-analytics";
 import type { FamilyMealPlan, FamilyMember, NutritionContext, RecipeVideoSearchResponse } from "@/lib/shared/contracts";
 
 interface MamaFamilyTableProps {
@@ -28,6 +29,10 @@ export function MamaFamilyTable({ members, nutritionContexts, mealPlan, familyCo
   async function watchHowToCook() {
     setVideoStatus("Searching for suitable recipe videos...");
     setVideoSearch(null);
+    trackAnalyticsEvent("recipe_video_requested", {
+      category: familyContext?.dietaryPreference ?? "unknown",
+      label: mealPlan.commonMeal.name
+    });
     const response = await fetch("/api/recipes/videos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -69,7 +74,7 @@ export function MamaFamilyTable({ members, nutritionContexts, mealPlan, familyCo
           {mealPlan.commonMeal.nutritionEstimate.proteinGrams} g protein, {mealPlan.commonMeal.nutritionEstimate.carbsGrams} g carbs,{" "}
           {mealPlan.commonMeal.nutritionEstimate.fatGrams} g fat, and {mealPlan.commonMeal.nutritionEstimate.fiberGrams} g fiber for the family meal.
         </p>
-        <button className="button" onClick={() => setRecipeOpen(true)}>
+        <button className="button" type="button" onClick={() => setRecipeOpen(true)}>
           View Recipe / How to Cook
         </button>
       </div>
@@ -82,7 +87,7 @@ export function MamaFamilyTable({ members, nutritionContexts, mealPlan, familyCo
                 <p className="eyebrow">How to Cook</p>
                 <h2>{recipe.title}</h2>
               </div>
-              <button className="button secondary" onClick={() => setRecipeOpen(false)}>
+              <button className="button secondary" type="button" onClick={() => setRecipeOpen(false)}>
                 Close
               </button>
             </div>
@@ -157,7 +162,7 @@ export function MamaFamilyTable({ members, nutritionContexts, mealPlan, familyCo
                   <span>Optional external service</span>
                   Written recipe is fully available. Video discovery may be limited in this testing version.
                 </p>
-                <button className="button" onClick={watchHowToCook}>
+                <button className="button" type="button" onClick={watchHowToCook}>
                   Watch How to Cook
                 </button>
                 <p className="muted">{recipe.videoRecommendation.note}</p>
@@ -208,6 +213,7 @@ export function MamaFamilyTable({ members, nutritionContexts, mealPlan, familyCo
               <button
                 className={option.optionId === selectedPreferenceOption ? "button" : "button secondary"}
                 key={option.optionId}
+                type="button"
                 onClick={() => setSelectedPreferenceOption(option.optionId)}
               >
                 {option.label}

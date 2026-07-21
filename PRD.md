@@ -1,4 +1,4 @@
-# MAMA AI – PRODUCT REQUIREMENTS DOCUMENT (PRD)
+﻿# MAMA AI â€“ PRODUCT REQUIREMENTS DOCUMENT (PRD)
 
 ## Product Name
 
@@ -38,7 +38,7 @@ MAMA AI is designed for the entire family.
 
 Its core objective is to answer:
 
-**“What should our family cook and eat today?”**
+**â€œWhat should our family cook and eat today?â€**
 
 while considering the different nutritional, health, age, taste, lifestyle, budget, and cultural requirements of every family member.
 
@@ -245,7 +245,7 @@ Collect:
 
 # 7. FAMILY MANAGEMENT
 
-Allow family members according to the user’s subscription plan.
+Allow family members according to the userâ€™s subscription plan.
 
 Each family member should include:
 
@@ -427,7 +427,7 @@ For MVP:
 
 Before weekly or monthly planning ask:
 
-**“Would you like to tell MAMA what your family ate recently so we can suggest more variety?”**
+**â€œWould you like to tell MAMA what your family ate recently so we can suggest more variety?â€**
 
 This must be optional.
 
@@ -657,7 +657,7 @@ Collect available kitchen equipment:
 Cooking-time preference:
 
 * Under 30 minutes
-* 30–60 minutes
+* 30â€“60 minutes
 * More than 60 minutes
 
 Meals should reflect actual kitchen capability.
@@ -670,7 +670,7 @@ Allow the user to enter available ingredients.
 
 Example:
 
-“I have potato, onion, tomato, spinach and paneer.”
+â€œI have potato, onion, tomato, spinach and paneer.â€
 
 MAMA AI should suggest possible:
 
@@ -1009,7 +1009,7 @@ Sensitive health-related memory requires privacy controls.
 
 After meals optionally ask:
 
-**“How did your family like this meal?”**
+**â€œHow did your family like this meal?â€**
 
 Options:
 
@@ -1046,21 +1046,29 @@ Use:
 
 ### Family Starter
 
-₹199/month
+India: INR 399/month
+
+International: US$4.99/month
 
 Supports up to 4 family members.
 
 ### Family Premium
 
-₹399/month
+India: INR 599/month
+
+International: US$6.99/month
 
 Supports up to 6 family members.
 
 ### Family Plus
 
-₹599/month
+India: INR 799/month
+
+International: US$8.99/month
 
 Supports up to 10 family members.
+
+India and international prices are separate configured regional tiers. Do not use live currency conversion for subscription display or billing.
 
 Requirements:
 
@@ -1424,19 +1432,19 @@ Flow should normally be:
 
 Frontend
 
-↓
+â†“
 
 API or Server Action
 
-↓
+â†“
 
 Service
 
-↓
+â†“
 
 Repository
 
-↓
+â†“
 
 Database
 
@@ -1493,11 +1501,11 @@ Doctor-provided restrictions should be treated as hard constraints.
 
 Every generated meal or food plan must show:
 
-“MAMA AI provides AI-generated food and nutrition planning suggestions based on information supplied by users. Recommendations are for informational and educational purposes and are not a substitute for professional medical advice, diagnosis, or treatment.
+â€œMAMA AI provides AI-generated food and nutrition planning suggestions based on information supplied by users. Recommendations are for informational and educational purposes and are not a substitute for professional medical advice, diagnosis, or treatment.
 
 Users with chronic medical conditions, allergies, pregnancy, recent hospitalization, surgery, medication requirements, or other special health needs should consult their doctor, registered dietitian, or qualified healthcare professional before following or materially changing a meal plan.
 
-Rashi Bhartiya Innovation LLP and MAMA AI do not guarantee that AI-generated recommendations are suitable for every individual. Users remain responsible for reviewing recommendations and seeking professional advice where appropriate.”
+Rashi Bhartiya Innovation LLP and MAMA AI do not guarantee that AI-generated recommendations are suitable for every individual. Users remain responsible for reviewing recommendations and seeking professional advice where appropriate.â€
 
 Safety must also be enforced technically.
 
@@ -1575,51 +1583,51 @@ Prioritize this complete end-to-end workflow:
 
 Create Account
 
-↓
+â†“
 
 Create Family
 
-↓
+â†“
 
 Add Family Members
 
-↓
+â†“
 
 Capture Age / Height / Weight / Preferences / Health Context
 
-↓
+â†“
 
 Calculate Nutrition Context
 
-↓
+â†“
 
 Generate One Common Family Meal
 
-↓
+â†“
 
 Generate Member-Specific Modifications
 
-↓
+â†“
 
 Generate Portion Guidance
 
-↓
+â†“
 
 Add Fruits / Hydration
 
-↓
+â†“
 
 Allow Meal Replacement
 
-↓
+â†“
 
 Automatically Update Grocery List
 
-↓
+â†“
 
 Show MAMA Family Table
 
-↓
+â†“
 
 Collect Feedback
 
@@ -1849,7 +1857,7 @@ Before writing production code:
 
 Prioritize the primary working vertical slice:
 
-**Family Creation → Family Members → Nutrition Context → Common Family Meal → Personalized Adjustments → Portions → Fruit/Hydration → Replace Meal → Grocery Update → MAMA Family Table.**
+**Family Creation â†’ Family Members â†’ Nutrition Context â†’ Common Family Meal â†’ Personalized Adjustments â†’ Portions â†’ Fruit/Hydration â†’ Replace Meal â†’ Grocery Update â†’ MAMA Family Table.**
 
 Do not attempt all future features at once.
 
@@ -1872,3 +1880,4 @@ The system should combine the emotional idea of traditional family food care wit
 **The Wisdom of Maa. The Intelligence of AI.**
 
 # END OF PRD.md
+

@@ -135,7 +135,7 @@ pm run build.
 - Soft dislikes must stay separate from allergy/medical safety handling; allergies and medical restrictions always remain hard constraints.
 - Meal-wise quantities should be calculated deterministically from selected family attendance, fasting members, guest count, and adult-equivalent portion factors. This keeps recurring subscription cost lower by avoiding unnecessary AI calls for simple grocery math.
 - High tea is treated as a real meal slot for families that use it, especially in late afternoon local time. Dinner remains the default from 6:00 PM onward.
-- Subscription pricing should not be increased only because of meal attendance, high tea, fasting, or quantity calculation, because these are deterministic low-cost features. Keep INR 199/399/599 for launch and add fair-use limits/cached weekly planning before raising prices.
+- Subscription pricing updated for AI/API sustainability: Family Starter is India INR 399/month or international US$4.99/month, Family Premium is India INR 599/month or international US$6.99/month, and Family Plus is India INR 799/month or international US$8.99/month. Meal attendance, high tea, fasting, and quantity calculation remain deterministic low-cost features; expensive AI operations need fair-use controls and usage tracking.
 - Supabase is not used. Production persistence should use AWS with DynamoDB for structured application records and S3 only for objects/files.
 - MAMAAI can share the same AWS account as education projects only with separate tables/buckets or prefixes, least-privilege IAM, separate environment variables, tags, logs, and alarms.
 - Detailed meal plans should expire after 15 days using DynamoDB TTL in production; safety and personalization signals remain in long-term records until the user deletes or changes them.
@@ -192,5 +192,10 @@ pm run build.
 
 - Fixed Try Demo/Judge Access CTA behavior so it visibly loads demo data, shows loading/failure state, and scrolls users into the live planner.
 - Improved mobile demo usability: Try Demo now opens the family profile section first, key controls use explicit button behavior, and Ask MAMA no longer spans the full mobile screen bottom.
+- Added user-facing meal budget constraints in the family profile flow: budget period, INR amount, strict/flexible priority, low-cost preference, demo budget display, and generated-plan budget comparison.
+- Added mobile hamburger navigation, explicit app-style install guidance, PWA manifest, service worker, and branded app icons for the web/PWA launch path.
+- Added `/api/subscriptions/status` as a server-side testing-stage entitlement endpoint with plan, status, payment channel, payment status, member limit, and feature access fields.
+- Clarified monetization in UI and docs: no fake payment buttons, Judge Access bypass is fictional-data-only, web payments are planned with backend webhook verification, and RevenueCat/Google Play remain integration-ready.
+- Replaced previous subscription prices with regional configured tiers: India INR 399/599/799 and international US$4.99/6.99/8.99; added plan fair-use limits and admin AI/API usage tracking for cost-sensitive operations.
 
 

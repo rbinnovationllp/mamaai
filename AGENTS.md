@@ -1,12 +1,12 @@
-# AGENTS.md
+﻿# AGENTS.md
 
-# MAMA AI – CODEX MULTI-AGENT DEVELOPMENT RULES
+# MAMA AI â€“ CODEX MULTI-AGENT DEVELOPMENT RULES
 
 All Codex agents working in this repository must read this file before editing code.
 
 Project:
 
-**MAMA AI – Meal & Aahaar Management Assistant**
+**MAMA AI â€“ Meal & Aahaar Management Assistant**
 
 Website:
 
@@ -85,7 +85,7 @@ Do not remove these files.
 
 # 4. AGENT OWNERSHIP
 
-## AGENT A – ARCHITECTURE LEAD
+## AGENT A â€“ ARCHITECTURE LEAD
 
 Owns:
 
@@ -109,7 +109,7 @@ Must not unnecessarily rewrite working feature code.
 
 ---
 
-## AGENT B – FRONTEND AND UX
+## AGENT B â€“ FRONTEND AND UX
 
 Owns:
 
@@ -139,7 +139,7 @@ Use APIs or service contracts.
 
 ---
 
-## AGENT C – BACKEND AND DATABASE
+## AGENT C â€“ BACKEND AND DATABASE
 
 Owns:
 
@@ -167,7 +167,7 @@ Never silently change schemas.
 
 ---
 
-## AGENT D – AI AND FAMILY FOOD OPTIMIZER
+## AGENT D â€“ AI AND FAMILY FOOD OPTIMIZER
 
 Owns:
 
@@ -197,7 +197,7 @@ Do not place production prompts inside random UI files.
 
 ---
 
-## AGENT E – ADMIN AND CRM
+## AGENT E â€“ ADMIN AND CRM
 
 Owns:
 
@@ -220,7 +220,7 @@ Sensitive health information must not be exposed to unauthorized admin roles.
 
 ---
 
-## AGENT F – QA, SECURITY AND RELEASE
+## AGENT F â€“ QA, SECURITY AND RELEASE
 
 Owns:
 
@@ -247,51 +247,51 @@ Highest-priority end-to-end workflow:
 
 Create Account
 
-↓
+â†“
 
 Create Family
 
-↓
+â†“
 
 Add Family Members
 
-↓
+â†“
 
 Capture Age / Height / Weight / Preferences / Health Context
 
-↓
+â†“
 
 Calculate Relevant Nutrition Context
 
-↓
+â†“
 
 Generate One Common Family Meal
 
-↓
+â†“
 
 Generate Member-Specific Modifications
 
-↓
+â†“
 
 Generate Portion Guidance
 
-↓
+â†“
 
 Add Fruits / Hydration
 
-↓
+â†“
 
 Allow Meal Replacement
 
-↓
+â†“
 
 Automatically Update Grocery List
 
-↓
+â†“
 
 Show MAMA Family Table
 
-↓
+â†“
 
 Collect Feedback
 
@@ -362,19 +362,19 @@ Use:
 
 Frontend
 
-↓
+â†“
 
 API / Server Action
 
-↓
+â†“
 
 Service
 
-↓
+â†“
 
 Repository
 
-↓
+â†“
 
 Database
 
@@ -576,21 +576,29 @@ Plans:
 
 ## Family Starter
 
-₹199/month
+India: INR 399/month
+
+International: US$4.99/month
 
 Up to 4 members
 
 ## Family Premium
 
-₹399/month
+India: INR 599/month
+
+International: US$6.99/month
 
 Up to 6 members
 
 ## Family Plus
 
-₹599/month
+India: INR 799/month
+
+International: US$8.99/month
 
 Up to 10 members
+
+India and international prices are separate configured regional tiers. Do not use live currency conversion for subscription display or billing.
 
 Architecture:
 
@@ -974,3 +982,4 @@ Only after these checks may the project be marked:
 **Hackathon MVP Ready**
 
 # END OF AGENTS.md
+

@@ -87,13 +87,31 @@ button {
   gap: 10px;
 }
 
-.nav-links a {
+.mobile-menu-button {
+  display: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--ink);
+  background: #ffffff;
+  font-weight: 900;
+}
+
+.nav-links a,
+.nav-link-button {
   color: var(--muted);
   font-weight: 800;
   text-decoration: none;
 }
 
-.nav-links a:hover {
+.nav-link-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.nav-links a:hover,
+.nav-link-button:hover {
   color: var(--leaf);
 }
 
@@ -206,6 +224,14 @@ h1 {
   background: var(--tomato);
 }
 
+.button:disabled,
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none;
+  box-shadow: none;
+}
+
 .judge-banner {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -236,6 +262,21 @@ h1 {
 .hero-actions .button {
   min-height: 54px;
   min-width: 180px;
+}
+
+.install-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #b7d7c7;
+  border-radius: 8px;
+  padding: 14px;
+  background: #f5fff9;
+}
+
+.install-card .notice {
+  grid-column: 1 / -1;
 }
 
 .hero-visual {
@@ -568,6 +609,15 @@ label {
 
 .compact-control select {
   min-height: 41px;
+}
+
+.budget-box {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #b7d7c7;
+  border-radius: 8px;
+  padding: 14px;
+  background: #f5fff9;
 }
 
 input,
@@ -1106,19 +1156,56 @@ textarea {
     min-height: auto;
   }
 
-  .nav-links {
+  .mobile-menu-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 86px;
+  }
+
+  .nav-links,
+  .nav-actions {
+    display: none;
     order: 3;
     width: 100%;
-    overflow-x: auto;
-    padding-bottom: 4px;
+  }
+
+  .nav-links.open,
+  .nav-actions.open {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .nav-links a,
+  .nav-link-button {
+    min-height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    background: #ffffff;
+    text-align: left;
   }
 
   .nav-actions {
-    width: 100%;
+    order: 4;
+  }
+
+  .nav-actions.open {
+    gap: 8px;
   }
 
   .nav-actions .button {
-    flex: 1;
+    width: 100%;
+  }
+
+  .install-card {
+    grid-template-columns: 1fr;
+  }
+
+  .actions .button,
+  .hero-actions .button {
+    width: 100%;
   }
 
   .judge-banner {

@@ -27,14 +27,29 @@ export type SubscriptionPlan = "family_starter" | "family_premium" | "family_plu
 
 export type EntitlementSource = "demo_judge_access" | "local_demo" | "revenuecat" | "manual_admin";
 
+export type PaymentChannel = "demo" | "web_payment" | "google_play" | "apple_app_store" | "manual_admin";
+
+export type SubscriptionStatus = "free_demo" | "trialing" | "active" | "past_due" | "cancelled" | "expired";
+
+export type PaymentStatus = "not_required" | "pending" | "paid" | "failed" | "refunded" | "unknown";
+
 export interface SubscriptionPlanDefinition {
   plan: SubscriptionPlan;
   displayName: string;
   priceMonthlyInr: number;
+  priceMonthlyUsd: number;
   memberLimit: number;
   revenueCatEntitlementId: string;
   revenueCatProductId: string;
+  revenueCatInternationalProductId?: string;
   googlePlayProductId: string;
+  googlePlayInternationalProductId?: string;
+  fairUseLimits: {
+    mealPlansPerDay: number;
+    mealReplacementsPerDay: number;
+    askMamaQuestionsPerDay: number;
+    recipeVideoSearchesPerDay: number;
+  };
 }
 
 export interface SubscriptionEntitlement {
@@ -42,10 +57,17 @@ export interface SubscriptionEntitlement {
   plan: SubscriptionPlan;
   memberLimit: number;
   source: EntitlementSource;
+  status?: SubscriptionStatus;
+  paymentChannel?: PaymentChannel;
+  paymentStatus?: PaymentStatus;
   isActive: boolean;
   bypassPaymentForDemo: boolean;
   revenueCatCustomerId?: string;
+  startsAt?: string;
+  renewsAt?: string;
   expiresAt?: string;
+  cancelledAt?: string;
+  features?: string[];
   checkedAt: string;
 }
 
@@ -79,9 +101,11 @@ export interface User {
 }
 
 export interface BudgetProfile {
-  type: "daily" | "weekly" | "monthly" | "none";
+  type: "per_meal" | "daily" | "weekly" | "monthly" | "none";
   amount?: number;
   currency: "INR";
+  priority?: "strict" | "flexible";
+  preferLowCostMeals?: boolean;
 }
 
 export interface KitchenProfile {

@@ -242,6 +242,46 @@ Production-ready next steps:
 - Keep OTP and Apple login as adapter-ready auth providers.
 - Enforce RBAC for `/admin`.
 
+## Mobile App Access / PWA Approach
+
+The hackathon build is a mobile-first web/PWA application. This is the fastest stable route because users can open `mamaai.in` from any phone and add MAMAAI to the home screen without waiting for Google Play or App Store approval.
+
+Implemented PWA foundation:
+
+- Web app manifest with standalone display, app name, theme color, start URL, and app icons.
+- Service worker for basic app-shell caching and faster repeat opening.
+- Visible `Install MAMAAI` action with browser fallback instructions for iPhone and Android.
+- Mobile hamburger menu for in-page app navigation.
+
+Future native app architecture remains compatible: the same backend APIs, user IDs, family records, meal plans, and subscription entitlements can be reused by Android/iOS clients.
+
+## Monetization and Entitlements
+
+MAMAAI should use one server-side entitlement record per user, regardless of payment channel.
+
+Planned flow:
+
+Visitor -> Demo/Free Experience -> Registration -> Subscription Selection -> Payment -> Backend Verification -> Subscription Activated -> Premium Features Unlocked -> Renewal/Cancellation Management.
+
+Plans:
+
+- Family Starter: India INR 399/month; international US$4.99/month; up to 4 members.
+- Family Premium: India INR 599/month; international US$6.99/month; up to 6 members.
+- Family Plus: India INR 799/month; international US$8.99/month; up to 10 members.
+
+Pricing is region-configured, not calculated through live currency conversion. India uses INR pricing; supported international markets use configured international USD pricing unless a payment provider has an approved localized price for that market.
+
+Hackathon status:
+
+- `/api/subscriptions/plans` returns plan metadata and honest billing readiness.
+- `/api/subscriptions/status` returns a server-resolved testing-stage entitlement.
+- RevenueCat webhook contract exists but does not persist production records until DynamoDB is connected.
+- No fake payment or subscription button should appear in the app.
+
+Recommended web/PWA payment path: use a production web payment provider with server-side webhook verification, then write the entitlement to DynamoDB. Future RevenueCat/Google Play/iOS events should update the same user entitlement record, not create separate accounts.
+
+Fair-use controls should protect high-cost AI operations by plan tier. Track meal-plan generation, meal replacement/regeneration, recipe regeneration, Ask MAMA questions, and future AI calls per user/plan in the admin dashboard before changing production limits.
+
 ## AI Structured Output Contract
 
 AI meal generation must return a validated `FamilyMealPlan` containing:
@@ -281,4 +321,5 @@ Repositories own key construction. Services must not know DynamoDB key shapes.
 - Admin/CRM contracts are documented but not prioritized over the family meal vertical slice.
 - RevenueCat plan metadata is defined in code, but production billing is not allowed to block hackathon submission.
 - Judge Access bypasses payment only for fictional demo data and does not weaken normal production entitlement logic.
+- Web/PWA access is the current launch path; native Android/iOS remains a later client using the same API and entitlement contracts.
 
