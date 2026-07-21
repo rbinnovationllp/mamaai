@@ -27,6 +27,9 @@
 - Smoke test passed for `POST /api/revenuecat/webhook` with a sample RevenueCat-style event.
 - Updated `README.md` for Devpost judging with Judge Access, Built With, OpenAI Codex usage, GPT-5.6/OpenAI API architecture, RevenueCat readiness, setup, safety notes, and limitations.
 - Validation passed after README update: `npm run typecheck` and `npm run lint`.
+- Improved Judge Access presentation after live text review: Judge Mode now shows clean read-only fictional family profile cards instead of the large editable form.
+- Replaced non-ASCII separator bullets in key UI text with ASCII hyphens to avoid mojibake such as `Â·` in deployments or text captures.
+- Validation passed after Judge Access UI cleanup: `npm run lint`, `npm run build`, and `npm run typecheck`.
 
 ## In Progress
 
