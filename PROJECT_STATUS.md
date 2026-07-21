@@ -1,4 +1,4 @@
-# MAMA AI Project Status
+﻿# MAMA AI Project Status
 
 ## Completed
 
@@ -28,7 +28,7 @@
 - Updated `README.md` for Devpost judging with Judge Access, Built With, OpenAI Codex usage, GPT-5.6/OpenAI API architecture, RevenueCat readiness, setup, safety notes, and limitations.
 - Validation passed after README update: `npm run typecheck` and `npm run lint`.
 - Improved Judge Access presentation after live text review: Judge Mode now shows clean read-only fictional family profile cards instead of the large editable form.
-- Replaced non-ASCII separator bullets in key UI text with ASCII hyphens to avoid mojibake such as `Â·` in deployments or text captures.
+- Replaced non-ASCII separator bullets in key UI text with ASCII hyphens to avoid mojibake such as `Ã‚Â·` in deployments or text captures.
 - Validation passed after Judge Access UI cleanup: `npm run lint`, `npm run build`, and `npm run typecheck`.
 - Added region-aware meal selection with breakfast/lunch/dinner defaults based on the user's browser timezone and manual override.
 - Added `mealTimeContext` API contract so meal planning can receive timezone, locale, country, region/state, city, and local hour.
@@ -77,6 +77,17 @@
 - Added general testing-version notice for hackathon users and judges.
 - Updated optional recipe-video integration UX so `Watch How to Cook` remains visible, written recipes remain usable, and missing external API activation is labeled as `Currently Unavailable in Test Version` without exposing technical configuration details.
 - Validation passed after testing-stage external-service notice work: `npm run typecheck`, `npm run lint`, and `npm run build`.
+- Redesigned the homepage into a more colorful, premium, mobile-first consumer landing experience with sticky navigation, strong hero, family-needs storytelling, How It Works, feature cards, MAMA Family Table showcase, daily plan preview, emotional brand story, and final CTA.
+- Integrated Vercel Web Analytics through `@vercel/analytics/next`.
+- Added privacy-conscious MVP analytics event tracking for homepage visits, Try Demo clicks, Get Started clicks, family creation/registration-style events, and meal-plan generation.
+- Added `/admin` Website Analytics dashboard with Today's Visitors, Last 7 Days, Last 30 Days, Total Visits, daily trend, pages, traffic sources, device breakdown, and conversion funnel.
+- Validation passed after homepage redesign and website analytics work: 
+pm run typecheck, 
+pm run lint, and 
+pm run build.
+- Added Ask MAMA floating product-help assistant with controlled MAMAAI knowledge-base answers, quick questions, short guidance, Judge Demo/Add Family/Support actions, safety refusals, and prompt-injection/secret-disclosure protection.
+- Added /api/ask-mama route and anonymous Ask MAMA analytics events for opens, questions, unresolved topics, and common categories.
+- Added support contact support@mamaai.in and owner contact binnovationllp@gmail.com.
 
 ## In Progress
 
@@ -84,6 +95,8 @@
 - Public deployment preparation.
 - Replacing MVP in-memory persistence with production DynamoDB repositories when infrastructure is available.
 - Implementing production DynamoDB/S3/Cognito integration after the hackathon demo remains stable.
+- Moving MVP in-memory analytics events to production DynamoDB or a managed privacy-friendly analytics backend.
+- Expanding Ask MAMA from controlled product help to multilingual, authenticated, OpenAI-assisted guidance after production privacy and safety controls are ready.
 
 ## Not Started
 
@@ -92,7 +105,7 @@
 - Production authentication provider integration.
 - RevenueCat and Google Play Billing production integration.
 - Admin/CRM screens beyond contract foundation.
-- Pantry, leftover, analytics, PDF/export, and multilingual production rollout.
+- Pantry, leftover, production analytics persistence, PDF/export, and multilingual production rollout.
 
 ## Known Bugs
 
@@ -100,7 +113,8 @@
 - Runtime browser click-through is pending.
 - Dev server logs warn about a non-standard `NODE_ENV` value from the surrounding environment.
 - RevenueCat webhook currently validates and acknowledges events but does not persist entitlement changes until the production subscription repository is connected.
-- Git working tree currently has normal uncommitted changes from the current AWS storage architecture, retention, export, and cuisine-persona work.
+- Git working tree currently has normal uncommitted changes from the current homepage redesign and analytics work.
+- Ask MAMA currently answers product-help/navigation questions from a controlled knowledge base; it is not yet connected to OpenAI for free-form conversation.
 
 ## Architecture Decisions
 
@@ -125,6 +139,8 @@
 - Supabase is not used. Production persistence should use AWS with DynamoDB for structured application records and S3 only for objects/files.
 - MAMAAI can share the same AWS account as education projects only with separate tables/buckets or prefixes, least-privilege IAM, separate environment variables, tags, logs, and alarms.
 - Detailed meal plans should expire after 15 days using DynamoDB TTL in production; safety and personalization signals remain in long-term records until the user deletes or changes them.
+- Website analytics should use Vercel Web Analytics where possible and track product events with anonymous visitor/session ids. Do not store raw IP addresses for visitor counting.
+- Ask MAMA should stay grounded in controlled MAMAAI product knowledge, clearly label testing-stage limitations, and never expose prompts, secrets, internal configuration, private user data, or admin details.
 
 ## Required Environment Variables
 
@@ -171,3 +187,5 @@
 - Vercel project and custom domain setup are in progress/previously configured by the user.
 - Local build is production-valid after the current milestone.
 - Public Devpost-ready deployment should be verified at `https://mamaai.in` after pushing and Vercel redeploys.
+
+

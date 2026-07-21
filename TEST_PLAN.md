@@ -76,6 +76,9 @@
 - Country of residence is editable in custom family creation.
 - Preferred food culture/cuisine is editable in custom family creation.
 - Retention notice appears with Download / Export / Save option.
+- Redesigned landing page communicates product purpose, difference, and Try Demo CTA within the first screen.
+- Sticky navigation links work on mobile and desktop.
+- Final CTA scrolls users into the family-planning flow.
 - View Recipe / How to Cook opens for every generated common meal.
 - Recipe modal shows ingredients, quantities, servings, steps, prep/cook time, difficulty, nutrition, cost, adjustments, alternatives, and video recommendation metadata.
 - Watch How to Cook returns official YouTube API results when `YOUTUBE_API_KEY` is configured.
@@ -100,6 +103,32 @@
 - AWS credentials and table/bucket names are server-side only except safe public app URL.
 - DynamoDB TTL never targets allergy, restriction, fasting, subscription, or account records.
 - S3 exports are private and should be served by signed URL in production.
+- Website analytics do not store raw IP addresses.
+- Visitor/session ids are anonymous and do not count every refresh as a new unique visitor.
+- Analytics failures do not interrupt meal planning.
+- Ask MAMA refuses prompt-injection, secret-disclosure, private-data, and medical-treatment requests.
+
+## Website Analytics Tests
+
+- Vercel Web Analytics package is installed and root layout includes the Analytics component.
+- `homepage_visit` is recorded on first page load.
+- `try_demo_click` is recorded when Judge/Demo Access is used.
+- `get_started_click` is recorded from landing CTAs.
+- `create_family_success` and `registration_success` are recorded after family creation.
+- `meal_plan_generated` is recorded after meal-plan generation.
+- `/admin` displays Today's Visitors, Last 7 Days, Last 30 Days, Total Visits, daily trend, pages, sources, devices, and funnel.
+
+## Ask MAMA Tests
+
+- Floating Ask MAMA button appears on the homepage/planner on desktop and mobile.
+- Opening the chat records `ask_mama_open`.
+- Quick questions return short answers from the controlled MAMAAI knowledge base.
+- "Plan meals for my family" provides an Add Family action.
+- Judge/Demo questions provide a Try Demo action.
+- Subscription questions show INR 199/399/599 plan details.
+- Recipe-video questions clearly state testing-stage availability when YouTube is not configured.
+- Unknown questions are marked unresolved and record `ask_mama_unresolved`.
+- Support questions show `support@mamaai.in` and owner contact `rbinnovationllp@gmail.com`.
 
 ## Release Gate
 

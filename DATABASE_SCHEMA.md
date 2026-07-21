@@ -62,6 +62,8 @@ Enable DynamoDB TTL on `expiresAtEpoch` for detailed meal-plan history. Keep saf
 | SupportTicket | `USER#{userId}` | `TICKET#{ticketId}` | Support |
 | AuditLog | `AUDIT` | `LOG#{createdAt}#{auditLogId}` | Admin/security actions |
 | AppSetting | `APP#mamaai` | `SETTING#{settingKey}` | Region, retention, feature flag, and AI config metadata |
+| AnalyticsEvent | `ANALYTICS#{date}` | `EVENT#{eventId}` | Privacy-conscious visit/product event |
+| AskMamaTopicSummary | `ANALYTICS#{date}` | `ASK_MAMA_TOPIC#{category}` | Aggregated assistant topic metrics |
 
 ## Required Entities
 
@@ -198,6 +200,26 @@ Retain until user deletes/changes data:
 - Feedback and satisfaction signals
 - Subscription entitlement and billing status
 - CRM/support/audit records according to their own retention rules
+
+## Website Analytics
+
+Testing-stage analytics are stored in memory. Production should persist only privacy-conscious event records:
+
+- `eventId`
+- `eventName`
+- `visitorId` anonymous local id
+- `sessionId` anonymous session id
+- `pagePath`
+- `referrer` or source domain where available
+- `category`
+- `label`
+- `deviceCategory`
+- `country` and `region` from hosting headers where legally appropriate
+- `createdAt`
+
+Do not store raw IP addresses for visitor counting. Separate page views, visits/sessions, and estimated unique visitors in reports.
+
+Ask MAMA production analytics should store aggregated topic/category counts and unresolved-question counts where possible. Avoid storing full sensitive user questions unless consent, retention, redaction, and admin access controls are in place.
 
 ## S3 Object Storage
 

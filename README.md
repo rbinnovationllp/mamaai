@@ -50,6 +50,14 @@ Demo family members:
 
 No real personal or medical data is used in the demo.
 
+## Ask MAMA
+
+MAMAAI includes a floating **Ask MAMA** assistant for product help and navigation. In the hackathon build, Ask MAMA answers from a controlled MAMAAI knowledge base so it can explain only the features that are actually working, demo/test-only, temporarily unavailable, or planned.
+
+Ask MAMA can guide users through Judge/Demo Mode, family creation, allergies and dislikes, fasting support, ingredient quantities, recipes, meal replacement, grocery planning, subscription plans, testing-stage limitations, and support.
+
+It is not a doctor, dietitian, or replacement for the core meal-planning engine.
+
 ## Built With
 
 - OpenAI Codex
@@ -186,6 +194,25 @@ npm run lint
 npm run build
 ```
 
+## Analytics
+
+The Vercel build includes Vercel Web Analytics for lightweight page analytics. The hackathon build also records privacy-conscious product events for the Admin Dashboard:
+
+- Homepage visits
+- Try Demo clicks
+- Get Started clicks
+- Family creation / registration-style success
+- Meal plans generated
+- Ask MAMA opens, questions, unresolved topics, and common categories
+
+Admin analytics are visible at:
+
+```text
+/admin
+```
+
+The MVP analytics store anonymous visitor/session ids only and does not store raw IP addresses.
+
 ## Important Project Docs
 
 - `PRD.md`
@@ -205,6 +232,7 @@ npm run build
 - Live OpenAI API integration is architecture-ready but not required for Judge Access.
 - RevenueCat and Google Play Billing are integration-ready but not production-complete.
 - Optional external-service features are labeled as fully functional, demo/test-only, temporarily disabled, or planned.
+- Website analytics are in-memory for the hackathon demo; production should persist analytics events in DynamoDB or a managed privacy-friendly analytics service.
 - Admin/CRM, pantry, production video discovery, analytics, production PDF/CSV exports, and multilingual rollout are post-hackathon priorities.
 
 ## Repository
@@ -214,3 +242,8 @@ Code repository:
 ```text
 https://github.com/rbinnovationllp/mamaai
 ```
+
+## Contact
+
+- Support: support@mamaai.in
+- Owner: rbinnovationllp@gmail.com
