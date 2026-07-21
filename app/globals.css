@@ -247,6 +247,18 @@ textarea {
   background: #fffdf9;
 }
 
+.demo-family-summary {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #f5fff9;
+}
+
+.demo-profile {
+  display: grid;
+  gap: 8px;
+}
+
 .member-header {
   display: flex;
   align-items: center;

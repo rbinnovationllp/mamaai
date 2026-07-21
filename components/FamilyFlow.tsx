@@ -60,6 +60,10 @@ function joinList(value: string[]) {
   return value.join(", ");
 }
 
+function displayList(value: string[], fallback = "None listed") {
+  return value.length ? value.join(", ") : fallback;
+}
+
 export function FamilyFlow() {
   const [judgeMode, setJudgeMode] = useState(true);
   const [familyName, setFamilyName] = useState("Bhartiya Demo Family");
@@ -104,6 +108,11 @@ export function FamilyFlow() {
 
   function updateMember(index: number, patch: Partial<CreateFamilyMemberInput>) {
     setMembers((current) => current.map((member, itemIndex) => (itemIndex === index ? { ...member, ...patch } : member)));
+  }
+
+  function startCustomFamily() {
+    setJudgeMode(false);
+    setStatus("Custom family mode ready. Edit the family members, create the family, then plan today.");
   }
 
   async function createFamily() {
@@ -290,125 +299,161 @@ export function FamilyFlow() {
               {judgeMode ? <span className="pill">Payment bypass: demo only</span> : null}
             </div>
             {judgeMode ? (
-              <p className="notice">
-                Judge Access uses preloaded fictional profiles only. It does not use real personal or medical data and does
-                not require RevenueCat, Google Play Billing, or account registration.
-              </p>
-            ) : null}
-            <div className="field-grid">
-              <div className="row">
-                <label>
-                  Family name
-                  <input value={familyName} onChange={(event) => setFamilyName(event.target.value)} />
-                </label>
-                <label>
-                  City
-                  <input value={city} onChange={(event) => setCity(event.target.value)} />
-                </label>
-              </div>
-              <label>
-                State
-                <input value={state} onChange={(event) => setState(event.target.value)} />
-              </label>
-              <div className="member-list">
-                <div className="member-header">
-                  <h2>Add Members</h2>
-                  <button className="button secondary" onClick={() => setMembers((current) => [...current, initialMember])}>
-                    Add Member
-                  </button>
+              <div className="field-grid">
+                <p className="notice">
+                  Judge Access uses preloaded fictional profiles only. It does not use real personal or medical data and does
+                  not require RevenueCat, Google Play Billing, or account registration.
+                </p>
+                <div className="demo-family-summary">
+                  <p className="mini-title">{createdFamily?.name ?? familyName}</p>
+                  <p className="muted">
+                    {createdFamily?.city ?? city}, {createdFamily?.state ?? state} - Family Premium demo entitlement
+                  </p>
                 </div>
-
-                {members.map((member, index) => (
-                  <article className="member-item" key={`${member.name}-${index}`}>
-                    <div className="member-header">
-                      <strong>{member.name || "Family member"}</strong>
-                      <button
-                        className="button secondary"
-                        onClick={() => setMembers((current) => current.filter((_, itemIndex) => itemIndex !== index))}
-                        disabled={members.length === 1}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                    <div className="field-grid">
-                      <div className="row">
-                        <label>
-                          Name
-                          <input value={member.name} onChange={(event) => updateMember(index, { name: event.target.value })} />
-                        </label>
-                        <label>
-                          Relationship
-                          <input value={member.relationship} onChange={(event) => updateMember(index, { relationship: event.target.value })} />
-                        </label>
+                <div className="member-list">
+                  {createdMembers.map((member) => (
+                    <article className="member-item demo-profile" key={member.memberId}>
+                      <div>
+                        <strong>{member.name}</strong>
+                        <p className="muted">
+                          {member.relationship} - Age {member.age} - {member.activityLevel}
+                        </p>
                       </div>
-                      <div className="row">
-                        <label>
-                          Age
-                          <input
-                            type="number"
-                            value={member.age}
-                            onChange={(event) => updateMember(index, { age: Number(event.target.value) })}
-                          />
-                        </label>
-                        <label>
-                          Activity
-                          <select
-                            value={member.activityLevel}
-                            onChange={(event) => updateMember(index, { activityLevel: event.target.value as CreateFamilyMemberInput["activityLevel"] })}
-                          >
-                            <option value="sedentary">Sedentary</option>
-                            <option value="light">Light</option>
-                            <option value="moderate">Moderate</option>
-                            <option value="heavy">Heavy</option>
-                            <option value="athlete">Athlete</option>
-                          </select>
-                        </label>
-                      </div>
-                      <div className="row">
-                        <label>
-                          Height cm
-                          <input
-                            type="number"
-                            value={member.heightCm ?? ""}
-                            onChange={(event) => updateMember(index, { heightCm: Number(event.target.value) })}
-                          />
-                        </label>
-                        <label>
-                          Weight kg
-                          <input
-                            type="number"
-                            value={member.weightKg ?? ""}
-                            onChange={(event) => updateMember(index, { weightKg: Number(event.target.value) })}
-                          />
-                        </label>
-                      </div>
-                      <label>
-                        Health context
-                        <input
-                          value={joinList(member.healthConditions)}
-                          onChange={(event) => updateMember(index, { healthConditions: splitList(event.target.value) })}
-                          placeholder="Diabetes, hypertension"
-                        />
-                      </label>
-                      <label>
-                        Allergies and doctor restrictions
-                        <input
-                          value={joinList([...member.allergies, ...member.doctorRestrictions])}
-                          onChange={(event) => {
-                            const values = splitList(event.target.value);
-                            updateMember(index, { allergies: values, doctorRestrictions: [] });
-                          }}
-                          placeholder="Peanut, avoid sugary beverages"
-                        />
-                      </label>
-                    </div>
-                  </article>
-                ))}
+                      <p>
+                        <span className="mini-title">Goals: </span>
+                        {displayList(member.goals)}
+                      </p>
+                      <p>
+                        <span className="mini-title">Health context: </span>
+                        {displayList(member.healthConditions)}
+                      </p>
+                      <p>
+                        <span className="mini-title">Allergies/restrictions: </span>
+                        {displayList([...member.allergies, ...member.doctorRestrictions])}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+                <button className="button secondary" onClick={startCustomFamily}>
+                  Create Custom Test Family
+                </button>
               </div>
-              <button className="button" onClick={createFamily}>
-                {judgeMode ? "Recreate Demo Family" : "Create Family"}
-              </button>
-            </div>
+            ) : (
+              <div className="field-grid">
+                <div className="row">
+                  <label>
+                    Family name
+                    <input value={familyName} onChange={(event) => setFamilyName(event.target.value)} />
+                  </label>
+                  <label>
+                    City
+                    <input value={city} onChange={(event) => setCity(event.target.value)} />
+                  </label>
+                </div>
+                <label>
+                  State
+                  <input value={state} onChange={(event) => setState(event.target.value)} />
+                </label>
+                <div className="member-list">
+                  <div className="member-header">
+                    <h2>Add Members</h2>
+                    <button className="button secondary" onClick={() => setMembers((current) => [...current, initialMember])}>
+                      Add Member
+                    </button>
+                  </div>
+
+                  {members.map((member, index) => (
+                    <article className="member-item" key={`${member.name}-${index}`}>
+                      <div className="member-header">
+                        <strong>{member.name || "Family member"}</strong>
+                        <button
+                          className="button secondary"
+                          onClick={() => setMembers((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                          disabled={members.length === 1}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <div className="field-grid">
+                        <div className="row">
+                          <label>
+                            Name
+                            <input value={member.name} onChange={(event) => updateMember(index, { name: event.target.value })} />
+                          </label>
+                          <label>
+                            Relationship
+                            <input value={member.relationship} onChange={(event) => updateMember(index, { relationship: event.target.value })} />
+                          </label>
+                        </div>
+                        <div className="row">
+                          <label>
+                            Age
+                            <input
+                              type="number"
+                              value={member.age}
+                              onChange={(event) => updateMember(index, { age: Number(event.target.value) })}
+                            />
+                          </label>
+                          <label>
+                            Activity
+                            <select
+                              value={member.activityLevel}
+                              onChange={(event) => updateMember(index, { activityLevel: event.target.value as CreateFamilyMemberInput["activityLevel"] })}
+                            >
+                              <option value="sedentary">Sedentary</option>
+                              <option value="light">Light</option>
+                              <option value="moderate">Moderate</option>
+                              <option value="heavy">Heavy</option>
+                              <option value="athlete">Athlete</option>
+                            </select>
+                          </label>
+                        </div>
+                        <div className="row">
+                          <label>
+                            Height cm
+                            <input
+                              type="number"
+                              value={member.heightCm ?? ""}
+                              onChange={(event) => updateMember(index, { heightCm: Number(event.target.value) })}
+                            />
+                          </label>
+                          <label>
+                            Weight kg
+                            <input
+                              type="number"
+                              value={member.weightKg ?? ""}
+                              onChange={(event) => updateMember(index, { weightKg: Number(event.target.value) })}
+                            />
+                          </label>
+                        </div>
+                        <label>
+                          Health context
+                          <input
+                            value={joinList(member.healthConditions)}
+                            onChange={(event) => updateMember(index, { healthConditions: splitList(event.target.value) })}
+                            placeholder="Diabetes, hypertension"
+                          />
+                        </label>
+                        <label>
+                          Allergies and doctor restrictions
+                          <input
+                            value={joinList([...member.allergies, ...member.doctorRestrictions])}
+                            onChange={(event) => {
+                              const values = splitList(event.target.value);
+                              updateMember(index, { allergies: values, doctorRestrictions: [] });
+                            }}
+                            placeholder="Peanut, avoid sugary beverages"
+                          />
+                        </label>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+                <button className="button" onClick={createFamily}>
+                  Create Family
+                </button>
+              </div>
+            )}
           </section>
 
           <section className="stack">
@@ -423,13 +468,13 @@ export function FamilyFlow() {
                       <div className="grocery-item" key={item.itemId}>
                         <p className="mini-title">{item.name}</p>
                         <p className="muted">
-                          {item.quantityToPurchase} · INR {item.estimatedCost.amount}
+                          {item.quantityToPurchase} - INR {item.estimatedCost.amount}
                         </p>
                       </div>
                     ))}
                   </div>
                   <p className="muted">
-                    Estimated meal cost: INR {mealPlan.estimatedCost.mealCost.amount} · Daily estimate: INR{" "}
+                    Estimated meal cost: INR {mealPlan.estimatedCost.mealCost.amount} - Daily estimate: INR{" "}
                     {mealPlan.estimatedCost.dailyCost.amount}
                   </p>
                 </section>
@@ -443,15 +488,15 @@ export function FamilyFlow() {
                   <div className="plan-grid">
                     <div>
                       <p className="mini-title">Family Starter</p>
-                      <p className="muted">INR 199/month · 4 members</p>
+                      <p className="muted">INR 199/month - 4 members</p>
                     </div>
                     <div>
                       <p className="mini-title">Family Premium</p>
-                      <p className="muted">INR 399/month · 6 members</p>
+                      <p className="muted">INR 399/month - 6 members</p>
                     </div>
                     <div>
                       <p className="mini-title">Family Plus</p>
-                      <p className="muted">INR 599/month · 10 members</p>
+                      <p className="muted">INR 599/month - 10 members</p>
                     </div>
                   </div>
                 </section>

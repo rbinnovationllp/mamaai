@@ -14,7 +14,7 @@ export function MamaFamilyTable({ members, nutritionContexts, mealPlan }: MamaFa
         <h2>{mealPlan.commonMeal.name}</h2>
         <p className="lead">{mealPlan.commonMeal.description}</p>
         <p className="muted">
-          {mealPlan.commonMeal.prepTimeMinutes} minutes · {mealPlan.commonMeal.difficulty} · {mealPlan.commonMeal.regionFit}
+          {mealPlan.commonMeal.prepTimeMinutes} minutes - {mealPlan.commonMeal.difficulty} - {mealPlan.commonMeal.regionFit}
         </p>
       </div>
 
@@ -28,7 +28,7 @@ export function MamaFamilyTable({ members, nutritionContexts, mealPlan }: MamaFa
           return (
             <article className="panel person" key={customization.memberId}>
               <h3>{customization.memberName}</h3>
-              <p className="muted">{member?.relationship} · Age {member?.age}</p>
+              <p className="muted">{member?.relationship} - Age {member?.age}</p>
               <div className="stack">
                 <p>
                   <span className="mini-title">Modification: </span>
