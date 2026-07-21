@@ -70,6 +70,7 @@ Every item includes:
 - `userId`
 - `name`
 - `region`
+- `dietPreference`
 - `cuisinePreferences`
 - `budget`
 - `kitchenProfile`
@@ -121,6 +122,7 @@ Stored on generated plans or computed on demand:
 - `planType`
 - `status`
 - `commonMeal`
+- `commonMeal.nutritionEstimate`
 - `memberCustomizations`
 - `fruits`
 - `hydration`

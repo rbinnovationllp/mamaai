@@ -16,6 +16,11 @@ export function MamaFamilyTable({ members, nutritionContexts, mealPlan }: MamaFa
         <p className="muted">
           {mealPlan.commonMeal.prepTimeMinutes} minutes - {mealPlan.commonMeal.difficulty} - {mealPlan.commonMeal.regionFit}
         </p>
+        <p className="notice">
+          Estimated if cooked as suggested: {mealPlan.commonMeal.nutritionEstimate.caloriesKcal} kcal,{" "}
+          {mealPlan.commonMeal.nutritionEstimate.proteinGrams} g protein, {mealPlan.commonMeal.nutritionEstimate.carbsGrams} g carbs,{" "}
+          {mealPlan.commonMeal.nutritionEstimate.fatGrams} g fat, and {mealPlan.commonMeal.nutritionEstimate.fiberGrams} g fiber for the family meal.
+        </p>
       </div>
 
       <div className="family-table">

@@ -5,8 +5,12 @@ import { MamaFamilyTable } from "./MamaFamilyTable";
 import type {
   CreateFamilyMemberInput,
   Family,
+  FamilyDietPreference,
   FamilyMealPlan,
   FamilyMember,
+  MealTime,
+  MealTimeContext,
+  NutritionEstimate,
   NutritionContext
 } from "@/lib/shared/contracts";
 import { demoMemberInputs } from "@/lib/shared/demo-data";
@@ -30,6 +34,113 @@ const demoSteps = [
   "MAMA Family Table",
   "Feedback"
 ];
+
+const familyDietOptions: { value: FamilyDietPreference; label: string }[] = [
+  { value: "vegetarian", label: "Vegetarian" },
+  { value: "non_vegetarian", label: "Non vegetarian" },
+  { value: "semi_vegetarian", label: "Semi vegetarian" },
+  { value: "eggetarian", label: "Eggetarian" },
+  { value: "mixed", label: "Mixed family" }
+];
+
+const addOnNutrition: Record<string, NutritionEstimate> = {
+  none: {
+    caloriesKcal: 0,
+    proteinGrams: 0,
+    carbsGrams: 0,
+    fatGrams: 0,
+    fiberGrams: 0,
+    basis: "No extra food added.",
+    dataSource: "User has not added an extra food.",
+    confidence: "high"
+  },
+  egg: {
+    caloriesKcal: 70,
+    proteinGrams: 6,
+    carbsGrams: 1,
+    fatGrams: 5,
+    fiberGrams: 0,
+    basis: "Approximate value for 1 boiled egg.",
+    dataSource: "MVP estimate aligned to public food-composition data fields.",
+    confidence: "medium"
+  },
+  paneer: {
+    caloriesKcal: 265,
+    proteinGrams: 18,
+    carbsGrams: 6,
+    fatGrams: 20,
+    fiberGrams: 0,
+    basis: "Approximate value for 100 g paneer.",
+    dataSource: "MVP estimate aligned to public food-composition data fields.",
+    confidence: "medium"
+  },
+  chicken: {
+    caloriesKcal: 240,
+    proteinGrams: 31,
+    carbsGrams: 0,
+    fatGrams: 12,
+    fiberGrams: 0,
+    basis: "Approximate value for 100 g cooked chicken.",
+    dataSource: "MVP estimate aligned to public food-composition data fields.",
+    confidence: "medium"
+  },
+  dal: {
+    caloriesKcal: 180,
+    proteinGrams: 12,
+    carbsGrams: 28,
+    fatGrams: 2,
+    fiberGrams: 8,
+    basis: "Approximate value for 1 bowl cooked dal.",
+    dataSource: "MVP estimate aligned to public food-composition data fields.",
+    confidence: "medium"
+  }
+};
+
+function getUserMealTimeContext(): MealTimeContext {
+  const locale = typeof navigator === "undefined" ? "en" : navigator.language;
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  const parts = new Intl.DateTimeFormat(locale, {
+    timeZone,
+    hour: "numeric",
+    hour12: false
+  }).formatToParts(new Date());
+
+  return {
+    timeZone,
+    locale,
+    localHour: Number(parts.find((part) => part.type === "hour")?.value ?? "12")
+  };
+}
+
+function getLocalDate(timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  return year && month && day ? `${year}-${month}-${day}` : new Date().toISOString().slice(0, 10);
+}
+
+function recommendedMealTime(hour = getUserMealTimeContext().localHour ?? 12): MealTime {
+  if (hour < 9) return "breakfast";
+  if (hour < 16) return "lunch";
+  if (hour >= 18) return "dinner";
+  return "dinner";
+}
+
+function mealTimingMessage(mealTime: MealTime, context: MealTimeContext) {
+  const hour = context.localHour ?? 12;
+  const zoneLabel = context.city && context.region ? `${context.city}, ${context.region}` : context.timeZone;
+  if (hour < 9) return `Local time in ${zoneLabel} suggests breakfast right now.`;
+  if (hour < 10) return `It is still morning in ${zoneLabel}. Choose breakfast or lunch based on what you need.`;
+  if (hour >= 18) return `Evening in ${zoneLabel} suggests dinner.`;
+  if (mealTime === "lunch") return `Local time in ${zoneLabel} suggests lunch for the next meal.`;
+  return "Choose the meal you want MAMA to plan.";
+}
 
 const initialMember: CreateFamilyMemberInput = {
   name: "New Member",
@@ -64,21 +175,67 @@ function displayList(value: string[], fallback = "None listed") {
   return value.length ? value.join(", ") : fallback;
 }
 
+function sumNutrition(base: NutritionEstimate, addOn: NutritionEstimate, custom: NutritionEstimate): NutritionEstimate {
+  return {
+    caloriesKcal: base.caloriesKcal + addOn.caloriesKcal + custom.caloriesKcal,
+    proteinGrams: base.proteinGrams + addOn.proteinGrams + custom.proteinGrams,
+    carbsGrams: base.carbsGrams + addOn.carbsGrams + custom.carbsGrams,
+    fatGrams: base.fatGrams + addOn.fatGrams + custom.fatGrams,
+    fiberGrams: base.fiberGrams + addOn.fiberGrams + custom.fiberGrams,
+    basis: custom.caloriesKcal || custom.proteinGrams ? `${base.basis} Includes user-added food estimate.` : base.basis,
+    dataSource: `${base.dataSource} User-added custom values are calculated from the values entered by the user.`,
+    confidence: custom.caloriesKcal || custom.proteinGrams ? "low" : base.confidence
+  };
+}
+
+function nutritionFeedback(estimate: NutritionEstimate) {
+  if (estimate.proteinGrams >= 75 && estimate.fiberGrams >= 25) {
+    return "This looks like a strong family meal estimate: good protein support and useful fiber, assuming portions match the suggestion.";
+  }
+  if (estimate.proteinGrams < 45) {
+    return "This meal may need more protein for the whole family. Consider dal, paneer, egg, curd, soy, fish, or chicken depending on your family preference.";
+  }
+  if (estimate.fiberGrams < 18) {
+    return "This meal may need more fiber. Add vegetables, pulses, millet, fruit, or salad if suitable for the family.";
+  }
+  return "This suggestion is reasonable for a shared family meal. Values remain estimates and should be adjusted for actual portions.";
+}
+
 export function FamilyFlow() {
   const [judgeMode, setJudgeMode] = useState(true);
   const [familyName, setFamilyName] = useState("Bhartiya Demo Family");
   const [city, setCity] = useState("Bengaluru");
   const [state, setState] = useState("Karnataka");
+  const [dietPreference, setDietPreference] = useState<FamilyDietPreference>("vegetarian");
   const [members, setMembers] = useState<CreateFamilyMemberInput[]>(demoMemberInputs);
   const [createdFamily, setCreatedFamily] = useState<Family | null>(null);
   const [createdMembers, setCreatedMembers] = useState<FamilyMember[]>([]);
   const [nutritionContexts, setNutritionContexts] = useState<NutritionContext[]>([]);
   const [mealPlan, setMealPlan] = useState<FamilyMealPlan | null>(null);
+  const [timeContext] = useState<MealTimeContext>(() => getUserMealTimeContext());
+  const [selectedMealTime, setSelectedMealTime] = useState<MealTime>(() => recommendedMealTime());
+  const [userPlanningMode, setUserPlanningMode] = useState<"new_user_next_meal" | "returning_user_weekly_editable">("new_user_next_meal");
+  const [selectedAddOn, setSelectedAddOn] = useState("none");
+  const [customFoodName, setCustomFoodName] = useState("");
+  const [customNutrition, setCustomNutrition] = useState<NutritionEstimate>({
+    caloriesKcal: 0,
+    proteinGrams: 0,
+    carbsGrams: 0,
+    fatGrams: 0,
+    fiberGrams: 0,
+    basis: "User-entered extra food values.",
+    dataSource: "User-entered values.",
+    confidence: "low"
+  });
   const [status, setStatus] = useState("Loading fictional demo family...");
   const [error, setError] = useState("");
   const [feedbackSaved, setFeedbackSaved] = useState(false);
 
   const canGenerate = useMemo(() => Boolean(createdFamily), [createdFamily]);
+  const adjustedNutrition = useMemo(() => {
+    if (!mealPlan) return null;
+    return sumNutrition(mealPlan.commonMeal.nutritionEstimate, addOnNutrition[selectedAddOn] ?? addOnNutrition.none, customNutrition);
+  }, [customNutrition, mealPlan, selectedAddOn]);
 
   useEffect(() => {
     loadDemo();
@@ -98,6 +255,7 @@ export function FamilyFlow() {
     setFamilyName(data.family.name);
     setCity(data.family.city);
     setState(data.family.state);
+    setDietPreference(data.family.dietPreference);
     setMembers(data.members.map(({ memberId: _memberId, familyId: _familyId, ...member }) => member));
     setStatus(
       mode === "judge"
@@ -130,6 +288,7 @@ export function FamilyFlow() {
           country: "India",
           state,
           city,
+          dietPreference,
           cuisinePreferences: ["Indian", "Home-style"],
           budget: { type: "daily", amount: 450, currency: "INR" },
           kitchenProfile: {
@@ -162,14 +321,23 @@ export function FamilyFlow() {
     setError("");
     setFeedbackSaved(false);
     setStatus("Analyzing profiles and generating one common family meal...");
+    const planType = userPlanningMode === "returning_user_weekly_editable" ? "weekly" : "daily";
 
     const response = await fetch("/api/meal-plans", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         familyId: createdFamily.familyId,
-        planType: "daily",
-        targetDate: new Date().toISOString().slice(0, 10)
+        planType,
+        mealTime: selectedMealTime,
+        mealTimeContext: {
+          ...timeContext,
+          country: createdFamily.country,
+          region: createdFamily.state,
+          city: createdFamily.city
+        },
+        userPlanningMode,
+        targetDate: getLocalDate(timeContext.timeZone)
       })
     });
 
@@ -182,7 +350,11 @@ export function FamilyFlow() {
 
     setNutritionContexts(data.nutritionContexts);
     setMealPlan(data.mealPlan);
-    setStatus("Common family meal generated with portions, modifications, fruit, hydration, and grocery list.");
+    setStatus(
+      userPlanningMode === "returning_user_weekly_editable"
+        ? "Weekly editable planning mode selected. This demo shows the next meal while preserving the lower-cost reuse strategy."
+        : "Common family meal generated with portions, modifications, fruit, hydration, and grocery list."
+    );
   }
 
   async function replaceMeal() {
@@ -270,6 +442,24 @@ export function FamilyFlow() {
             fruit, hydration, and a grocery list that updates when the meal changes.
           </p>
           <div className="actions">
+            <label className="compact-control">
+              Meal
+              <select value={selectedMealTime} onChange={(event) => setSelectedMealTime(event.target.value as MealTime)}>
+                <option value="breakfast">Breakfast</option>
+                <option value="lunch">Lunch</option>
+                <option value="dinner">Dinner</option>
+              </select>
+            </label>
+            <label className="compact-control">
+              User type
+              <select
+                value={userPlanningMode}
+                onChange={(event) => setUserPlanningMode(event.target.value as "new_user_next_meal" | "returning_user_weekly_editable")}
+              >
+                <option value="new_user_next_meal">New user - next meal</option>
+                <option value="returning_user_weekly_editable">Returning user - weekly editable</option>
+              </select>
+            </label>
             <button className="button" onClick={generateMeal} disabled={!canGenerate}>
               Plan Today
             </button>
@@ -280,6 +470,18 @@ export function FamilyFlow() {
               Replace Meal
             </button>
           </div>
+          <p className="muted">
+            {mealTimingMessage(selectedMealTime, {
+              ...timeContext,
+              country: createdFamily?.country,
+              region: createdFamily?.state ?? state,
+              city: createdFamily?.city ?? city
+            })}
+          </p>
+          <p className="notice">
+            Cost-control rule: new users get a focused next-meal plan. Returning users should reuse and edit a weekly plan
+            so AI calls stay low and the INR 199 plan can remain financially sustainable.
+          </p>
           {judgeMode ? (
             <div className="demo-steps" aria-label="Judge demo checklist">
               {demoSteps.map((step, index) => (
@@ -309,6 +511,7 @@ export function FamilyFlow() {
                   <p className="muted">
                     {createdFamily?.city ?? city}, {createdFamily?.state ?? state} - Family Premium demo entitlement
                   </p>
+                  <p className="muted">Food pattern: {familyDietOptions.find((option) => option.value === createdFamily?.dietPreference)?.label ?? "Vegetarian"}</p>
                 </div>
                 <div className="member-list">
                   {createdMembers.map((member) => (
@@ -353,6 +556,16 @@ export function FamilyFlow() {
                 <label>
                   State
                   <input value={state} onChange={(event) => setState(event.target.value)} />
+                </label>
+                <label>
+                  Family food pattern
+                  <select value={dietPreference} onChange={(event) => setDietPreference(event.target.value as FamilyDietPreference)}>
+                    {familyDietOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <div className="member-list">
                   <div className="member-header">
@@ -460,6 +673,100 @@ export function FamilyFlow() {
             {mealPlan && createdMembers.length ? (
               <>
                 <MamaFamilyTable members={createdMembers} nutritionContexts={nutritionContexts} mealPlan={mealPlan} />
+
+                <section className="panel">
+                  <h2>Meal Nutrition Estimate</h2>
+                  <p className="muted">{mealPlan.commonMeal.nutritionEstimate.basis}</p>
+                  <div className="nutrition-grid">
+                    <div>
+                      <p className="mini-title">{adjustedNutrition?.caloriesKcal ?? 0} kcal</p>
+                      <p className="muted">Energy</p>
+                    </div>
+                    <div>
+                      <p className="mini-title">{adjustedNutrition?.proteinGrams ?? 0} g</p>
+                      <p className="muted">Protein</p>
+                    </div>
+                    <div>
+                      <p className="mini-title">{adjustedNutrition?.carbsGrams ?? 0} g</p>
+                      <p className="muted">Carbs</p>
+                    </div>
+                    <div>
+                      <p className="mini-title">{adjustedNutrition?.fatGrams ?? 0} g</p>
+                      <p className="muted">Fat</p>
+                    </div>
+                    <div>
+                      <p className="mini-title">{adjustedNutrition?.fiberGrams ?? 0} g</p>
+                      <p className="muted">Fiber</p>
+                    </div>
+                  </div>
+                  <div className="field-grid">
+                    <label>
+                      Add a common extra food
+                      <select value={selectedAddOn} onChange={(event) => setSelectedAddOn(event.target.value)}>
+                        <option value="none">No extra food</option>
+                        <option value="egg">1 boiled egg</option>
+                        <option value="paneer">100 g paneer</option>
+                        <option value="chicken">100 g cooked chicken</option>
+                        <option value="dal">1 bowl cooked dal</option>
+                      </select>
+                    </label>
+                    <div className="row">
+                      <label>
+                        Other food name
+                        <input value={customFoodName} onChange={(event) => setCustomFoodName(event.target.value)} placeholder="Example: extra roti" />
+                      </label>
+                      <label>
+                        Calories
+                        <input
+                          type="number"
+                          value={customNutrition.caloriesKcal}
+                          onChange={(event) => setCustomNutrition((current) => ({ ...current, caloriesKcal: Number(event.target.value) }))}
+                        />
+                      </label>
+                    </div>
+                    <div className="row">
+                      <label>
+                        Protein g
+                        <input
+                          type="number"
+                          value={customNutrition.proteinGrams}
+                          onChange={(event) => setCustomNutrition((current) => ({ ...current, proteinGrams: Number(event.target.value) }))}
+                        />
+                      </label>
+                      <label>
+                        Carbs g
+                        <input
+                          type="number"
+                          value={customNutrition.carbsGrams}
+                          onChange={(event) => setCustomNutrition((current) => ({ ...current, carbsGrams: Number(event.target.value) }))}
+                        />
+                      </label>
+                    </div>
+                    <div className="row">
+                      <label>
+                        Fat g
+                        <input
+                          type="number"
+                          value={customNutrition.fatGrams}
+                          onChange={(event) => setCustomNutrition((current) => ({ ...current, fatGrams: Number(event.target.value) }))}
+                        />
+                      </label>
+                      <label>
+                        Fiber g
+                        <input
+                          type="number"
+                          value={customNutrition.fiberGrams}
+                          onChange={(event) => setCustomNutrition((current) => ({ ...current, fiberGrams: Number(event.target.value) }))}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                  <p className="notice">{adjustedNutrition ? nutritionFeedback(adjustedNutrition) : "Generate a meal to see nutrition estimates."}</p>
+                  <p className="muted">
+                    Source basis: {mealPlan.commonMeal.nutritionEstimate.dataSource}
+                    {customFoodName ? ` Custom addition: ${customFoodName}.` : ""}
+                  </p>
+                </section>
 
                 <section className="panel">
                   <h2>Auto-Updated Grocery List</h2>

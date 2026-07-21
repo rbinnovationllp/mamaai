@@ -22,6 +22,9 @@ export class MealPlanningService {
       family: familyContext.family,
       members: familyContext.members,
       planType: request.planType,
+      mealTime: request.mealTime,
+      mealTimeContext: request.mealTimeContext,
+      userPlanningMode: request.userPlanningMode,
       targetDate: request.targetDate ?? new Date().toISOString().slice(0, 10)
     });
 
@@ -49,6 +52,7 @@ export class MealPlanningService {
       family: familyContext.family,
       members: familyContext.members,
       planType: existing.planType,
+      mealTime: existing.commonMeal.mealTime,
       targetDate: existing.targetDate,
       replacement: true
     });

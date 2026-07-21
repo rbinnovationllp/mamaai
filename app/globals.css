@@ -223,6 +223,14 @@ label {
   font-weight: 700;
 }
 
+.compact-control {
+  min-width: 170px;
+}
+
+.compact-control select {
+  min-height: 41px;
+}
+
 input,
 select,
 textarea {
@@ -322,6 +330,20 @@ textarea {
   gap: 8px;
 }
 
+.nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.nutrition-grid > div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fffdf9;
+}
+
 .plan-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -361,6 +383,7 @@ textarea {
   .grid,
   .family-table,
   .grocery,
+  .nutrition-grid,
   .plan-grid,
   .row {
     grid-template-columns: 1fr;
