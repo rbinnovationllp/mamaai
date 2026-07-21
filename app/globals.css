@@ -184,6 +184,46 @@ h1 {
   font-weight: 800;
 }
 
+.attendance-panel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fffdf9;
+}
+
+.attendance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.attendance-row {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.attendance-row label,
+.checkbox-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.attendance-row input[type="checkbox"],
+.checkbox-line input[type="checkbox"] {
+  width: auto;
+}
+
+.guest-control {
+  width: 96px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
@@ -350,6 +390,41 @@ textarea {
   line-height: 1.5;
 }
 
+.video-results {
+  display: grid;
+  gap: 10px;
+}
+
+.video-result {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  color: var(--ink);
+  background: #fffdf9;
+  text-decoration: none;
+}
+
+.video-result img {
+  width: 112px;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.video-result span {
+  display: grid;
+  gap: 4px;
+}
+
+.video-result small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
 .family-table {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -434,6 +509,16 @@ textarea {
   background: #fffdf9;
 }
 
+.fasting-box {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  border: 1px solid #b7d7c7;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f5fff9;
+}
+
 .notice {
   border: 1px solid #efd09b;
   background: #fff7df;
@@ -452,6 +537,7 @@ textarea {
   .grid,
   .family-table,
   .grocery,
+  .attendance-grid,
   .nutrition-grid,
   .plan-grid,
   .preference-options,
@@ -470,5 +556,13 @@ textarea {
   .topbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .video-result {
+    grid-template-columns: 1fr;
+  }
+
+  .video-result img {
+    width: 100%;
   }
 }

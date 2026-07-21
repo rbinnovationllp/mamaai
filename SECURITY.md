@@ -85,6 +85,22 @@ Use environment variables for:
 
 Never commit real secrets. Keep `.env.example` current.
 
+## AWS Security Architecture
+
+Production AWS access must happen only from trusted server code: Next.js route handlers, server actions, or AWS Lambda. Browser/frontend code must never receive DynamoDB credentials, S3 write credentials, Cognito admin credentials, or long-lived AWS access keys.
+
+Recommended isolation for MAMAAI, even inside the same AWS account as education projects:
+
+- MAMAAI DynamoDB table: `MAMA_AI_APP` or an environment-specific equivalent.
+- MAMAAI S3 bucket/prefix: `mamaai-prod-assets/mamaai/`.
+- MAMAAI IAM role with permissions only for MAMAAI DynamoDB table/index ARNs and MAMAAI S3 bucket/prefix ARNs.
+- Separate deployment environment variables for MAMAAI.
+- Resource tags: `Project=mamaai`, `Environment=production`.
+
+S3 objects should be private by default. User exports, PDFs, reports, and uploads should be accessed through short-lived signed URLs generated server-side after authorization checks.
+
+DynamoDB TTL should expire detailed meal-plan history after 15 days, but TTL must not apply to safety-critical or personalization records such as allergies, medical dietary restrictions, fasting preferences, permanent dislikes, favourites, feedback signals, and account/subscription records.
+
 ## Rate Limiting
 
 Production APIs should rate limit:

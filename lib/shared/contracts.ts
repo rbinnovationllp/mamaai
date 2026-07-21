@@ -10,7 +10,7 @@ export type FamilyDietPreference = "vegetarian" | "non_vegetarian" | "semi_veget
 
 export type PlanType = "daily" | "weekly" | "monthly";
 
-export type MealTime = "breakfast" | "lunch" | "dinner" | "snack";
+export type MealTime = "breakfast" | "lunch" | "dinner" | "snack" | "evening_snack" | "high_tea";
 
 export type UserPlanningMode = "new_user_next_meal" | "returning_user_weekly_editable";
 
@@ -98,11 +98,20 @@ export interface Family {
   city: string;
   dietPreference: FamilyDietPreference;
   cuisinePreferences: string[];
+  cuisinePreferenceWeights?: CuisinePreferenceWeight[];
+  indianRegionalPreferences?: string[];
+  localIngredientAvailabilityNotes?: string[];
   budget: BudgetProfile;
   kitchenProfile: KitchenProfile;
   subscriptionPlan: SubscriptionPlan;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CuisinePreferenceWeight {
+  cuisine: string;
+  frequency: "mostly" | "often" | "sometimes" | "rarely";
+  percentage?: number;
 }
 
 export interface FamilyMember {
@@ -129,6 +138,21 @@ export interface FamilyMember {
   healthConditions: string[];
   doctorRestrictions: string[];
   specialStatuses: string[];
+  fastingPreference?: FastingPreference;
+}
+
+export interface FastingPreference {
+  observesFasting: "no" | "yes" | "occasionally";
+  regularDays: string[];
+  fastType?: "full_fast" | "restricted_food_fast" | "time_restricted" | "custom";
+  reasonOrTradition?: string;
+  allowedFoods: string[];
+  avoidedFoods: string[];
+  fastingMealCount?: number;
+  fruitsAllowed: boolean;
+  dairyAllowed: boolean;
+  grainsRestricted: boolean;
+  customRules: string[];
 }
 
 export interface NutritionContext {
@@ -180,6 +204,33 @@ export interface RecipeDetails {
     url?: string;
     note: string;
   };
+}
+
+export interface RecipeVideoSearchRequest {
+  dishName: string;
+  country?: string;
+  region?: string;
+  preferredLanguage?: string;
+  cuisine?: string[];
+  dietaryPreference?: FamilyDietPreference;
+  healthyPreparation?: boolean;
+  familyRequirements?: string[];
+}
+
+export interface RecipeVideoResult {
+  title: string;
+  channelTitle: string;
+  url: string;
+  thumbnailUrl?: string;
+  source: "youtube" | "fallback_search";
+  thirdPartyDisclaimer: string;
+}
+
+export interface RecipeVideoSearchResponse {
+  query: string;
+  usedOfficialApi: boolean;
+  results: RecipeVideoResult[];
+  note: string;
 }
 
 export interface CommonMeal {
@@ -255,6 +306,46 @@ export interface GroceryItem {
   quantityToPurchase: string;
 }
 
+export interface MealAttendanceEntry {
+  mealTime: MealTime;
+  participatingMemberIds: ID[];
+  absentMemberIds: ID[];
+  fastingMemberIds: ID[];
+  guestCount: number;
+  enabled: boolean;
+}
+
+export interface HighTeaPreference {
+  enabled: boolean;
+  days: string[];
+  approximateTime: string;
+  usualParticipantMemberIds: ID[];
+  guestCount: number;
+}
+
+export interface IngredientRequirement {
+  itemId: ID;
+  mealTime: MealTime | "daily_total";
+  name: string;
+  category: Ingredient["category"];
+  baseQuantity: string;
+  adjustedQuantity: string;
+  quantityToPurchase: string;
+  portionUnits: number;
+  estimatedCost: Money;
+  notes: string[];
+}
+
+export interface FastingMealRequirement {
+  memberId: ID;
+  memberName: string;
+  mealTime: MealTime;
+  suggestion: string;
+  allowedFoodsUsed: string[];
+  avoidedFoods: string[];
+  notes: string[];
+}
+
 export interface CostEstimate {
   mealCost: Money;
   dailyCost: Money;
@@ -265,6 +356,12 @@ export interface FamilyMealPlan {
   familyId: ID;
   planType: PlanType;
   targetDate: string;
+  expiresAt: string;
+  retentionPolicy: {
+    detailedHistoryDays: number;
+    userMessage: string;
+    retainedLongTermSignals: string[];
+  };
   commonMeal: CommonMeal;
   memberCustomizations: MemberCustomization[];
   preferenceResolution?: PreferenceResolution;
@@ -272,6 +369,10 @@ export interface FamilyMealPlan {
   hydration: HydrationRecommendation[];
   estimatedCost: CostEstimate;
   groceryItems: GroceryItem[];
+  mealAttendance: MealAttendanceEntry[];
+  mealIngredientRequirements: IngredientRequirement[];
+  dailyGroceryRequirements: IngredientRequirement[];
+  fastingMealRequirements: FastingMealRequirement[];
   familySatisfactionScore: {
     score: number;
     explanation: string;
@@ -311,6 +412,8 @@ export interface CreateMealPlanRequest {
   targetDate?: string;
   availableIngredients?: string[];
   previousMeals?: string[];
+  mealAttendance?: MealAttendanceEntry[];
+  highTeaPreference?: HighTeaPreference;
 }
 
 export interface ReplaceMealRequest {

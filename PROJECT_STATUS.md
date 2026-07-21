@@ -55,30 +55,49 @@
 - Added soft-dislike preference-resolution flow so one member's disliked ingredient does not automatically restrict the whole family meal.
 - Added three user-facing choices: separate simple alternative, one common family meal, and two compatible options with a small second component.
 - Validation passed after soft-dislike preference-resolution work: `npm run typecheck`, `npm run lint`, and `npm run build`.
+- Added `POST /api/recipes/videos` recipe-video discovery endpoint using the official YouTube Data API when `YOUTUBE_API_KEY` is configured.
+- Added safe YouTube search fallback when `YOUTUBE_API_KEY` is absent; no scraping is used.
+- Added `Watch How to Cook` action in the recipe modal with third-party content disclaimer.
+- Validation passed after recipe-video discovery work: `npm run typecheck`, `npm run lint`, and `npm run build`.
+- Smoke test passed for `POST /api/recipes/videos` fallback mode without `YOUTUBE_API_KEY`.
+- Added meal-wise family strength controls so users can select which members are eating a specific meal, who is fasting today, and how many guests are present.
+- Added high-tea and evening-snack meal options with late-afternoon local-time recommendation.
+- Added fasting profile contract with allowed foods, avoided foods, fasting type, meal count, fruit/dairy/grain rules, and custom traditions.
+- Added deterministic quantity planning service so ingredient quantities, grocery requirements, and meal cost update from actual attendance and fasting status without extra AI calls.
+- Added meal-wise ingredient requirement display and fasting-aware food suggestions to the user flow.
+- Demo data now includes fictional fasting preferences for judge testing.
+- Validation passed after meal strength, high tea, fasting, and deterministic quantity work: `npm run typecheck`, `npm run lint`, and `npm run build`.
+- Audited current storage architecture: user/family/meal data is currently stored only in the MVP in-memory repository; no Supabase integration exists.
+- Documented AWS production architecture using DynamoDB for structured app data, S3 for files/exports/media/backups, Next.js APIs/Lambda for server-side access, and Cognito or equivalent auth for production identity.
+- Added 15-day detailed meal-plan retention metadata (`expiresAt`, `retentionPolicy`) and in-memory purge helper that maps to DynamoDB TTL in production.
+- Added user-facing detailed meal-plan retention notice and `Download / Export / Save` JSON export action.
+- Added custom-family country of residence and preferred food culture/cuisine input so cuisine is not inferred only from nationality.
+- Updated `.env.example` with MAMAAI-specific AWS table, S3, TTL, namespace, and Cognito placeholders.
+- Validation passed after AWS storage architecture, retention, export, and cuisine-persona work: `npm run typecheck`, `npm run lint`, and `npm run build`.
 
 ## In Progress
 
 - Final manual browser click-through of the judge-facing flow.
 - Public deployment preparation.
 - Replacing MVP in-memory persistence with production DynamoDB repositories when infrastructure is available.
+- Implementing production DynamoDB/S3/Cognito integration after the hackathon demo remains stable.
 
 ## Not Started
 
 - Production DynamoDB repository implementation.
+- Production S3 export/report/upload implementation with signed URLs.
 - Production authentication provider integration.
 - RevenueCat and Google Play Billing production integration.
 - Admin/CRM screens beyond contract foundation.
-- YouTube recipe integration.
 - Pantry, leftover, analytics, PDF/export, and multilingual production rollout.
 
 ## Known Bugs
 
-- The project is not currently initialized as a git repository.
 - `npm audit` reports a moderate PostCSS advisory inherited through `next@16.2.10`. npm suggests `npm audit fix --force`, but that would downgrade Next to `9.3.3`, which is not an acceptable fix. Track upstream Next/PostCSS patch availability.
 - Runtime browser click-through is pending.
 - Dev server logs warn about a non-standard `NODE_ENV` value from the surrounding environment.
 - RevenueCat webhook currently validates and acknowledges events but does not persist entitlement changes until the production subscription repository is connected.
-- Git working tree currently has normal uncommitted changes from Judge Access and RevenueCat contract work.
+- Git working tree currently has normal uncommitted changes from the current AWS storage architecture, retention, export, and cuisine-persona work.
 
 ## Architecture Decisions
 
@@ -94,8 +113,14 @@
 - RevenueCat/Google Play Billing must not block the hackathon submission; production billing follows core MVP, judge demo, testing, deployment, and Devpost demo readiness.
 - Meal-time defaults must use the user's local timezone and family region context, not India-only assumptions.
 - Nutrition values in the MVP are estimates for education and demo clarity; production requires verified ingredient weights and nutrition database integration before precision claims.
-- YouTube recipe links are contract-ready as recommendation metadata; production YouTube API integration remains post-hackathon.
+- YouTube recipe search uses the official API when configured and otherwise returns a clearly labeled fallback search link.
 - Soft dislikes must stay separate from allergy/medical safety handling; allergies and medical restrictions always remain hard constraints.
+- Meal-wise quantities should be calculated deterministically from selected family attendance, fasting members, guest count, and adult-equivalent portion factors. This keeps recurring subscription cost lower by avoiding unnecessary AI calls for simple grocery math.
+- High tea is treated as a real meal slot for families that use it, especially in late afternoon local time. Dinner remains the default from 6:00 PM onward.
+- Subscription pricing should not be increased only because of meal attendance, high tea, fasting, or quantity calculation, because these are deterministic low-cost features. Keep INR 199/399/599 for launch and add fair-use limits/cached weekly planning before raising prices.
+- Supabase is not used. Production persistence should use AWS with DynamoDB for structured application records and S3 only for objects/files.
+- MAMAAI can share the same AWS account as education projects only with separate tables/buckets or prefixes, least-privilege IAM, separate environment variables, tags, logs, and alarms.
+- Detailed meal plans should expire after 15 days using DynamoDB TTL in production; safety and personalization signals remain in long-term records until the user deletes or changes them.
 
 ## Required Environment Variables
 
@@ -104,7 +129,19 @@
 - `AUTH_SECRET`
 - `NEXT_PUBLIC_APP_URL`
 - `AWS_REGION`
+- `AWS_ACCOUNT_ID`
+- `AWS_PROJECT_NAMESPACE`
 - `MAMA_AI_TABLE_NAME`
+- `MAMA_AI_DYNAMODB_TABLE_NAME`
+- `MAMA_AI_DYNAMODB_TTL_ATTRIBUTE`
+- `MAMA_AI_S3_BUCKET`
+- `MAMA_AI_S3_PREFIX`
+- `MAMA_AI_EXPORTS_PREFIX`
+- `MAMA_AI_REPORTS_PREFIX`
+- `MAMA_AI_BACKUPS_PREFIX`
+- `MAMA_AI_COGNITO_USER_POOL_ID`
+- `MAMA_AI_COGNITO_CLIENT_ID`
+- `MAMA_AI_COGNITO_REGION`
 - `REVENUECAT_WEBHOOK_SECRET`
 - `REVENUECAT_PROJECT_ID`
 - `REVENUECAT_API_KEY`
@@ -127,7 +164,6 @@
 
 ## Deployment Status
 
-- Not deployed.
-- Local build is production-valid.
-- Dev server is running locally at `http://127.0.0.1:3000`.
-- Public Devpost-ready deployment pending.
+- Vercel project and custom domain setup are in progress/previously configured by the user.
+- Local build is production-valid after the current milestone.
+- Public Devpost-ready deployment should be verified at `https://mamaai.in` after pushing and Vercel redeploys.

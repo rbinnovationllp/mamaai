@@ -30,9 +30,20 @@ The MVP includes a meal-time selector with user-local defaults. The browser dete
 - Before 9:00 AM local time: breakfast.
 - 9:00-10:00 AM local time: let the user choose breakfast or lunch.
 - Late morning/afternoon local time: lunch.
+- 4:00-6:00 PM local time: high tea or evening snack can be selected.
 - From 6:00 PM local time onward: dinner.
 
 The frontend sends `mealTime` and `mealTimeContext` to the API so AI/service logic can plan the appropriate meal for the user's region instead of assuming India-only timing.
+
+## Meal Strength, High Tea, and Fasting
+
+The MVP now supports meal-wise family strength. Before generating a plan, the UI can send who is eating the selected meal, who is absent, who is fasting, and how many guests are present. The backend uses these values to calculate adult-equivalent portion units and ingredient quantities.
+
+High tea is modeled as a real `MealTime` value instead of a text note. This allows families in any region to plan late-afternoon food separately from dinner without forcing the entire flow into lunch/dinner assumptions.
+
+Fasting is stored per member as a structured preference: frequency, regular days, fast type, allowed foods, avoided foods, fruit/dairy/grain rules, meal count, and custom traditions. Fasting members are excluded from normal meal quantities and receive a fasting-aware suggestion. These rules are user-configurable because fasting practices vary by country, faith, family tradition, health context, and personal preference.
+
+Ingredient quantity and grocery updates are deterministic service logic, not repeated AI generation. AI should be used for meal intelligence and structured recommendations; attendance changes, guest count changes, and fasting toggles should reuse the existing plan and recalculate quantities locally wherever possible.
 
 ## Diet Preference and Nutrition Estimates
 
@@ -54,7 +65,9 @@ Member profiles capture separate fields for food allergies, ingredient allergies
 
 Soft dislikes use a preference-resolution flow instead of automatically weakening the entire family meal. When a member dislikes a meal or ingredient that is otherwise suitable for the rest of the family, MAMA AI presents three options: prepare a separate simple alternative, keep only one common meal and regenerate, or suggest two compatible options with a small second component. The default recommendation favors minimum additional cooking while preserving maximum family satisfaction.
 
-Every generated common meal includes a `recipe` object. The UI exposes it through `View Recipe / How to Cook`, showing recipe name, ingredient quantities, servings, step-by-step cooking instructions, prep time, cook time, difficulty, estimated nutrition, estimated cost, family-member-specific adjustments, alternatives, and a video recommendation placeholder. YouTube search/API integration remains a production roadmap item, but the contract is ready.
+Every generated common meal includes a `recipe` object. The UI exposes it through `View Recipe / How to Cook`, showing recipe name, ingredient quantities, servings, step-by-step cooking instructions, prep time, cook time, difficulty, estimated nutrition, estimated cost, family-member-specific adjustments, alternatives, and a video recommendation.
+
+The `Watch How to Cook` action calls `/api/recipes/videos`. When `YOUTUBE_API_KEY` is available, that route uses the official YouTube Data API `search.list` endpoint with query context for dish, country/region, language, cuisine, diet preference, healthy preparation, and family requirements. When the key is absent, it returns a safe YouTube search URL fallback and clearly labels videos as third-party content that MAMA AI has not medically or nutritionally verified.
 
 ## AI Cost-Control Strategy
 
@@ -63,6 +76,7 @@ To protect the economics of low-price plans, the product should avoid unnecessar
 - New users: generate a focused next-meal plan for onboarding.
 - Returning users: prefer an editable weekly plan and reuse previous structure where possible.
 - Meal replacement should update only affected meal/grocery data rather than regenerating everything.
+- Attendance, fasting, and guest-count changes should update deterministic ingredient quantities without a fresh AI call.
 
 ## Application Stack
 
@@ -73,6 +87,36 @@ To protect the economics of low-price plans, the product should avoid unnecessar
 - MVP persistence: in-memory demo repository with the same service/repository boundaries, replaceable by DynamoDB.
 - AI: OpenAI API architecture with deterministic local fallback for hackathon demos.
 - Auth: session/JWT architecture with guest mode for MVP demo, upgradeable to email, Google, OTP, and Apple sign-in.
+
+## AWS Data Storage Architecture
+
+Supabase is not used in the current codebase. The current hackathon build stores data in an in-memory repository under `lib/repositories/in-memory-store.ts`; this keeps Judge/Demo Access reliable but does not persist production user data after server restarts.
+
+Production MAMAAI should use AWS storage with clear separation between database records and file objects:
+
+- Amazon DynamoDB: structured application data that must be queried, filtered, updated, related to users/families, protected by authorization, or expired by TTL.
+- Amazon S3: larger objects and downloadable files such as meal-plan exports, PDFs, user-uploaded images/documents, recipe media, reports, backups, and CSV/JSON exports.
+- Next.js API routes or AWS Lambda: secure backend layer that validates requests, checks authorization, and accesses DynamoDB/S3 server-side. Frontend components must never receive AWS credentials or call DynamoDB/S3 directly.
+- Amazon Cognito or an equivalent existing auth solution: production identity provider. Cognito is a good AWS-native option for email/social/mobile-ready authentication, but the current hackathon demo can keep guest mode until login is wired safely.
+
+S3 must not be used as the primary application database. It is object storage, not the right place for frequent user/family queries, entitlement checks, meal-plan filtering, CRM pipelines, or safety-relevant preference updates.
+
+The same AWS account can host MAMAAI and education projects if each project is isolated by:
+
+- Separate DynamoDB tables, for example `MAMA_AI_APP` and separate education-project tables.
+- Separate S3 buckets or strict project prefixes, for example `s3://mamaai-prod-assets/mamaai/`.
+- Separate IAM roles and policies scoped only to MAMAAI table ARNs and MAMAAI bucket/prefix ARNs.
+- Separate environment variables per deployed app/project.
+- Separate CloudWatch log groups and alarms.
+- Optional separate AWS accounts later for stronger billing/security isolation.
+
+For Vercel deployment, route handlers should access AWS using server-side environment variables only. Use least-privilege IAM credentials or an AWS-supported identity flow; never expose AWS keys through `NEXT_PUBLIC_` variables.
+
+## Retention and Exports
+
+Detailed generated meal plans use a 15-day retention policy. The plan includes `expiresAt` and `retentionPolicy` metadata and the UI shows a `Download / Export / Save` action. In production, DynamoDB TTL should use an epoch timestamp attribute such as `expiresAtEpoch` to expire detailed meal-plan items automatically.
+
+Do not expire long-term personalization and safety records just because a detailed meal plan expires. Keep family profiles, allergies, dietary restrictions, disliked/rejected foods, fasting preferences, favourite meals, feedback, subscription/account data, and lightweight meal-preference patterns until the user deletes or changes them.
 
 ## Runtime Flow
 

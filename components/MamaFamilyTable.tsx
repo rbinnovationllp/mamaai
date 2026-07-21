@@ -1,19 +1,55 @@
 "use client";
 
 import { useState } from "react";
-import type { FamilyMealPlan, FamilyMember, NutritionContext } from "@/lib/shared/contracts";
+import Image from "next/image";
+import type { FamilyMealPlan, FamilyMember, NutritionContext, RecipeVideoSearchResponse } from "@/lib/shared/contracts";
 
 interface MamaFamilyTableProps {
   members: FamilyMember[];
   nutritionContexts: NutritionContext[];
   mealPlan: FamilyMealPlan;
+  familyContext?: {
+    country?: string;
+    region?: string;
+    preferredLanguage?: string;
+    cuisine?: string[];
+    dietaryPreference?: string;
+  };
 }
 
-export function MamaFamilyTable({ members, nutritionContexts, mealPlan }: MamaFamilyTableProps) {
+export function MamaFamilyTable({ members, nutritionContexts, mealPlan, familyContext }: MamaFamilyTableProps) {
   const [recipeOpen, setRecipeOpen] = useState(false);
   const [selectedPreferenceOption, setSelectedPreferenceOption] = useState<string | null>(null);
+  const [videoSearch, setVideoSearch] = useState<RecipeVideoSearchResponse | null>(null);
+  const [videoStatus, setVideoStatus] = useState("");
   const recipe = mealPlan.commonMeal.recipe;
   const selectedOption = mealPlan.preferenceResolution?.options.find((option) => option.optionId === selectedPreferenceOption);
+
+  async function watchHowToCook() {
+    setVideoStatus("Searching for suitable recipe videos...");
+    setVideoSearch(null);
+    const response = await fetch("/api/recipes/videos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        dishName: mealPlan.commonMeal.name,
+        country: familyContext?.country,
+        region: familyContext?.region,
+        preferredLanguage: familyContext?.preferredLanguage,
+        cuisine: familyContext?.cuisine,
+        dietaryPreference: familyContext?.dietaryPreference,
+        healthyPreparation: true,
+        familyRequirements: mealPlan.memberCustomizations.flatMap((customization) => customization.safetyNotes)
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      setVideoStatus(data.error?.message ?? "Video search failed.");
+      return;
+    }
+    setVideoSearch(data);
+    setVideoStatus(data.note);
+  }
 
   return (
     <section className="table-zone" aria-label="MAMA Family Table">
@@ -112,15 +148,26 @@ export function MamaFamilyTable({ members, nutritionContexts, mealPlan }: MamaFa
 
             {recipe.videoRecommendation ? (
               <section className="recipe-section">
-                <h3>Recipe Video</h3>
-                {recipe.videoRecommendation.url ? (
-                  <a href={recipe.videoRecommendation.url} target="_blank" rel="noreferrer">
-                    {recipe.videoRecommendation.label}
-                  </a>
-                ) : (
-                  <p className="mini-title">{recipe.videoRecommendation.label}</p>
-                )}
+                <h3>Watch How to Cook</h3>
+                <button className="button" onClick={watchHowToCook}>
+                  Watch How to Cook
+                </button>
                 <p className="muted">{recipe.videoRecommendation.note}</p>
+                {videoStatus ? <p className="notice">{videoStatus}</p> : null}
+                {videoSearch ? (
+                  <div className="video-results">
+                    {videoSearch.results.map((video) => (
+                      <a className="video-result" href={video.url} key={video.url} target="_blank" rel="noreferrer">
+                        {video.thumbnailUrl ? <Image src={video.thumbnailUrl} alt="" width={112} height={63} unoptimized /> : null}
+                        <span>
+                          <strong>{video.title}</strong>
+                          <small>{video.channelTitle}</small>
+                          <small>{video.thirdPartyDisclaimer}</small>
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
               </section>
             ) : null}
           </div>
