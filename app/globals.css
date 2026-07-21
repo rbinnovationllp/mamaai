@@ -38,6 +38,7 @@ textarea {
 
 button {
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .app-shell {
@@ -112,6 +113,11 @@ button {
   display: grid;
   gap: 18px;
   padding: 34px 0;
+  scroll-margin-top: 96px;
+}
+
+#family-profile {
+  scroll-margin-top: 96px;
 }
 
 .landing-hero {
@@ -752,6 +758,18 @@ textarea {
   border-left-color: var(--plum);
 }
 
+.same-meal-note {
+  display: inline-block;
+  margin: 8px 0 10px;
+  border: 1px solid #b7d7c7;
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: #f5fff9;
+  color: var(--leaf);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
 .mini-title {
   font-weight: 800;
   color: var(--ink);
@@ -1137,17 +1155,19 @@ textarea {
   .ask-mama {
     right: 14px;
     bottom: 14px;
-    left: 14px;
+    left: auto;
   }
 
   .ask-mama-fab {
-    width: 100%;
+    width: auto;
+    min-width: 132px;
+    min-height: 50px;
   }
 
   .ask-mama-panel {
     right: 0;
-    left: 0;
-    width: 100%;
+    left: auto;
+    width: calc(100vw - 28px);
     max-height: calc(100vh - 96px);
   }
 
