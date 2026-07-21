@@ -42,7 +42,7 @@ export const demoFamily: Family = {
   ],
   indianRegionalPreferences: ["North Indian", "South Indian", "Millet-based"],
   localIngredientAvailabilityNotes: ["Use ingredients commonly available in Bengaluru markets."],
-  budget: { type: "daily", amount: 450, currency: "INR" },
+  budget: { type: "daily", amount: 450, currency: "INR", priority: "flexible", preferLowCostMeals: true },
   kitchenProfile: {
     equipment: ["Gas stove", "Pressure cooker", "Mixer/grinder"],
     cookingTimePreference: "under_30"

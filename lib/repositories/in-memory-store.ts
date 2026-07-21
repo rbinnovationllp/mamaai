@@ -7,7 +7,10 @@ export type AnalyticsEventName =
   | "get_started_click"
   | "create_family_success"
   | "meal_plan_generated"
+  | "meal_replaced"
+  | "recipe_video_requested"
   | "registration_success"
+  | "pwa_install_prompt"
   | "ask_mama_open"
   | "ask_mama_question"
   | "ask_mama_unresolved";

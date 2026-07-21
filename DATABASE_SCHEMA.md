@@ -248,11 +248,11 @@ MAMAAI may share the same AWS account used by education projects only if isolate
 
 ## Subscription Plans
 
-| Plan | Price | Member Limit |
-| --- | ---: | ---: |
-| Family Starter | INR 199/month | 4 |
-| Family Premium | INR 399/month | 6 |
-| Family Plus | INR 599/month | 10 |
+| Plan | India Price | International Price | Member Limit |
+| --- | ---: | ---: | ---: |
+| Family Starter | INR 399/month | US$4.99/month | 4 |
+| Family Premium | INR 599/month | US$6.99/month | 6 |
+| Family Plus | INR 799/month | US$8.99/month | 10 |
 
 Member limits must be enforced in backend services and API routes, not only in UI.
 
@@ -261,14 +261,23 @@ RevenueCat-ready fields:
 - `revenueCatCustomerId`
 - `revenueCatEntitlementId`
 - `revenueCatProductId`
+- `revenueCatInternationalProductId`
 - `googlePlayProductId`
+- `googlePlayInternationalProductId`
 - `status`
 - `source`
+- `paymentChannel`
+- `paymentStatus`
+- `startsAt`
+- `renewsAt`
+- `cancelledAt`
 - `currentPeriodEndsAt`
 - `lastRevenueCatEventType`
 - `lastRevenueCatEventAt`
 
 Judge/Demo Access uses `source = demo_judge_access`, `isActive = true`, and `bypassPaymentForDemo = true` only for fictional demo data.
+
+Production subscription records must be written from verified backend payment/webhook events. The frontend can display the returned entitlement, but it must not create or trust its own premium flag.
 
 ## Sensitive Data Rules
 

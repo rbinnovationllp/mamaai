@@ -6,9 +6,11 @@ export const moneySchema = z.object({
 });
 
 export const budgetProfileSchema = z.object({
-  type: z.enum(["daily", "weekly", "monthly", "none"]),
+  type: z.enum(["per_meal", "daily", "weekly", "monthly", "none"]),
   amount: z.number().positive().optional(),
-  currency: z.literal("INR")
+  currency: z.literal("INR"),
+  priority: z.enum(["strict", "flexible"]).optional(),
+  preferLowCostMeals: z.boolean().optional()
 });
 
 export const kitchenProfileSchema = z.object({

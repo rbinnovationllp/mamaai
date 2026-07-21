@@ -74,6 +74,9 @@ export class AnalyticsService {
     const last30PageViews = pageViews.filter((event) => isWithinDays(event.createdAt, 30));
     const eventCounts = groupCount(events, (event) => event.eventName);
     const askMamaQuestionEvents = events.filter((event) => event.eventName === "ask_mama_question");
+    const aiUsageEvents = events.filter((event) =>
+      ["meal_plan_generated", "meal_replaced", "recipe_video_requested", "ask_mama_question"].includes(event.eventName)
+    );
 
     const dailyVisitorTrend = topEntries(groupCount(pageViews, (event) => dateKey(event.createdAt)), 30).sort((a, b) =>
       a.label.localeCompare(b.label)
@@ -98,6 +101,9 @@ export class AnalyticsService {
         getStartedClicks: eventCounts.get_started_click ?? 0,
         registrations: eventCounts.registration_success ?? eventCounts.create_family_success ?? 0,
         mealPlansGenerated: eventCounts.meal_plan_generated ?? 0,
+        mealReplacements: eventCounts.meal_replaced ?? 0,
+        recipeVideoRequests: eventCounts.recipe_video_requested ?? 0,
+        pwaInstallPrompts: eventCounts.pwa_install_prompt ?? 0,
         askMamaConversations: eventCounts.ask_mama_open ?? 0,
         askMamaQuestions: eventCounts.ask_mama_question ?? 0,
         askMamaUnresolved: eventCounts.ask_mama_unresolved ?? 0
@@ -114,6 +120,13 @@ export class AnalyticsService {
           { label: "Meal Plans", value: eventCounts.meal_plan_generated ?? 0 }
         ],
         askMamaCategories: topEntries(groupCount(askMamaQuestionEvents, (event) => event.category ?? "Unknown"))
+      },
+      aiUsage: {
+        totalTrackedAiApiEvents: aiUsageEvents.length,
+        byPlanOrCategory: topEntries(groupCount(aiUsageEvents, (event) => event.category ?? "Unknown")),
+        expensiveOperationMix: topEntries(groupCount(aiUsageEvents, (event) => event.eventName)),
+        fairUseNote:
+          "Use this testing-stage view to compare real usage against plan limits before enforcing production throttles."
       },
       privacy: "No raw IP address is stored. Visitor/session ids are anonymous local browser ids for testing analytics."
     };

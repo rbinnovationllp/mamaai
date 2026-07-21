@@ -22,6 +22,7 @@
 ## Judge/Demo Access Tests
 
 - Home page shows a prominent Try Demo / Judge Access option on mobile and desktop.
+- Mobile menu opens, closes, and all visible links scroll to the correct section.
 - Judge Access loads without registration, login, payment, or subscription setup.
 - Judge Access uses only fictional demo family profiles.
 - Judge can see multiple family members immediately.
@@ -78,6 +79,8 @@
 - Retention notice appears with Download / Export / Save option.
 - Redesigned landing page communicates product purpose, difference, and Try Demo CTA within the first screen.
 - Sticky navigation links work on mobile and desktop.
+- Install MAMAAI action shows the browser install prompt where supported or clear Add to Home Screen instructions where not supported.
+- PWA manifest and service worker are available from the deployed site.
 - Final CTA scrolls users into the family-planning flow.
 - View Recipe / How to Cook opens for every generated common meal.
 - Recipe modal shows ingredients, quantities, servings, steps, prep/cook time, difficulty, nutrition, cost, adjustments, alternatives, and video recommendation metadata.
@@ -100,6 +103,8 @@
 - Guest mode cannot access long-term saved history in production mode.
 - Judge/Demo Access cannot expose real personal or medical data.
 - RevenueCat webhook secrets are not exposed to the frontend.
+- `/api/subscriptions/status` returns server-resolved entitlement data and the UI does not trust a frontend-only premium flag.
+- Fake payment buttons are not present in the hackathon build.
 - AWS credentials and table/bucket names are server-side only except safe public app URL.
 - DynamoDB TTL never targets allergy, restriction, fasting, subscription, or account records.
 - S3 exports are private and should be served by signed URL in production.
@@ -125,7 +130,7 @@
 - Quick questions return short answers from the controlled MAMAAI knowledge base.
 - "Plan meals for my family" provides an Add Family action.
 - Judge/Demo questions provide a Try Demo action.
-- Subscription questions show INR 199/399/599 plan details.
+- Subscription questions show India INR 399/599/799 and international US$4.99/6.99/8.99 plan details.
 - Recipe-video questions clearly state testing-stage availability when YouTube is not configured.
 - Unknown questions are marked unresolved and record `ask_mama_unresolved`.
 - Support questions show `support@mamaai.in` and owner contact `rbinnovationllp@gmail.com`.
@@ -138,6 +143,8 @@ Do not mark "Hackathon MVP Ready" until:
 - TypeScript has no blocking errors.
 - Core APIs work.
 - Core mobile UI works.
+- Mobile menu and PWA install guidance work.
+- Subscription status is resolved server-side for the testing-stage build.
 - AI fallback works without a key.
 - OpenAI path is contract-ready.
 - Grocery update works after replacement.

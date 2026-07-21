@@ -522,6 +522,28 @@ function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
   });
 }
 
+function budgetWarning(family: Family, estimatedMealCost: number, estimatedDailyCost: number) {
+  const budget = family.budget;
+  if (budget.type === "none" || !budget.amount) {
+    return "No fixed food budget was set; use the estimated meal and grocery costs as planning guidance.";
+  }
+
+  const estimatedCost = budget.type === "per_meal" ? estimatedMealCost : estimatedDailyCost;
+  const limit =
+    budget.type === "per_meal"
+      ? budget.amount
+      : budget.type === "daily"
+        ? budget.amount
+        : budget.type === "weekly"
+          ? budget.amount / 7
+          : budget.amount / 30;
+  const status = estimatedCost <= limit ? "within" : "above";
+  const priority = budget.priority === "strict" ? "strict" : "flexible";
+  const lowCost = budget.preferLowCostMeals ? " Low-cost meal preference is enabled." : "";
+
+  return `Budget check: this estimate is ${status} the ${priority} ${budget.type.replace("_", " ")} budget target.${lowCost}`;
+}
+
 export class AIService {
   generateFamilyMealPlan(input: GeneratePlanInput): FamilyMealPlan {
     const timestamp = nowIso();
@@ -538,6 +560,7 @@ export class AIService {
     const dailyGroceryRequirements = quantityPlanningService.consolidate(mealIngredientRequirements);
     const groceryItems = quantityPlanningService.groceryFromRequirements(dailyGroceryRequirements);
     const totalCost = groceryService.totalCost(groceryItems);
+    const estimatedDailyCost = totalCost + (input.highTeaPreference?.enabled ? 220 : 160);
 
     return {
       mealPlanId: createId("meal-plan"),
@@ -553,7 +576,7 @@ export class AIService {
       hydration: input.members.map((member) => this.hydrationForMember(member)),
       estimatedCost: {
         mealCost: money(totalCost),
-        dailyCost: money(totalCost + (input.highTeaPreference?.enabled ? 220 : 160))
+        dailyCost: money(estimatedDailyCost)
       },
       groceryItems,
       mealAttendance: [attendance],
@@ -567,6 +590,7 @@ export class AIService {
       warnings: [
         "Nutrition values are estimates and should not be treated as medical advice.",
         "Known allergies and doctor restrictions must be reviewed before cooking.",
+        budgetWarning(input.family, totalCost, estimatedDailyCost),
         input.userPlanningMode === "returning_user_weekly_editable"
           ? "Returning-user mode should reuse editable weekly planning to control AI cost and avoid unnecessary regeneration."
           : "New-user mode generates a focused next-meal plan for onboarding and demo clarity."

@@ -87,6 +87,9 @@ export default function AdminPage() {
             <p>Get Started clicks: {analytics.eventCounts.getStartedClicks}</p>
             <p>Registrations/Create Family: {analytics.eventCounts.registrations}</p>
             <p>Meal plans generated: {analytics.eventCounts.mealPlansGenerated}</p>
+            <p>Meal replacements: {analytics.eventCounts.mealReplacements}</p>
+            <p>Recipe video requests: {analytics.eventCounts.recipeVideoRequests}</p>
+            <p>PWA install prompts: {analytics.eventCounts.pwaInstallPrompts}</p>
             <p>Ask MAMA opens: {analytics.eventCounts.askMamaConversations}</p>
             <p>Ask MAMA questions: {analytics.eventCounts.askMamaQuestions}</p>
             <p>Ask MAMA unresolved: {analytics.eventCounts.askMamaUnresolved}</p>
@@ -95,6 +98,16 @@ export default function AdminPage() {
         <article className="panel">
           <h2>Ask MAMA Categories</h2>
           <BarList items={analytics.charts.askMamaCategories} />
+        </article>
+        <article className="panel">
+          <h2>AI/API Usage by Plan</h2>
+          <p className="muted">{analytics.aiUsage.fairUseNote}</p>
+          <BarList items={analytics.aiUsage.byPlanOrCategory} />
+        </article>
+        <article className="panel">
+          <h2>Expensive Operation Mix</h2>
+          <p className="muted">Tracked events: {analytics.aiUsage.totalTrackedAiApiEvents}</p>
+          <BarList items={analytics.aiUsage.expensiveOperationMix} />
         </article>
       </section>
 

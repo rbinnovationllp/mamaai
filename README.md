@@ -118,17 +118,21 @@ MAMA AI is RevenueCat-ready but does not require live billing for the hackathon 
 
 Plans:
 
-- Family Starter: INR 199/month, up to 4 family members.
-- Family Premium: INR 399/month, up to 6 family members.
-- Family Plus: INR 599/month, up to 10 family members.
+- Family Starter: India INR 399/month; international US$4.99/month; up to 4 family members.
+- Family Premium: India INR 599/month; international US$6.99/month; up to 6 family members.
+- Family Plus: India INR 799/month; international US$8.99/month; up to 10 family members.
+
+India and international prices are configured regional tiers, not live currency conversions. Production checkout must match the configured prices in RevenueCat, Google Play, and the selected web payment provider before billing is enabled.
 
 Implemented:
 
 - Subscription plan definitions.
 - Backend member-limit enforcement logic.
 - `/api/subscriptions/plans` endpoint.
+- `/api/subscriptions/status` server-side testing-stage entitlement endpoint.
 - `/api/revenuecat/webhook` contract endpoint.
 - Judge Access payment bypass limited to fictional demo data.
+- No fake payment buttons in the hackathon build.
 
 Not yet implemented:
 
@@ -136,6 +140,20 @@ Not yet implemented:
 - Persistent subscription history.
 - Google Play Billing production connection.
 - DynamoDB-backed entitlement storage.
+
+Recommended web/PWA payment approach: launch with a production web payment provider using server-side webhook verification, then store the verified entitlement in DynamoDB. Future RevenueCat, Google Play Billing, and iOS subscription events should update the same MAMAAI user entitlement so one account has one reliable subscription status.
+
+## Mobile / PWA Access
+
+MAMAAI is currently a mobile-first web app with a PWA foundation. Users can open the site from a phone and use **Install MAMAAI** / browser **Add to Home Screen** behavior where supported.
+
+Implemented:
+
+- Web app manifest.
+- App icons.
+- Basic service worker.
+- Mobile hamburger navigation.
+- Install guidance for Android/iPhone browser limitations.
 
 ## Safety Notes
 
@@ -204,6 +222,7 @@ The Vercel build includes Vercel Web Analytics for lightweight page analytics. T
 - Family creation / registration-style success
 - Meal plans generated
 - Ask MAMA opens, questions, unresolved topics, and common categories
+- Meal budget constraints and estimated-cost comparison
 
 Admin analytics are visible at:
 
@@ -231,6 +250,7 @@ The MVP analytics store anonymous visitor/session ids only and does not store ra
 - Production DynamoDB repositories are documented but not connected yet.
 - Live OpenAI API integration is architecture-ready but not required for Judge Access.
 - RevenueCat and Google Play Billing are integration-ready but not production-complete.
+- PWA install support depends on browser behavior; iPhone users may need Safari's Share -> Add to Home Screen option.
 - Optional external-service features are labeled as fully functional, demo/test-only, temporarily disabled, or planned.
 - Website analytics are in-memory for the hackathon demo; production should persist analytics events in DynamoDB or a managed privacy-friendly analytics service.
 - Admin/CRM, pantry, production video discovery, analytics, production PDF/CSV exports, and multilingual rollout are post-hackathon priorities.
