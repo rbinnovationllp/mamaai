@@ -41,6 +41,12 @@ export const createFamilyMemberInputSchema = z.object({
   likes: z.array(z.string()),
   dislikes: z.array(z.string()),
   allergies: z.array(z.string()),
+  foodAllergies: z.array(z.string()),
+  ingredientAllergies: z.array(z.string()),
+  foodDislikes: z.array(z.string()),
+  dislikedMeals: z.array(z.string()),
+  excludedIngredients: z.array(z.string()),
+  dietaryRestrictions: z.array(z.string()),
   healthConditions: z.array(z.string()),
   doctorRestrictions: z.array(z.string()),
   specialStatuses: z.array(z.string())
@@ -70,6 +76,44 @@ export const nutritionEstimateSchema = z.object({
   confidence: z.enum(["low", "medium", "high"])
 });
 
+export const recipeDetailsSchema = z.object({
+  title: z.string().min(1),
+  servings: z.number().int().positive(),
+  prepTimeMinutes: z.number().int().nonnegative(),
+  cookTimeMinutes: z.number().int().nonnegative(),
+  difficulty: z.enum(["easy", "medium", "hard"]),
+  ingredients: z.array(ingredientSchema).min(1),
+  steps: z.array(z.string().min(1)).min(1),
+  estimatedNutrition: nutritionEstimateSchema,
+  estimatedCost: moneySchema,
+  familyAdjustments: z.array(z.string()),
+  alternativeIngredients: z.array(z.string()),
+  videoRecommendation: z.object({
+    label: z.string().min(1),
+    url: z.string().optional(),
+    note: z.string().min(1)
+  }).optional()
+});
+
+export const preferenceResolutionSchema = z.object({
+  hasSoftConflict: z.boolean(),
+  prompt: z.string().min(1),
+  affectedMembers: z.array(z.object({
+    memberId: z.string().min(1),
+    memberName: z.string().min(1),
+    conflicts: z.array(z.string().min(1)),
+    suggestedAlternative: z.string().min(1)
+  })),
+  recommendedOptionId: z.enum(["separate_alternative", "one_common_meal", "two_compatible_options"]),
+  options: z.array(z.object({
+    optionId: z.enum(["separate_alternative", "one_common_meal", "two_compatible_options"]),
+    label: z.string().min(1),
+    description: z.string().min(1),
+    cookingImpact: z.string().min(1)
+  })).min(1),
+  minimumCookingStrategy: z.string().min(1)
+});
+
 export const familyMealPlanSchema = z.object({
   mealPlanId: z.string().min(1),
   familyId: z.string().min(1),
@@ -85,7 +129,8 @@ export const familyMealPlanSchema = z.object({
     difficulty: z.enum(["easy", "medium", "hard"]),
     regionFit: z.string().min(1),
     nutritionIntent: z.string().min(1),
-    nutritionEstimate: nutritionEstimateSchema
+    nutritionEstimate: nutritionEstimateSchema,
+    recipe: recipeDetailsSchema
   }),
   memberCustomizations: z.array(z.object({
     memberId: z.string().min(1),
@@ -94,6 +139,7 @@ export const familyMealPlanSchema = z.object({
     portionGuidance: z.string().min(1),
     safetyNotes: z.array(z.string())
   })).min(1),
+  preferenceResolution: preferenceResolutionSchema.optional(),
   fruits: z.array(z.object({
     memberId: z.string().min(1),
     memberName: z.string().min(1),

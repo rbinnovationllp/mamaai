@@ -155,6 +155,12 @@ const initialMember: CreateFamilyMemberInput = {
   likes: [],
   dislikes: [],
   allergies: [],
+  foodAllergies: [],
+  ingredientAllergies: [],
+  foodDislikes: [],
+  dislikedMeals: [],
+  excludedIngredients: [],
+  dietaryRestrictions: [],
   healthConditions: [],
   doctorRestrictions: [],
   specialStatuses: []
@@ -297,7 +303,12 @@ export function FamilyFlow() {
           },
           subscriptionPlan: "family_premium"
         },
-        members
+        members: members.map((member) => ({
+          ...member,
+          allergies: [...new Set([...member.allergies, ...member.foodAllergies, ...member.ingredientAllergies])],
+          dislikes: [...new Set([...member.dislikes, ...member.foodDislikes, ...member.dislikedMeals])],
+          doctorRestrictions: [...new Set([...member.doctorRestrictions, ...member.dietaryRestrictions])]
+        }))
       })
     });
 
@@ -312,11 +323,12 @@ export function FamilyFlow() {
     setCreatedMembers(data.members);
     setMealPlan(null);
     setNutritionContexts([]);
-    setStatus("Family created. Ready to analyze profiles and generate one common family meal.");
+    setStatus("Family created. Analyzing profiles and generating one common family meal...");
+    await generateMeal(data.family);
   }
 
-  async function generateMeal() {
-    if (!createdFamily) return;
+  async function generateMeal(familyForPlan = createdFamily) {
+    if (!familyForPlan) return;
 
     setError("");
     setFeedbackSaved(false);
@@ -327,14 +339,14 @@ export function FamilyFlow() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        familyId: createdFamily.familyId,
+        familyId: familyForPlan.familyId,
         planType,
         mealTime: selectedMealTime,
         mealTimeContext: {
           ...timeContext,
-          country: createdFamily.country,
-          region: createdFamily.state,
-          city: createdFamily.city
+          country: familyForPlan.country,
+          region: familyForPlan.state,
+          city: familyForPlan.city
         },
         userPlanningMode,
         targetDate: getLocalDate(timeContext.timeZone)
@@ -460,7 +472,7 @@ export function FamilyFlow() {
                 <option value="returning_user_weekly_editable">Returning user - weekly editable</option>
               </select>
             </label>
-            <button className="button" onClick={generateMeal} disabled={!canGenerate}>
+            <button className="button" onClick={() => generateMeal()} disabled={!canGenerate}>
               Plan Today
             </button>
             <button className="button secondary" onClick={() => loadDemo("standard")}>
@@ -532,7 +544,18 @@ export function FamilyFlow() {
                       </p>
                       <p>
                         <span className="mini-title">Allergies/restrictions: </span>
-                        {displayList([...member.allergies, ...member.doctorRestrictions])}
+                        {displayList([
+                          ...member.allergies,
+                          ...member.foodAllergies,
+                          ...member.ingredientAllergies,
+                          ...member.excludedIngredients,
+                          ...member.dietaryRestrictions,
+                          ...member.doctorRestrictions
+                        ])}
+                      </p>
+                      <p>
+                        <span className="mini-title">Dislikes: </span>
+                        {displayList([...member.dislikes, ...member.foodDislikes, ...member.dislikedMeals])}
                       </p>
                     </article>
                   ))}
@@ -648,14 +671,59 @@ export function FamilyFlow() {
                           />
                         </label>
                         <label>
-                          Allergies and doctor restrictions
+                          Food allergies
                           <input
-                            value={joinList([...member.allergies, ...member.doctorRestrictions])}
-                            onChange={(event) => {
-                              const values = splitList(event.target.value);
-                              updateMember(index, { allergies: values, doctorRestrictions: [] });
-                            }}
-                            placeholder="Peanut, avoid sugary beverages"
+                            value={joinList(member.foodAllergies)}
+                            onChange={(event) => updateMember(index, { foodAllergies: splitList(event.target.value) })}
+                            placeholder="Peanut, shellfish, milk"
+                          />
+                        </label>
+                        <label>
+                          Ingredient allergies
+                          <input
+                            value={joinList(member.ingredientAllergies)}
+                            onChange={(event) => updateMember(index, { ingredientAllergies: splitList(event.target.value) })}
+                            placeholder="Peanut oil, sesame, egg"
+                          />
+                        </label>
+                        <label>
+                          Food dislikes
+                          <input
+                            value={joinList(member.foodDislikes)}
+                            onChange={(event) => updateMember(index, { foodDislikes: splitList(event.target.value) })}
+                            placeholder="Very spicy food, bitter food"
+                          />
+                        </label>
+                        <label>
+                          Meals or dishes not liked
+                          <input
+                            value={joinList(member.dislikedMeals)}
+                            onChange={(event) => updateMember(index, { dislikedMeals: splitList(event.target.value) })}
+                            placeholder="Khichdi, poha"
+                          />
+                        </label>
+                        <label>
+                          Ingredients never include
+                          <input
+                            value={joinList(member.excludedIngredients)}
+                            onChange={(event) => updateMember(index, { excludedIngredients: splitList(event.target.value) })}
+                            placeholder="Mushroom, bitter gourd"
+                          />
+                        </label>
+                        <label>
+                          Dietary restrictions
+                          <input
+                            value={joinList(member.dietaryRestrictions)}
+                            onChange={(event) => updateMember(index, { dietaryRestrictions: splitList(event.target.value) })}
+                            placeholder="Low sugar, low salt, no fried food"
+                          />
+                        </label>
+                        <label>
+                          Doctor restrictions
+                          <input
+                            value={joinList(member.doctorRestrictions)}
+                            onChange={(event) => updateMember(index, { doctorRestrictions: splitList(event.target.value) })}
+                            placeholder="Avoid sugary beverages"
                           />
                         </label>
                       </div>

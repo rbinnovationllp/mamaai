@@ -5,6 +5,8 @@
 - Never expose secrets in frontend code.
 - Validate all API inputs and AI outputs.
 - Treat allergies and doctor restrictions as hard constraints.
+- Treat food allergies, ingredient allergies, excluded ingredients, dietary restrictions, and doctor restrictions as hard constraints.
+- Treat food dislikes and disliked meals as preference signals that should drive member-level modifications before changing the full family meal.
 - Use RBAC for admin routes.
 - Minimize and protect sensitive health data.
 - Audit important admin actions.

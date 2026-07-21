@@ -94,6 +94,12 @@ Every item includes:
 - `likes`
 - `dislikes`
 - `allergies`
+- `foodAllergies`
+- `ingredientAllergies`
+- `foodDislikes`
+- `dislikedMeals`
+- `excludedIngredients`
+- `dietaryRestrictions`
 - `healthConditions`
 - `doctorRestrictions`
 - `specialStatuses`
@@ -123,6 +129,7 @@ Stored on generated plans or computed on demand:
 - `status`
 - `commonMeal`
 - `commonMeal.nutritionEstimate`
+- `commonMeal.recipe`
 - `memberCustomizations`
 - `fruits`
 - `hydration`

@@ -44,6 +44,17 @@
 - Added editable nutrition calculator so users can add common extra foods or custom values and see recalculated estimates.
 - Documented nutrition estimate source basis and the need for verified ingredient-weight lookup after the hackathon.
 - Validation passed after diet preference and nutrition estimate work: `npm run typecheck`, `npm run lint`, and `npm run build`.
+- Fixed custom family creation flow so `Create Family` immediately analyzes profiles and generates the MAMA Family Table instead of requiring a separate `Plan Today` tap.
+- Validation passed after Create Family flow fix: `npm run typecheck`, `npm run lint`, and `npm run build`.
+- Added separate member preference fields for food allergies, ingredient allergies, food dislikes, disliked meals, excluded ingredients, and dietary restrictions.
+- Updated meal planning to inspect hard restrictions and soft dislikes before finalizing member modifications.
+- Updated safety validation to check common meal and recipe ingredients against all hard restriction fields.
+- Added `View Recipe / How to Cook` modal for every generated common meal.
+- Recipe details now include ingredients, quantities, servings, steps, prep time, cook time, difficulty, estimated nutrition, estimated cost, member-specific adjustments, alternatives, and video recommendation metadata.
+- Validation passed after allergy/dislike and recipe work: `npm run typecheck`, `npm run lint`, and `npm run build`.
+- Added soft-dislike preference-resolution flow so one member's disliked ingredient does not automatically restrict the whole family meal.
+- Added three user-facing choices: separate simple alternative, one common family meal, and two compatible options with a small second component.
+- Validation passed after soft-dislike preference-resolution work: `npm run typecheck`, `npm run lint`, and `npm run build`.
 
 ## In Progress
 
@@ -83,6 +94,8 @@
 - RevenueCat/Google Play Billing must not block the hackathon submission; production billing follows core MVP, judge demo, testing, deployment, and Devpost demo readiness.
 - Meal-time defaults must use the user's local timezone and family region context, not India-only assumptions.
 - Nutrition values in the MVP are estimates for education and demo clarity; production requires verified ingredient weights and nutrition database integration before precision claims.
+- YouTube recipe links are contract-ready as recommendation metadata; production YouTube API integration remains post-hackathon.
+- Soft dislikes must stay separate from allergy/medical safety handling; allergies and medical restrictions always remain hard constraints.
 
 ## Required Environment Variables
 
