@@ -309,7 +309,7 @@ Response:
 
 ## POST /api/recipes/videos
 
-Searches for public third-party recipe videos using the official YouTube Data API when `YOUTUBE_API_KEY` is configured. If no API key is configured, the endpoint returns a safe YouTube search URL fallback and does not scrape YouTube.
+Searches for public third-party recipe videos using the official YouTube Data API when `YOUTUBE_API_KEY` is configured. If no API key is configured, the endpoint returns a clear testing-stage unavailable status and does not scrape YouTube. The written recipe remains available even when video search is unavailable.
 
 Request:
 
@@ -332,6 +332,8 @@ Response:
 {
   query: string;
   usedOfficialApi: boolean;
+  status: "fully_functional" | "demo_test_only" | "temporarily_disabled" | "planned";
+  statusLabel: string;
   results: Array<{
     title: string;
     channelTitle: string;
@@ -342,6 +344,19 @@ Response:
   }>;
   note: string;
 }
+```
+
+Status rules:
+
+- `fully_functional`: official YouTube Data API is configured and returned results.
+- `demo_test_only`: optional video search had a temporary external-service issue and returned a safe third-party search fallback.
+- `temporarily_disabled`: required external API/service is not activated in the testing version.
+- `planned`: feature is documented but not yet implemented.
+
+Tester-facing copy must avoid API keys, stack traces, and technical configuration details. Recommended wording:
+
+```text
+This feature is currently unavailable in the testing version because the required external API/service has not yet been activated. It is planned for the production release after the required production integration is completed.
 ```
 
 ## API Error Shape

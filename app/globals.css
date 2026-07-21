@@ -528,6 +528,28 @@ textarea {
   line-height: 1.5;
 }
 
+.testing-notice,
+.feature-status {
+  border: 1px solid #b7d7c7;
+  background: #f5fff9;
+  border-radius: 8px;
+  padding: 12px;
+  color: #315b49;
+  line-height: 1.5;
+}
+
+.feature-status {
+  display: grid;
+  gap: 4px;
+}
+
+.feature-status span {
+  color: var(--leaf);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .error {
   color: var(--tomato);
   font-weight: 800;

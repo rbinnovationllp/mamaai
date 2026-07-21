@@ -56,7 +56,7 @@
 - Added three user-facing choices: separate simple alternative, one common family meal, and two compatible options with a small second component.
 - Validation passed after soft-dislike preference-resolution work: `npm run typecheck`, `npm run lint`, and `npm run build`.
 - Added `POST /api/recipes/videos` recipe-video discovery endpoint using the official YouTube Data API when `YOUTUBE_API_KEY` is configured.
-- Added safe YouTube search fallback when `YOUTUBE_API_KEY` is absent; no scraping is used.
+- Added clear testing-stage status handling when `YOUTUBE_API_KEY` or another optional external service is not activated; no scraping is used.
 - Added `Watch How to Cook` action in the recipe modal with third-party content disclaimer.
 - Validation passed after recipe-video discovery work: `npm run typecheck`, `npm run lint`, and `npm run build`.
 - Smoke test passed for `POST /api/recipes/videos` fallback mode without `YOUTUBE_API_KEY`.
@@ -74,6 +74,9 @@
 - Added custom-family country of residence and preferred food culture/cuisine input so cuisine is not inferred only from nationality.
 - Updated `.env.example` with MAMAAI-specific AWS table, S3, TTL, namespace, and Cognito placeholders.
 - Validation passed after AWS storage architecture, retention, export, and cuisine-persona work: `npm run typecheck`, `npm run lint`, and `npm run build`.
+- Added general testing-version notice for hackathon users and judges.
+- Updated optional recipe-video integration UX so `Watch How to Cook` remains visible, written recipes remain usable, and missing external API activation is labeled as `Currently Unavailable in Test Version` without exposing technical configuration details.
+- Validation passed after testing-stage external-service notice work: `npm run typecheck`, `npm run lint`, and `npm run build`.
 
 ## In Progress
 
@@ -114,6 +117,7 @@
 - Meal-time defaults must use the user's local timezone and family region context, not India-only assumptions.
 - Nutrition values in the MVP are estimates for education and demo clarity; production requires verified ingredient weights and nutrition database integration before precision claims.
 - YouTube recipe search uses the official API when configured and otherwise returns a clearly labeled fallback search link.
+- Optional external-service features must show one of these statuses instead of failing silently: fully functional, demo/test-only, temporarily disabled, or planned.
 - Soft dislikes must stay separate from allergy/medical safety handling; allergies and medical restrictions always remain hard constraints.
 - Meal-wise quantities should be calculated deterministically from selected family attendance, fasting members, guest count, and adult-equivalent portion factors. This keeps recurring subscription cost lower by avoiding unnecessary AI calls for simple grocery math.
 - High tea is treated as a real meal slot for families that use it, especially in late afternoon local time. Dinner remains the default from 6:00 PM onward.

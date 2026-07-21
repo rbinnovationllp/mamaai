@@ -217,6 +217,8 @@ export interface RecipeVideoSearchRequest {
   familyRequirements?: string[];
 }
 
+export type FeatureAvailabilityStatus = "fully_functional" | "demo_test_only" | "temporarily_disabled" | "planned";
+
 export interface RecipeVideoResult {
   title: string;
   channelTitle: string;
@@ -229,6 +231,8 @@ export interface RecipeVideoResult {
 export interface RecipeVideoSearchResponse {
   query: string;
   usedOfficialApi: boolean;
+  status: FeatureAvailabilityStatus;
+  statusLabel: string;
   results: RecipeVideoResult[];
   note: string;
 }

@@ -149,24 +149,35 @@ export function MamaFamilyTable({ members, nutritionContexts, mealPlan, familyCo
             {recipe.videoRecommendation ? (
               <section className="recipe-section">
                 <h3>Watch How to Cook</h3>
+                <p className="feature-status">
+                  <span>Optional external service</span>
+                  Written recipe is fully available. Video discovery may be limited in this testing version.
+                </p>
                 <button className="button" onClick={watchHowToCook}>
                   Watch How to Cook
                 </button>
                 <p className="muted">{recipe.videoRecommendation.note}</p>
-                {videoStatus ? <p className="notice">{videoStatus}</p> : null}
-                {videoSearch ? (
-                  <div className="video-results">
-                    {videoSearch.results.map((video) => (
-                      <a className="video-result" href={video.url} key={video.url} target="_blank" rel="noreferrer">
-                        {video.thumbnailUrl ? <Image src={video.thumbnailUrl} alt="" width={112} height={63} unoptimized /> : null}
-                        <span>
-                          <strong>{video.title}</strong>
-                          <small>{video.channelTitle}</small>
-                          <small>{video.thirdPartyDisclaimer}</small>
-                        </span>
-                      </a>
-                    ))}
+                {videoStatus ? (
+                  <div className="notice">
+                    {videoSearch?.statusLabel ? <p className="mini-title">{videoSearch.statusLabel}</p> : null}
+                    <p>{videoStatus}</p>
                   </div>
+                ) : null}
+                {videoSearch ? (
+                  videoSearch.results.length ? (
+                    <div className="video-results">
+                      {videoSearch.results.map((video) => (
+                        <a className="video-result" href={video.url} key={video.url} target="_blank" rel="noreferrer">
+                          {video.thumbnailUrl ? <Image src={video.thumbnailUrl} alt="" width={112} height={63} unoptimized /> : null}
+                          <span>
+                            <strong>{video.title}</strong>
+                            <small>{video.channelTitle}</small>
+                            <small>{video.thirdPartyDisclaimer}</small>
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  ) : null
                 ) : null}
               </section>
             ) : null}
