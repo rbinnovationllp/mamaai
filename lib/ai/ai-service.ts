@@ -593,12 +593,15 @@ export class AIService {
 
     if (hardConflicts.length || dislikedIngredients.length || dislikedMeals.length) {
       const conflicts = [...hardConflicts, ...dislikedIngredients, ...dislikedMeals].join(", ");
+      const softDislikeGuidance = dislikedMeals.length
+        ? `This member does not prefer the common dish (${dislikedMeals.join(", ")}). If the rest of the family keeps this meal, prepare a simple member-only alternative such as dal-roti, dal-rice, vegetable sabzi, curd, paneer, egg, or chicken according to this member's diet pattern.`
+        : `Keep the common family meal, but remove or replace ${conflicts} from this member's portion before changing the entire family meal.`;
       return {
         memberId: member.memberId,
         memberName: member.name,
         modification: hardConflicts.length
           ? `Do not serve the conflicting item(s): ${conflicts}. Use a safe dal, roti, vegetable, curd-free, egg-free, or protein alternative based on the specific restriction.`
-          : `Keep the common family meal, but remove or replace ${conflicts} from this member's portion before changing the entire family meal.`,
+          : softDislikeGuidance,
         portionGuidance: "Serve a normal age/activity-appropriate portion only after the conflicting item is removed or replaced.",
         safetyNotes
       };

@@ -189,3 +189,8 @@ pm run build.
 - Public Devpost-ready deployment should be verified at `https://mamaai.in` after pushing and Vercel redeploys.
 
 
+
+- Fixed Try Demo/Judge Access CTA behavior so it visibly loads demo data, shows loading/failure state, and scrolls users into the live planner.
+- Improved mobile demo usability: Try Demo now opens the family profile section first, key controls use explicit button behavior, and Ask MAMA no longer spans the full mobile screen bottom.
+
+

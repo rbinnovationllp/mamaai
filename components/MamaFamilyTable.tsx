@@ -57,6 +57,10 @@ export function MamaFamilyTable({ members, nutritionContexts, mealPlan, familyCo
         <p className="eyebrow">Common Family Meal Today</p>
         <h2>{mealPlan.commonMeal.name}</h2>
         <p className="lead">{mealPlan.commonMeal.description}</p>
+        <p className="notice">
+          This is one shared family meal. The member cards below are portions, preparation notes, and safety/preference
+          adjustments, not separate meal plans for everyone.
+        </p>
         <p className="muted">
           {mealPlan.commonMeal.prepTimeMinutes} minutes - {mealPlan.commonMeal.difficulty} - {mealPlan.commonMeal.regionFit}
         </p>
@@ -231,13 +235,14 @@ export function MamaFamilyTable({ members, nutritionContexts, mealPlan, familyCo
             <article className="panel person" key={customization.memberId}>
               <h3>{customization.memberName}</h3>
               <p className="muted">{member?.relationship} - Age {member?.age}</p>
+              <p className="same-meal-note">Same common meal, personalized for this member.</p>
               <div className="stack">
                 <p>
-                  <span className="mini-title">Modification: </span>
+                  <span className="mini-title">Personal adjustment: </span>
                   {customization.modification}
                 </p>
                 <p>
-                  <span className="mini-title">Portion: </span>
+                  <span className="mini-title">Portion for this member: </span>
                   {customization.portionGuidance}
                 </p>
                 {fruit ? (

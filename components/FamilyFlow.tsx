@@ -295,6 +295,7 @@ export function FamilyFlow() {
   const [status, setStatus] = useState("Loading fictional demo family...");
   const [error, setError] = useState("");
   const [feedbackSaved, setFeedbackSaved] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
 
   const canGenerate = useMemo(() => Boolean(createdFamily), [createdFamily]);
   const adjustedNutrition = useMemo(() => {
@@ -356,33 +357,53 @@ export function FamilyFlow() {
     };
   }
 
+  function scrollToSection(sectionId: string) {
+    requestAnimationFrame(() => {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
   async function loadDemo(mode: "judge" | "standard" = "standard") {
     if (mode === "judge") {
       trackAnalyticsEvent("try_demo_click");
     }
+    setDemoLoading(true);
     setJudgeMode(mode === "judge");
     setError("");
     setFeedbackSaved(false);
     setStatus(mode === "judge" ? "Opening Judge Access with fictional demo data..." : "Loading fictional demo family...");
-    const response = await fetch("/api/demo");
-    const data = (await response.json()) as DemoResponse;
-    setCreatedFamily(data.family);
-    setCreatedMembers(data.members);
-    setNutritionContexts(data.nutritionContexts);
-    setMealPlan(data.mealPlan);
-    setFamilyName(data.family.name);
-    setCountry(data.family.country);
-    setCity(data.family.city);
-    setState(data.family.state);
-    setDietPreference(data.family.dietPreference);
-    setCuisineText(data.family.cuisinePreferences.join(", "));
-    setMembers(data.members.map(({ memberId: _memberId, familyId: _familyId, ...member }) => member));
-    syncMealAttendance(data.members);
-    setStatus(
-      mode === "judge"
-        ? "Judge Access ready. Review the family profile, common meal, personal guidance, fruit, hydration, grocery list, and try Replace Meal."
-        : "Demo family loaded. You can edit members, recreate the family, or replace the meal."
-    );
+    try {
+      const response = await fetch("/api/demo", { cache: "no-store" });
+      const data = (await response.json()) as DemoResponse;
+      if (!response.ok) {
+        throw new Error("Demo could not be loaded.");
+      }
+      setCreatedFamily(data.family);
+      setCreatedMembers(data.members);
+      setNutritionContexts(data.nutritionContexts);
+      setMealPlan(data.mealPlan);
+      setFamilyName(data.family.name);
+      setCountry(data.family.country);
+      setCity(data.family.city);
+      setState(data.family.state);
+      setDietPreference(data.family.dietPreference);
+      setCuisineText(data.family.cuisinePreferences.join(", "));
+      setMembers(data.members.map(({ memberId: _memberId, familyId: _familyId, ...member }) => member));
+      syncMealAttendance(data.members);
+      setStatus(
+        mode === "judge"
+          ? "Judge Access ready. Review the family profile, common meal, personal guidance, fruit, hydration, grocery list, and try Replace Meal."
+          : "Demo family loaded. You can edit members, recreate the family, or replace the meal."
+      );
+      if (mode === "judge") {
+        scrollToSection("family-profile");
+      }
+    } catch {
+      setStatus("");
+      setError("Demo access could not be loaded. Please refresh the page and try again.");
+    } finally {
+      setDemoLoading(false);
+    }
   }
 
   function updateMember(index: number, patch: Partial<CreateFamilyMemberInput>) {
@@ -393,7 +414,7 @@ export function FamilyFlow() {
     trackAnalyticsEvent("get_started_click");
     setJudgeMode(false);
     setStatus("Custom family mode ready. Edit the family members, create the family, then plan today.");
-    document.getElementById("planner")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollToSection("family-profile");
   }
 
   async function createFamily() {
@@ -585,10 +606,10 @@ export function FamilyFlow() {
           <a href="#pricing">Pricing</a>
         </nav>
         <div className="nav-actions">
-          <button className="button secondary" onClick={() => loadDemo("judge")}>
-            Try Demo
+          <button className="button secondary" type="button" onClick={() => loadDemo("judge")} disabled={demoLoading}>
+            {demoLoading ? "Opening Demo..." : "Try Demo"}
           </button>
-          <button className="button" onClick={startCustomFamily}>
+          <button className="button" type="button" onClick={startCustomFamily}>
             Get Started
           </button>
         </div>
@@ -604,11 +625,11 @@ export function FamilyFlow() {
               can be adjusted for everyone.
             </p>
             <div className="actions hero-actions">
-              <button className="button hero-button" onClick={startCustomFamily}>
+              <button className="button hero-button" type="button" onClick={startCustomFamily}>
                 Plan My Family Meals
               </button>
-              <button className="button judge-button" onClick={() => loadDemo("judge")}>
-                Try Demo
+              <button className="button judge-button" type="button" onClick={() => loadDemo("judge")} disabled={demoLoading}>
+                {demoLoading ? "Opening Judge Demo..." : "Try Demo / Judge Access"}
               </button>
             </div>
             <p className="testing-notice">
@@ -761,11 +782,11 @@ export function FamilyFlow() {
           <h2>Stop Asking &quot;What Should We Cook Today?&quot;</h2>
           <p>Let MAMAAI plan smarter for your family.</p>
           <div className="actions">
-            <button className="button hero-button" onClick={startCustomFamily}>
+            <button className="button hero-button" type="button" onClick={startCustomFamily}>
               Create My Family
             </button>
-            <button className="button judge-button" onClick={() => loadDemo("judge")}>
-              Try MAMAAI Demo
+            <button className="button judge-button" type="button" onClick={() => loadDemo("judge")} disabled={demoLoading}>
+              {demoLoading ? "Opening Demo..." : "Try MAMAAI Demo"}
             </button>
           </div>
         </section>
@@ -797,8 +818,8 @@ export function FamilyFlow() {
             <button className="button" onClick={() => generateMeal()} disabled={!canGenerate}>
               Plan Today
             </button>
-            <button className="button secondary" onClick={() => loadDemo("standard")}>
-              Load Demo Family
+            <button className="button secondary" type="button" onClick={() => loadDemo("standard")} disabled={demoLoading}>
+              {demoLoading ? "Loading Demo..." : "Load Demo Family"}
             </button>
             <button className="button secondary" onClick={replaceMeal} disabled={!mealPlan}>
               Replace Meal
@@ -879,7 +900,7 @@ export function FamilyFlow() {
         </section>
 
         <div className="grid">
-          <section className="panel">
+          <section className="panel" id="family-profile">
             <div className="member-header">
               <h2>{judgeMode ? "Fictional Judge Demo Family" : "Create Family"}</h2>
               {judgeMode ? <span className="pill">Payment bypass: demo only</span> : null}
@@ -932,7 +953,7 @@ export function FamilyFlow() {
                     </article>
                   ))}
                 </div>
-                <button className="button secondary" onClick={startCustomFamily}>
+                <button className="button secondary" type="button" onClick={startCustomFamily}>
                   Create Custom Test Family
                 </button>
               </div>
@@ -979,7 +1000,7 @@ export function FamilyFlow() {
                 <div className="member-list">
                   <div className="member-header">
                     <h2>Add Members</h2>
-                    <button className="button secondary" onClick={() => setMembers((current) => [...current, initialMember])}>
+                    <button className="button secondary" type="button" onClick={() => setMembers((current) => [...current, initialMember])}>
                       Add Member
                     </button>
                   </div>
@@ -990,6 +1011,7 @@ export function FamilyFlow() {
                         <strong>{member.name || "Family member"}</strong>
                         <button
                           className="button secondary"
+                          type="button"
                           onClick={() => setMembers((current) => current.filter((_, itemIndex) => itemIndex !== index))}
                           disabled={members.length === 1}
                         >
@@ -1116,7 +1138,7 @@ export function FamilyFlow() {
                     </article>
                   ))}
                 </div>
-                <button className="button" onClick={createFamily}>
+                <button className="button" type="button" onClick={createFamily}>
                   Create Family
                 </button>
               </div>
@@ -1146,7 +1168,7 @@ export function FamilyFlow() {
                     This detailed plan expires after {mealPlan.retentionPolicy.detailedHistoryDays} days on {new Date(mealPlan.expiresAt).toLocaleDateString()}.
                     Safety and personalization signals such as allergies, dietary restrictions, fasting preferences, favourites, rejected foods, and feedback are retained separately.
                   </p>
-                  <button className="button secondary" onClick={downloadMealPlan}>
+                  <button className="button secondary" type="button" onClick={downloadMealPlan}>
                     Download / Export / Save
                   </button>
                 </section>
@@ -1316,16 +1338,16 @@ export function FamilyFlow() {
                 <section className="panel">
                   <h2>Family Feedback</h2>
                   <div className="actions">
-                    <button className="button secondary" onClick={() => saveFeedback("loved")}>
+                    <button className="button secondary" type="button" onClick={() => saveFeedback("loved")}>
                       Loved It
                     </button>
-                    <button className="button secondary" onClick={() => saveFeedback("good")}>
+                    <button className="button secondary" type="button" onClick={() => saveFeedback("good")}>
                       Good
                     </button>
-                    <button className="button secondary" onClick={() => saveFeedback("average")}>
+                    <button className="button secondary" type="button" onClick={() => saveFeedback("average")}>
                       Average
                     </button>
-                    <button className="button warn" onClick={() => saveFeedback("dont_suggest_again")}>
+                    <button className="button warn" type="button" onClick={() => saveFeedback("dont_suggest_again")}>
                       Do Not Suggest
                     </button>
                   </div>
