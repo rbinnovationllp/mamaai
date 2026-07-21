@@ -23,7 +23,8 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
       mealReplacementsPerDay: 5,
       askMamaQuestionsPerDay: 30,
       recipeVideoSearchesPerDay: 10
-    }
+    },
+    razorpayPlanIdEnv: "RAZORPAY_PLAN_STARTER_MONTHLY"
   },
   {
     plan: "family_premium",
@@ -41,7 +42,8 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
       mealReplacementsPerDay: 8,
       askMamaQuestionsPerDay: 60,
       recipeVideoSearchesPerDay: 20
-    }
+    },
+    razorpayPlanIdEnv: "RAZORPAY_PLAN_PREMIUM_MONTHLY"
   },
   {
     plan: "family_plus",
@@ -59,13 +61,25 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
       mealReplacementsPerDay: 12,
       askMamaQuestionsPerDay: 100,
       recipeVideoSearchesPerDay: 30
-    }
+    },
+    razorpayPlanIdEnv: "RAZORPAY_PLAN_PLUS_MONTHLY"
   }
 ];
 
 export class SubscriptionService {
   getPlans() {
-    return subscriptionPlans;
+    return subscriptionPlans.map((plan) => ({
+      ...plan,
+      razorpayPlanId: process.env[plan.razorpayPlanIdEnv]
+    }));
+  }
+
+  getPlan(plan: SubscriptionPlan) {
+    const definition = this.getPlans().find((item) => item.plan === plan);
+    if (!definition) {
+      throw new Error("Unknown subscription plan.");
+    }
+    return definition;
   }
 
   getRegionalPrice(plan: SubscriptionPlan, billingMarket: "india" | "international") {

@@ -25,9 +25,9 @@ export interface MealTimeContext {
 
 export type SubscriptionPlan = "family_starter" | "family_premium" | "family_plus";
 
-export type EntitlementSource = "demo_judge_access" | "local_demo" | "revenuecat" | "manual_admin";
+export type EntitlementSource = "demo_judge_access" | "local_demo" | "razorpay" | "revenuecat" | "manual_admin";
 
-export type PaymentChannel = "demo" | "web_payment" | "google_play" | "apple_app_store" | "manual_admin";
+export type PaymentChannel = "demo" | "razorpay" | "web_payment" | "google_play" | "apple_app_store" | "manual_admin";
 
 export type SubscriptionStatus = "free_demo" | "trialing" | "active" | "past_due" | "cancelled" | "expired";
 
@@ -50,6 +50,8 @@ export interface SubscriptionPlanDefinition {
     askMamaQuestionsPerDay: number;
     recipeVideoSearchesPerDay: number;
   };
+  razorpayPlanIdEnv: string;
+  razorpayPlanId?: string;
 }
 
 export interface SubscriptionEntitlement {
@@ -63,12 +65,57 @@ export interface SubscriptionEntitlement {
   isActive: boolean;
   bypassPaymentForDemo: boolean;
   revenueCatCustomerId?: string;
+  razorpayCustomerId?: string;
+  razorpaySubscriptionId?: string;
+  razorpayPaymentId?: string;
   startsAt?: string;
   renewsAt?: string;
   expiresAt?: string;
   cancelledAt?: string;
   features?: string[];
   checkedAt: string;
+}
+
+export interface SubscriptionRecord {
+  subscriptionRecordId: ID;
+  userId: ID;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  paymentChannel: PaymentChannel;
+  paymentStatus: PaymentStatus;
+  source: EntitlementSource;
+  memberLimit: number;
+  startsAt?: string;
+  renewsAt?: string;
+  expiresAt?: string;
+  cancelledAt?: string;
+  razorpayCustomerId?: string;
+  razorpaySubscriptionId?: string;
+  razorpayPlanId?: string;
+  revenueCatCustomerId?: string;
+  providerStatus?: string;
+  lastProviderEvent?: string;
+  lastProviderEventAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaymentTransaction {
+  transactionId: ID;
+  userId: ID;
+  plan?: SubscriptionPlan;
+  subscriptionRecordId?: ID;
+  paymentChannel: PaymentChannel;
+  paymentStatus: PaymentStatus;
+  amount?: number;
+  currency?: "INR" | "USD";
+  providerPaymentId?: string;
+  providerSubscriptionId?: string;
+  providerInvoiceId?: string;
+  providerOrderId?: string;
+  providerEvent?: string;
+  rawStatus?: string;
+  createdAt: string;
 }
 
 export type MealReplacementReason =

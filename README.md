@@ -143,6 +143,20 @@ Not yet implemented:
 
 Recommended web/PWA payment approach: launch with a production web payment provider using server-side webhook verification, then store the verified entitlement in DynamoDB. Future RevenueCat, Google Play Billing, and iOS subscription events should update the same MAMAAI user entitlement so one account has one reliable subscription status.
 
+## Razorpay India Web/PWA Readiness
+
+For Indian web/PWA subscriptions, MAMAAI is Razorpay-ready:
+
+- `POST /api/razorpay/subscriptions` creates a Razorpay subscription server-side when MAMAAI-specific test keys and plan IDs are configured.
+- `POST /api/razorpay/verify` verifies Razorpay Checkout signatures before activating entitlement.
+- `POST /api/razorpay/webhook` verifies Razorpay webhook signatures and records subscription/payment status changes.
+- `/api/subscriptions/status` reads server-side subscription records before returning entitlement.
+- Admin dashboard shows recent subscription status and payment history.
+
+The same Razorpay business account can be used for another project such as Syllabus Synk, but MAMAAI must use separate Razorpay plan IDs, webhook URL, webhook secret, metadata, environment variables, and backend entitlement records.
+
+Judge/Demo Mode remains independent of payment.
+
 ## Mobile / PWA Access
 
 MAMAAI is currently a mobile-first web app with a PWA foundation. Users can open the site from a phone and use **Install MAMAAI** / browser **Add to Home Screen** behavior where supported.

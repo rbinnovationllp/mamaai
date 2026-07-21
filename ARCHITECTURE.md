@@ -275,10 +275,17 @@ Hackathon status:
 
 - `/api/subscriptions/plans` returns plan metadata and honest billing readiness.
 - `/api/subscriptions/status` returns a server-resolved testing-stage entitlement.
+- `/api/razorpay/subscriptions` can create Indian web/PWA Razorpay subscriptions when MAMAAI test keys and plan IDs are configured.
+- `/api/razorpay/verify` verifies Razorpay Checkout signatures before activating entitlement.
+- `/api/razorpay/webhook` verifies Razorpay webhook signatures and records subscription/payment status changes.
 - RevenueCat webhook contract exists but does not persist production records until DynamoDB is connected.
-- No fake payment or subscription button should appear in the app.
+- No fake payment should activate premium access. If Razorpay is not configured, the app returns a clear testing-stage message.
 
-Recommended web/PWA payment path: use a production web payment provider with server-side webhook verification, then write the entitlement to DynamoDB. Future RevenueCat/Google Play/iOS events should update the same user entitlement record, not create separate accounts.
+Recommended Indian web/PWA payment path: use Razorpay Subscriptions with server-side subscription creation, Checkout signature verification, webhook verification, and DynamoDB-backed entitlements. Future RevenueCat/Google Play/iOS events should update the same user entitlement record, not create separate accounts.
+
+Razorpay account sharing: the same Razorpay business account can be used for MAMAAI and other projects such as Syllabus Synk, but each project must have separate plan IDs, webhook URLs, webhook secrets, metadata tag (`project=mamaai`), environment variables, and entitlement records.
+
+GST/invoices: production Razorpay/GST invoice setup must match the legal billing entity and tax configuration before real collection. The hackathon build stores payment/subscription status only and does not issue production invoices.
 
 Fair-use controls should protect high-cost AI operations by plan tier. Track meal-plan generation, meal replacement/regeneration, recipe regeneration, Ask MAMA questions, and future AI calls per user/plan in the admin dashboard before changing production limits.
 
