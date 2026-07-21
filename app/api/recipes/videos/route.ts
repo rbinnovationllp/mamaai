@@ -17,12 +17,13 @@ export async function POST(request: Request) {
 
     const result = await service.search(parsed.data);
     return NextResponse.json(result);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         error: {
           code: "RECIPE_VIDEO_SEARCH_FAILED",
-          message: error instanceof Error ? error.message : "Recipe video search failed."
+          message:
+            "Recipe video search is temporarily unavailable in this testing version. The written recipe remains available."
         }
       },
       { status: 500 }

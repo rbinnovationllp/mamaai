@@ -563,6 +563,10 @@ export function FamilyFlow() {
             Create a family, add the needs of each family member, and generate one practical common meal with personal portions,
             fruit, hydration, and a grocery list that updates when the meal changes.
           </p>
+          <p className="testing-notice">
+            You are using a testing version of MAMAAI. Some features that depend on external services may be limited or temporarily
+            unavailable. These integrations are planned to be enabled or expanded as the application progresses toward production.
+          </p>
           <div className="actions">
             <label className="compact-control">
               Meal

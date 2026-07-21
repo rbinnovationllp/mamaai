@@ -3,6 +3,9 @@ import type { RecipeVideoResult, RecipeVideoSearchRequest, RecipeVideoSearchResp
 const thirdPartyDisclaimer =
   "External recipe videos are third-party content. MAMA AI has not medically or nutritionally verified the video unless explicitly marked as reviewed.";
 
+const testingUnavailableMessage =
+  "This feature is currently unavailable in the testing version because the required external API/service has not yet been activated. It is planned for the production release after the required production integration is completed.";
+
 function countryToRegionCode(country?: string) {
   const normalized = country?.trim().toLowerCase();
   if (!normalized) return "US";
@@ -66,8 +69,10 @@ export class RecipeVideoService {
       return {
         query,
         usedOfficialApi: false,
-        results: [fallbackResult(query)],
-        note: "YOUTUBE_API_KEY is not configured, so MAMA AI is returning a safe YouTube search link instead of API-ranked videos."
+        status: "temporarily_disabled",
+        statusLabel: "Currently Unavailable in Test Version",
+        results: [],
+        note: testingUnavailableMessage
       };
     }
 
@@ -86,8 +91,10 @@ export class RecipeVideoService {
       return {
         query,
         usedOfficialApi: true,
+        status: "demo_test_only",
+        statusLabel: "Demo/Test Fallback",
         results: [fallbackResult(query)],
-        note: "The official YouTube API request failed, so MAMA AI returned a safe search fallback."
+        note: "Recipe video search is limited in this testing version, so MAMA AI returned a safe third-party search fallback. The written recipe remains available."
       };
     }
 
@@ -106,6 +113,8 @@ export class RecipeVideoService {
     return {
       query,
       usedOfficialApi: true,
+      status: "fully_functional",
+      statusLabel: "Fully Functional",
       results: results.length ? results : [fallbackResult(query)],
       note: "Results come from the official YouTube Data API search endpoint and are third-party content."
     };

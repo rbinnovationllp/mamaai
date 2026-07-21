@@ -79,7 +79,10 @@
 - View Recipe / How to Cook opens for every generated common meal.
 - Recipe modal shows ingredients, quantities, servings, steps, prep/cook time, difficulty, nutrition, cost, adjustments, alternatives, and video recommendation metadata.
 - Watch How to Cook returns official YouTube API results when `YOUTUBE_API_KEY` is configured.
-- Watch How to Cook returns a safe third-party YouTube search fallback when `YOUTUBE_API_KEY` is absent.
+- Watch How to Cook shows `Currently Unavailable in Test Version` when the required external API/service is not activated.
+- Optional external-service failures do not expose API keys, stack traces, or technical configuration details.
+- Written recipe remains usable even when video search is temporarily disabled.
+- Demo/test-only fallback states are clearly labeled when a safe third-party search fallback is returned.
 - External video results are labeled as third-party content, not medically or nutritionally verified by MAMA AI.
 - Preference-resolution card shows the three choices for separate alternative, one common meal, and two compatible options when a soft dislike affects only part of the family.
 - Disclaimer appears.

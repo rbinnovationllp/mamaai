@@ -67,7 +67,9 @@ Soft dislikes use a preference-resolution flow instead of automatically weakenin
 
 Every generated common meal includes a `recipe` object. The UI exposes it through `View Recipe / How to Cook`, showing recipe name, ingredient quantities, servings, step-by-step cooking instructions, prep time, cook time, difficulty, estimated nutrition, estimated cost, family-member-specific adjustments, alternatives, and a video recommendation.
 
-The `Watch How to Cook` action calls `/api/recipes/videos`. When `YOUTUBE_API_KEY` is available, that route uses the official YouTube Data API `search.list` endpoint with query context for dish, country/region, language, cuisine, diet preference, healthy preparation, and family requirements. When the key is absent, it returns a safe YouTube search URL fallback and clearly labels videos as third-party content that MAMA AI has not medically or nutritionally verified.
+The `Watch How to Cook` action calls `/api/recipes/videos`. When `YOUTUBE_API_KEY` is available, that route uses the official YouTube Data API `search.list` endpoint with query context for dish, country/region, language, cuisine, diet preference, healthy preparation, and family requirements. When the key is absent in the testing version, the UI shows `Currently Unavailable in Test Version` and keeps the written recipe available. If an activated external service has a temporary issue, the route may return a clearly labeled demo/test-only fallback. External videos are third-party content that MAMA AI has not medically or nutritionally verified.
+
+Optional API-dependent features must present a clear status: fully functional, demo/test-only, temporarily disabled, or planned. They must not fail silently, expose API keys, or block the core family meal-planning flow.
 
 ## AI Cost-Control Strategy
 

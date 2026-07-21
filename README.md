@@ -157,6 +157,14 @@ http://127.0.0.1:3000
 
 For the hackathon demo, the app can run without real OpenAI, AWS, RevenueCat, or YouTube keys.
 
+Testing-stage notice:
+
+```text
+You are using a testing version of MAMAAI. Some features that depend on external services may be limited or temporarily unavailable. These integrations are planned to be enabled or expanded as the application progresses toward production.
+```
+
+For example, written recipes remain available in the demo. If recipe-video discovery is not activated because the YouTube Data API is not configured, MAMAAI labels it as currently unavailable in the testing version instead of showing a confusing technical error.
+
 Minimal local/demo environment:
 
 ```env
@@ -196,7 +204,8 @@ npm run build
 - Production DynamoDB repositories are documented but not connected yet.
 - Live OpenAI API integration is architecture-ready but not required for Judge Access.
 - RevenueCat and Google Play Billing are integration-ready but not production-complete.
-- Admin/CRM, pantry, YouTube recipe search, analytics, exports, and multilingual rollout are post-hackathon priorities.
+- Optional external-service features are labeled as fully functional, demo/test-only, temporarily disabled, or planned.
+- Admin/CRM, pantry, production video discovery, analytics, production PDF/CSV exports, and multilingual rollout are post-hackathon priorities.
 
 ## Repository
 

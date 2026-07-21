@@ -147,6 +147,8 @@ export const recipeVideoSearchRequestSchema = z.object({
   familyRequirements: z.array(z.string()).optional()
 });
 
+export const featureAvailabilityStatusSchema = z.enum(["fully_functional", "demo_test_only", "temporarily_disabled", "planned"]);
+
 export const familyMealPlanSchema = z.object({
   mealPlanId: z.string().min(1),
   familyId: z.string().min(1),
