@@ -5,7 +5,9 @@ import type {
   FamilyDietPreference,
   FamilyMealPlan,
   FamilyMember,
+  HighTeaPreference,
   Ingredient,
+  MealAttendanceEntry,
   MealTime,
   MealTimeContext,
   NutritionEstimate,
@@ -16,6 +18,8 @@ import type {
 } from "@/lib/shared/contracts";
 import { mandatoryDisclaimer } from "@/lib/shared/demo-data";
 import { GroceryService } from "@/lib/services/grocery-service";
+import { QuantityPlanningService } from "@/lib/services/quantity-planning-service";
+import { detailedMealPlanExpiresAt, retentionPolicy } from "@/lib/services/meal-retention-service";
 
 interface GeneratePlanInput {
   family: Family;
@@ -23,12 +27,15 @@ interface GeneratePlanInput {
   planType: PlanType;
   mealTime?: MealTime;
   mealTimeContext?: MealTimeContext;
+  mealAttendance?: MealAttendanceEntry[];
+  highTeaPreference?: HighTeaPreference;
   userPlanningMode?: UserPlanningMode;
   targetDate: string;
   replacement?: boolean;
 }
 
 const groceryService = new GroceryService();
+const quantityPlanningService = new QuantityPlanningService();
 
 function money(amount: number) {
   return { amount, currency: "INR" as const };
@@ -108,6 +115,16 @@ function rotiDalIngredients(): Ingredient[] {
   ];
 }
 
+function highTeaIngredients(): Ingredient[] {
+  return [
+    { name: "Besan", quantity: "1.5 cups", category: "pulses", estimatedCost: money(45) },
+    { name: "Mixed grated vegetables", quantity: "2 cups", category: "vegetables", estimatedCost: money(65) },
+    { name: "Curd", quantity: "500 g", category: "dairy", estimatedCost: money(60) },
+    { name: "Seasonal fruit", quantity: "5 pieces", category: "fruits", estimatedCost: money(90) },
+    { name: "Unsweetened tea or herbal infusion", quantity: "5 cups", category: "other", estimatedCost: money(35) }
+  ];
+}
+
 function eggCurryIngredients(): Ingredient[] {
   return [
     { name: "Eggs", quantity: "8 pieces", category: "protein", estimatedCost: money(80) },
@@ -178,6 +195,15 @@ function recipeSteps(mealName: string) {
       "Fold in poha and cook on low heat until warm and fluffy.",
       "Serve curd and fruit on the side for member-specific portions.",
       "Avoid any disliked or allergy-triggering toppings for affected members."
+    ];
+  }
+  if (name.includes("high tea") || name.includes("chilla")) {
+    return [
+      "Mix besan with water, mild spices, and grated vegetables to make a pourable batter.",
+      "Cook small chillas on a lightly oiled tawa until both sides are firm and golden.",
+      "Keep curd, fruit, and tea separate so portions can be adjusted for each member.",
+      "Serve unsweetened tea or herbal infusion, especially for members avoiding sugar.",
+      "For fasting members, skip regular chilla and use the fasting alternative shown by MAMA."
     ];
   }
   if (name.includes("egg")) {
@@ -307,6 +333,13 @@ function preferenceResolutionFor(members: FamilyMember[], commonMeal: CommonMeal
 }
 
 function estimateForDiet(dietPreference: FamilyDietPreference, mealTime: MealTime): NutritionEstimate {
+  if (mealTime === "high_tea" || mealTime === "evening_snack" || mealTime === "snack") {
+    return nutritionEstimate(
+      { caloriesKcal: 980, proteinGrams: 42, carbsGrams: 118, fatGrams: 34, fiberGrams: 18 },
+      "Estimated family total for high tea with vegetable chilla, curd, fruit, and unsweetened tea."
+    );
+  }
+
   if (dietPreference === "non_vegetarian") {
     return nutritionEstimate(
       { caloriesKcal: 1850, proteinGrams: 112, carbsGrams: 205, fatGrams: 58, fiberGrams: 28 },
@@ -399,10 +432,34 @@ function mealForDiet(input: GeneratePlanInput, mealId: string, mealTime: MealTim
   return null;
 }
 
+function mealAttendanceFor(input: GeneratePlanInput, mealTime: MealTime) {
+  return (
+    input.mealAttendance?.find((entry) => entry.enabled && entry.mealTime === mealTime) ??
+    quantityPlanningService.defaultAttendance(mealTime, input.members)
+  );
+}
+
 function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
   const mealTime = input.mealTime ?? "lunch";
   const localContext = input.mealTimeContext?.timeZone ? `, timed for ${input.mealTimeContext.timeZone}` : "";
-  const regionFit = `${input.family.city}, ${input.family.state} friendly${localContext}`;
+  const cuisineFit = input.family.cuisinePreferences.length ? ` with ${input.family.cuisinePreferences.join(", ")} food-culture fit` : "";
+  const regionFit = `${input.family.city}, ${input.family.state}, ${input.family.country} friendly${cuisineFit}${localContext}`;
+
+  if (mealTime === "high_tea" || mealTime === "evening_snack" || mealTime === "snack") {
+    return completeMeal({
+      mealId,
+      name: "High Tea: Vegetable Chilla with Curd, Fruit and Unsweetened Tea",
+      mealTime,
+      description: "A light family high-tea plate that supports children, adults, seniors, and diabetes-aware beverage choices.",
+      ingredients: highTeaIngredients(),
+      prepTimeMinutes: 25,
+      difficulty: "easy",
+      regionFit,
+      nutritionIntent: "Avoid heavy evening snacking while keeping protein, fruit, hydration, and portion control visible.",
+      nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime)
+    });
+  }
+
   const dietMeal = mealForDiet(input, mealId, mealTime, regionFit);
   if (dietMeal) return completeMeal(dietMeal);
 
@@ -470,8 +527,16 @@ export class AIService {
     const timestamp = nowIso();
     const mealId = createId(input.replacement ? "replacement-meal" : "meal");
     const commonMeal = mealForTime(input, mealId);
-
-    const groceryItems = groceryService.fromCommonMeal(commonMeal);
+    const attendance = mealAttendanceFor(input, commonMeal.mealTime);
+    const mealIngredientRequirements = quantityPlanningService.mealRequirements(
+      commonMeal.mealTime,
+      commonMeal.ingredients,
+      attendance,
+      input.members
+    );
+    const fastingMealRequirements = quantityPlanningService.fastingRequirements(commonMeal.mealTime, attendance, input.members);
+    const dailyGroceryRequirements = quantityPlanningService.consolidate(mealIngredientRequirements);
+    const groceryItems = quantityPlanningService.groceryFromRequirements(dailyGroceryRequirements);
     const totalCost = groceryService.totalCost(groceryItems);
 
     return {
@@ -479,6 +544,8 @@ export class AIService {
       familyId: input.family.familyId,
       planType: input.planType,
       targetDate: input.targetDate,
+      expiresAt: detailedMealPlanExpiresAt(timestamp),
+      retentionPolicy: retentionPolicy(),
       commonMeal,
       memberCustomizations: input.members.map((member) => this.customizeMember(member, commonMeal, input.replacement)),
       preferenceResolution: preferenceResolutionFor(input.members, commonMeal),
@@ -486,9 +553,13 @@ export class AIService {
       hydration: input.members.map((member) => this.hydrationForMember(member)),
       estimatedCost: {
         mealCost: money(totalCost),
-        dailyCost: money(totalCost + 160)
+        dailyCost: money(totalCost + (input.highTeaPreference?.enabled ? 220 : 160))
       },
       groceryItems,
+      mealAttendance: [attendance],
+      mealIngredientRequirements,
+      dailyGroceryRequirements,
+      fastingMealRequirements,
       familySatisfactionScore: {
         score: input.replacement ? 86 : 89,
         explanation: "Score balances taste familiarity, health fit, affordability, local availability, and cooking effort."

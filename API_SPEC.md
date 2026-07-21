@@ -68,6 +68,13 @@ Request:
     city: string;
     dietPreference: "vegetarian" | "non_vegetarian" | "semi_vegetarian" | "eggetarian" | "mixed";
     cuisinePreferences: string[];
+    cuisinePreferenceWeights?: Array<{
+      cuisine: string;
+      frequency: "mostly" | "often" | "sometimes" | "rarely";
+      percentage?: number;
+    }>;
+    indianRegionalPreferences?: string[];
+    localIngredientAvailabilityNotes?: string[];
     budget: BudgetProfile;
     kitchenProfile: KitchenProfile;
     subscriptionPlan: SubscriptionPlan;
@@ -92,6 +99,19 @@ Request:
     healthConditions: string[];
     doctorRestrictions: string[];
     specialStatuses: string[];
+    fastingPreference?: {
+      observesFasting: "no" | "yes" | "occasionally";
+      regularDays: string[];
+      fastType?: "full_fast" | "restricted_food_fast" | "time_restricted" | "custom";
+      reasonOrTradition?: string;
+      allowedFoods: string[];
+      avoidedFoods: string[];
+      fastingMealCount?: number;
+      fruitsAllowed: boolean;
+      dairyAllowed: boolean;
+      grainsRestricted: boolean;
+      customRules: string[];
+    };
   }>;
 }
 ```
@@ -121,7 +141,7 @@ Request:
 {
   familyId: string;
   planType: "daily" | "weekly" | "monthly";
-  mealTime?: "breakfast" | "lunch" | "dinner" | "snack";
+  mealTime?: "breakfast" | "lunch" | "dinner" | "snack" | "evening_snack" | "high_tea";
   mealTimeContext?: {
     timeZone: string;
     locale?: string;
@@ -134,6 +154,21 @@ Request:
   targetDate?: string;
   availableIngredients?: string[];
   previousMeals?: string[];
+  mealAttendance?: Array<{
+    mealTime: "breakfast" | "lunch" | "dinner" | "snack" | "evening_snack" | "high_tea";
+    participatingMemberIds: string[];
+    absentMemberIds: string[];
+    fastingMemberIds: string[];
+    guestCount: number;
+    enabled: boolean;
+  }>;
+  highTeaPreference?: {
+    enabled: boolean;
+    days: string[];
+    approximateTime: string;
+    usualParticipantMemberIds: string[];
+    guestCount: number;
+  };
 }
 ```
 
@@ -144,12 +179,21 @@ Meal-time defaulting:
 - Before 9:00 AM local time: breakfast.
 - 9:00-10:00 AM local time: user can choose breakfast or lunch.
 - Late morning/afternoon local time: lunch.
+- 4:00-6:00 PM local time: high tea/evening snack can be selected.
 - From 6:00 PM local time onward: dinner.
 
 Cost-control rule:
 
 - New users should receive a focused next-meal plan.
 - Returning users should be guided toward editable weekly plans to reduce repeated AI generation cost.
+
+Quantity and fasting rules:
+
+- `mealAttendance` controls actual family strength for the selected meal.
+- `fastingMemberIds` are excluded from normal meal quantities and receive fasting-aware suggestions.
+- `guestCount` increases ingredient and grocery quantities through deterministic portion math.
+- `highTeaPreference` makes the flow ready for families that plan a separate high-tea meal.
+- Ingredient and grocery calculations should not require a new AI call when only attendance, fasting status, or guest count changes.
 
 Response:
 
@@ -159,6 +203,14 @@ Response:
   mealPlan: FamilyMealPlan;
 }
 ```
+
+The returned `mealPlan` includes:
+
+- `expiresAt`: detailed plan expiration timestamp.
+- `retentionPolicy`: the 15-day user-facing retention notice and list of long-term signals retained separately.
+- `mealIngredientRequirements` and `dailyGroceryRequirements`: deterministic quantity outputs.
+
+The frontend exposes `Download / Export / Save` so a user can save a detailed plan before expiration. Production PDF/CSV exports should be generated through a server endpoint and stored in S3, with metadata in DynamoDB.
 
 Errors:
 
@@ -255,6 +307,43 @@ Response:
 }
 ```
 
+## POST /api/recipes/videos
+
+Searches for public third-party recipe videos using the official YouTube Data API when `YOUTUBE_API_KEY` is configured. If no API key is configured, the endpoint returns a safe YouTube search URL fallback and does not scrape YouTube.
+
+Request:
+
+```ts
+{
+  dishName: string;
+  country?: string;
+  region?: string;
+  preferredLanguage?: string;
+  cuisine?: string[];
+  dietaryPreference?: "vegetarian" | "non_vegetarian" | "semi_vegetarian" | "eggetarian" | "mixed";
+  healthyPreparation?: boolean;
+  familyRequirements?: string[];
+}
+```
+
+Response:
+
+```ts
+{
+  query: string;
+  usedOfficialApi: boolean;
+  results: Array<{
+    title: string;
+    channelTitle: string;
+    url: string;
+    thumbnailUrl?: string;
+    source: "youtube" | "fallback_search";
+    thirdPartyDisclaimer: string;
+  }>;
+  note: string;
+}
+```
+
 ## API Error Shape
 
 ```ts
@@ -280,11 +369,27 @@ Response:
 - `hydration`
 - `estimatedCost`
 - `groceryItems`
+- `mealAttendance`
+- `mealIngredientRequirements`
+- `dailyGroceryRequirements`
+- `fastingMealRequirements`
 - `familySatisfactionScore`
 - `warnings`
 - `disclaimer`
 
 Validation happens before display, persistence, grocery generation, analytics, and replacement.
+
+Retention:
+
+- Detailed generated meal plans are retained for up to 15 days.
+- Production DynamoDB should use TTL on `expiresAtEpoch`.
+- Long-term safety and personalization data must not expire with old detailed plans.
+
+Region/culture:
+
+- `country`, `state`, and `city` describe where the family lives.
+- `cuisinePreferences`, optional weighted cuisine preferences, Indian regional preferences, and local ingredient notes describe what the family prefers to eat.
+- Meal planning should combine residence, food culture, diet pattern, season, availability, and budget. Do not infer cuisine only from nationality or ethnicity.
 
 Nutrition estimates are informational approximations. MVP estimates are modeled around public food-composition fields such as USDA FoodData Central nutrient data and ICMR/NIN-style food-group guidance. Production should replace static estimates with ingredient-weight lookup, regional food databases, and reviewed nutrition rules.
 

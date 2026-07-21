@@ -8,6 +8,8 @@ import type {
   FamilyDietPreference,
   FamilyMealPlan,
   FamilyMember,
+  HighTeaPreference,
+  MealAttendanceEntry,
   MealTime,
   MealTimeContext,
   NutritionEstimate,
@@ -128,6 +130,7 @@ function getLocalDate(timeZone: string) {
 function recommendedMealTime(hour = getUserMealTimeContext().localHour ?? 12): MealTime {
   if (hour < 9) return "breakfast";
   if (hour < 16) return "lunch";
+  if (hour < 18) return "high_tea";
   if (hour >= 18) return "dinner";
   return "dinner";
 }
@@ -137,6 +140,7 @@ function mealTimingMessage(mealTime: MealTime, context: MealTimeContext) {
   const zoneLabel = context.city && context.region ? `${context.city}, ${context.region}` : context.timeZone;
   if (hour < 9) return `Local time in ${zoneLabel} suggests breakfast right now.`;
   if (hour < 10) return `It is still morning in ${zoneLabel}. Choose breakfast or lunch based on what you need.`;
+  if (hour >= 16 && hour < 18) return `Late afternoon in ${zoneLabel} suggests high tea or an evening snack.`;
   if (hour >= 18) return `Evening in ${zoneLabel} suggests dinner.`;
   if (mealTime === "lunch") return `Local time in ${zoneLabel} suggests lunch for the next meal.`;
   return "Choose the meal you want MAMA to plan.";
@@ -163,7 +167,17 @@ const initialMember: CreateFamilyMemberInput = {
   dietaryRestrictions: [],
   healthConditions: [],
   doctorRestrictions: [],
-  specialStatuses: []
+  specialStatuses: [],
+  fastingPreference: {
+    observesFasting: "no",
+    regularDays: [],
+    allowedFoods: [],
+    avoidedFoods: [],
+    fruitsAllowed: true,
+    dairyAllowed: true,
+    grainsRestricted: false,
+    customRules: []
+  }
 };
 
 function splitList(value: string) {
@@ -207,12 +221,22 @@ function nutritionFeedback(estimate: NutritionEstimate) {
   return "This suggestion is reasonable for a shared family meal. Values remain estimates and should be adjusted for actual portions.";
 }
 
+function mealLabel(mealTime: MealTime) {
+  return mealTime === "high_tea"
+    ? "High tea"
+    : mealTime === "evening_snack"
+      ? "Evening snack"
+      : mealTime.charAt(0).toUpperCase() + mealTime.slice(1);
+}
+
 export function FamilyFlow() {
   const [judgeMode, setJudgeMode] = useState(true);
   const [familyName, setFamilyName] = useState("Bhartiya Demo Family");
+  const [country, setCountry] = useState("India");
   const [city, setCity] = useState("Bengaluru");
   const [state, setState] = useState("Karnataka");
   const [dietPreference, setDietPreference] = useState<FamilyDietPreference>("vegetarian");
+  const [cuisineText, setCuisineText] = useState("Indian, Home-style");
   const [members, setMembers] = useState<CreateFamilyMemberInput[]>(demoMemberInputs);
   const [createdFamily, setCreatedFamily] = useState<Family | null>(null);
   const [createdMembers, setCreatedMembers] = useState<FamilyMember[]>([]);
@@ -221,6 +245,12 @@ export function FamilyFlow() {
   const [timeContext] = useState<MealTimeContext>(() => getUserMealTimeContext());
   const [selectedMealTime, setSelectedMealTime] = useState<MealTime>(() => recommendedMealTime());
   const [userPlanningMode, setUserPlanningMode] = useState<"new_user_next_meal" | "returning_user_weekly_editable">("new_user_next_meal");
+  const [attendanceMemberIds, setAttendanceMemberIds] = useState<string[]>([]);
+  const [fastingMemberIds, setFastingMemberIds] = useState<string[]>([]);
+  const [guestCount, setGuestCount] = useState(0);
+  const [highTeaEnabled, setHighTeaEnabled] = useState(false);
+  const [highTeaTime, setHighTeaTime] = useState("17:00");
+  const [highTeaGuestCount, setHighTeaGuestCount] = useState(0);
   const [selectedAddOn, setSelectedAddOn] = useState("none");
   const [customFoodName, setCustomFoodName] = useState("");
   const [customNutrition, setCustomNutrition] = useState<NutritionEstimate>({
@@ -245,7 +275,56 @@ export function FamilyFlow() {
 
   useEffect(() => {
     loadDemo();
+    // Demo data should load once on first visit; later reloads are user-triggered.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function syncMealAttendance(nextMembers: FamilyMember[]) {
+    setAttendanceMemberIds(nextMembers.map((member) => member.memberId));
+    setFastingMemberIds(
+      nextMembers
+        .filter((member) => member.fastingPreference?.observesFasting === "yes")
+        .map((member) => member.memberId)
+    );
+  }
+
+  function toggleAttendance(memberId: string) {
+    setAttendanceMemberIds((current) =>
+      current.includes(memberId) ? current.filter((id) => id !== memberId) : [...current, memberId]
+    );
+    setFastingMemberIds((current) => current.filter((id) => id !== memberId));
+  }
+
+  function toggleFasting(memberId: string) {
+    setFastingMemberIds((current) => (current.includes(memberId) ? current.filter((id) => id !== memberId) : [...current, memberId]));
+    setAttendanceMemberIds((current) => (current.includes(memberId) ? current : [...current, memberId]));
+  }
+
+  function mealAttendancePayload(membersForPlan: FamilyMember[]): MealAttendanceEntry[] {
+    const memberIds = membersForPlan.map((member) => member.memberId);
+    const selectedParticipantIds = attendanceMemberIds.filter((memberId) => memberIds.includes(memberId));
+    const participantIds = selectedParticipantIds.length ? selectedParticipantIds : memberIds;
+    return [
+      {
+        mealTime: selectedMealTime,
+        participatingMemberIds: participantIds,
+        absentMemberIds: membersForPlan.filter((member) => !participantIds.includes(member.memberId)).map((member) => member.memberId),
+        fastingMemberIds: fastingMemberIds.filter((memberId) => participantIds.includes(memberId)),
+        guestCount,
+        enabled: true
+      }
+    ];
+  }
+
+  function highTeaPreferencePayload(): HighTeaPreference {
+    return {
+      enabled: highTeaEnabled || selectedMealTime === "high_tea",
+      days: ["today"],
+      approximateTime: highTeaTime,
+      usualParticipantMemberIds: attendanceMemberIds,
+      guestCount: highTeaGuestCount
+    };
+  }
 
   async function loadDemo(mode: "judge" | "standard" = "standard") {
     setJudgeMode(mode === "judge");
@@ -259,10 +338,13 @@ export function FamilyFlow() {
     setNutritionContexts(data.nutritionContexts);
     setMealPlan(data.mealPlan);
     setFamilyName(data.family.name);
+    setCountry(data.family.country);
     setCity(data.family.city);
     setState(data.family.state);
     setDietPreference(data.family.dietPreference);
+    setCuisineText(data.family.cuisinePreferences.join(", "));
     setMembers(data.members.map(({ memberId: _memberId, familyId: _familyId, ...member }) => member));
+    syncMealAttendance(data.members);
     setStatus(
       mode === "judge"
         ? "Judge Access ready. Review the family profile, common meal, personal guidance, fruit, hydration, grocery list, and try Replace Meal."
@@ -291,11 +373,11 @@ export function FamilyFlow() {
         userId: "demo-user",
         family: {
           name: familyName,
-          country: "India",
+          country,
           state,
           city,
           dietPreference,
-          cuisinePreferences: ["Indian", "Home-style"],
+          cuisinePreferences: splitList(cuisineText),
           budget: { type: "daily", amount: 450, currency: "INR" },
           kitchenProfile: {
             equipment: ["Gas stove", "Pressure cooker", "Mixer/grinder"],
@@ -321,13 +403,14 @@ export function FamilyFlow() {
 
     setCreatedFamily(data.family);
     setCreatedMembers(data.members);
+    syncMealAttendance(data.members);
     setMealPlan(null);
     setNutritionContexts([]);
     setStatus("Family created. Analyzing profiles and generating one common family meal...");
-    await generateMeal(data.family);
+    await generateMeal(data.family, data.members);
   }
 
-  async function generateMeal(familyForPlan = createdFamily) {
+  async function generateMeal(familyForPlan = createdFamily, membersForPlan = createdMembers) {
     if (!familyForPlan) return;
 
     setError("");
@@ -348,6 +431,8 @@ export function FamilyFlow() {
           region: familyForPlan.state,
           city: familyForPlan.city
         },
+        mealAttendance: mealAttendancePayload(membersForPlan),
+        highTeaPreference: highTeaPreferencePayload(),
         userPlanningMode,
         targetDate: getLocalDate(timeContext.timeZone)
       })
@@ -422,6 +507,31 @@ export function FamilyFlow() {
     setStatus("Feedback saved for future personalization.");
   }
 
+  function downloadMealPlan() {
+    if (!mealPlan) return;
+
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      retentionNotice: mealPlan.retentionPolicy.userMessage,
+      family: createdFamily,
+      members: createdMembers.map(({ familyId: _familyId, memberId, name, relationship, age, dietType }) => ({
+        memberId,
+        name,
+        relationship,
+        age,
+        dietType
+      })),
+      mealPlan
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `mamaai-meal-plan-${mealPlan.targetDate}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -459,6 +569,8 @@ export function FamilyFlow() {
               <select value={selectedMealTime} onChange={(event) => setSelectedMealTime(event.target.value as MealTime)}>
                 <option value="breakfast">Breakfast</option>
                 <option value="lunch">Lunch</option>
+                <option value="high_tea">High Tea</option>
+                <option value="evening_snack">Evening Snack</option>
                 <option value="dinner">Dinner</option>
               </select>
             </label>
@@ -482,6 +594,56 @@ export function FamilyFlow() {
               Replace Meal
             </button>
           </div>
+          {createdMembers.length ? (
+            <div className="attendance-panel">
+              <div className="member-header">
+                <div>
+                  <p className="mini-title">{mealLabel(selectedMealTime)} strength</p>
+                  <p className="muted">Select who will eat this meal today. Fasting members get a separate fasting-aware suggestion.</p>
+                </div>
+                <label className="guest-control">
+                  Guests
+                  <input type="number" min="0" value={guestCount} onChange={(event) => setGuestCount(Number(event.target.value))} />
+                </label>
+              </div>
+              <div className="attendance-grid">
+                {createdMembers.map((member) => (
+                  <div className="attendance-row" key={member.memberId}>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={attendanceMemberIds.includes(member.memberId)}
+                        onChange={() => toggleAttendance(member.memberId)}
+                      />
+                      Eating: {member.name}
+                    </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={fastingMemberIds.includes(member.memberId)}
+                        onChange={() => toggleFasting(member.memberId)}
+                      />
+                      Fasting today
+                    </label>
+                  </div>
+                ))}
+              </div>
+              <div className="row">
+                <label className="checkbox-line">
+                  <input type="checkbox" checked={highTeaEnabled} onChange={(event) => setHighTeaEnabled(event.target.checked)} />
+                  Family needs high tea planning today
+                </label>
+                <label>
+                  High tea time
+                  <input value={highTeaTime} onChange={(event) => setHighTeaTime(event.target.value)} placeholder="17:00" />
+                </label>
+              </div>
+              <label>
+                High tea guests
+                <input type="number" min="0" value={highTeaGuestCount} onChange={(event) => setHighTeaGuestCount(Number(event.target.value))} />
+              </label>
+            </div>
+          ) : null}
           <p className="muted">
             {mealTimingMessage(selectedMealTime, {
               ...timeContext,
@@ -572,6 +734,12 @@ export function FamilyFlow() {
                     <input value={familyName} onChange={(event) => setFamilyName(event.target.value)} />
                   </label>
                   <label>
+                    Country of residence
+                    <input value={country} onChange={(event) => setCountry(event.target.value)} placeholder="United Kingdom" />
+                  </label>
+                </div>
+                <div className="row">
+                  <label>
                     City
                     <input value={city} onChange={(event) => setCity(event.target.value)} />
                   </label>
@@ -579,6 +747,14 @@ export function FamilyFlow() {
                 <label>
                   State
                   <input value={state} onChange={(event) => setState(event.target.value)} />
+                </label>
+                <label>
+                  Preferred food culture / cuisine
+                  <input
+                    value={cuisineText}
+                    onChange={(event) => setCuisineText(event.target.value)}
+                    placeholder="Indian 70%, British/European 20%, Mediterranean 10%"
+                  />
                 </label>
                 <label>
                   Family food pattern
@@ -740,7 +916,30 @@ export function FamilyFlow() {
           <section className="stack">
             {mealPlan && createdMembers.length ? (
               <>
-                <MamaFamilyTable members={createdMembers} nutritionContexts={nutritionContexts} mealPlan={mealPlan} />
+                <MamaFamilyTable
+                  members={createdMembers}
+                  nutritionContexts={nutritionContexts}
+                  mealPlan={mealPlan}
+                  familyContext={{
+                    country: createdFamily?.country,
+                    region: createdFamily?.state,
+                    preferredLanguage: timeContext.locale,
+                    cuisine: createdFamily?.cuisinePreferences,
+                    dietaryPreference: createdFamily?.dietPreference
+                  }}
+                />
+
+                <section className="panel">
+                  <h2>Meal Plan Retention</h2>
+                  <p className="notice">{mealPlan.retentionPolicy.userMessage}</p>
+                  <p className="muted">
+                    This detailed plan expires after {mealPlan.retentionPolicy.detailedHistoryDays} days on {new Date(mealPlan.expiresAt).toLocaleDateString()}.
+                    Safety and personalization signals such as allergies, dietary restrictions, fasting preferences, favourites, rejected foods, and feedback are retained separately.
+                  </p>
+                  <button className="button secondary" onClick={downloadMealPlan}>
+                    Download / Export / Save
+                  </button>
+                </section>
 
                 <section className="panel">
                   <h2>Meal Nutrition Estimate</h2>
@@ -834,6 +1033,34 @@ export function FamilyFlow() {
                     Source basis: {mealPlan.commonMeal.nutritionEstimate.dataSource}
                     {customFoodName ? ` Custom addition: ${customFoodName}.` : ""}
                   </p>
+                </section>
+
+                <section className="panel">
+                  <h2>Meal-Wise Ingredients</h2>
+                  <p className="muted">
+                    Quantities are recalculated from today&apos;s selected family strength, fasting members, and guests.
+                  </p>
+                  <div className="grocery">
+                    {mealPlan.mealIngredientRequirements.map((item) => (
+                      <div className="grocery-item" key={item.itemId}>
+                        <p className="mini-title">{item.name}</p>
+                        <p className="muted">
+                          {mealLabel(item.mealTime as MealTime)} - {item.adjustedQuantity} - INR {item.estimatedCost.amount}
+                        </p>
+                        <p className="muted">{item.notes.join(" ")}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {mealPlan.fastingMealRequirements.length ? (
+                    <div className="fasting-box">
+                      <p className="mini-title">Fasting-aware food</p>
+                      {mealPlan.fastingMealRequirements.map((item) => (
+                        <p className="muted" key={`${item.memberId}-${item.mealTime}`}>
+                          {item.memberName}: {item.suggestion}. Avoid: {displayList(item.avoidedFoods, "None listed")}.
+                        </p>
+                      ))}
+                    </div>
+                  ) : null}
                 </section>
 
                 <section className="panel">

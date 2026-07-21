@@ -2,6 +2,17 @@ import type { CreateFamilyMemberInput, Family, FamilyMember, User } from "./cont
 
 const now = new Date().toISOString();
 
+const defaultFastingPreference: CreateFamilyMemberInput["fastingPreference"] = {
+  observesFasting: "no",
+  regularDays: [],
+  allowedFoods: [],
+  avoidedFoods: [],
+  fruitsAllowed: true,
+  dairyAllowed: true,
+  grainsRestricted: false,
+  customRules: []
+};
+
 export const demoUser: User = {
   userId: "demo-user",
   name: "MAMA AI Demo User",
@@ -25,6 +36,12 @@ export const demoFamily: Family = {
   city: "Bengaluru",
   dietPreference: "vegetarian",
   cuisinePreferences: ["Indian", "North Indian", "South Indian"],
+  cuisinePreferenceWeights: [
+    { cuisine: "Indian", frequency: "mostly", percentage: 80 },
+    { cuisine: "Local seasonal family food", frequency: "sometimes", percentage: 20 }
+  ],
+  indianRegionalPreferences: ["North Indian", "South Indian", "Millet-based"],
+  localIngredientAvailabilityNotes: ["Use ingredients commonly available in Bengaluru markets."],
   budget: { type: "daily", amount: 450, currency: "INR" },
   kitchenProfile: {
     equipment: ["Gas stove", "Pressure cooker", "Mixer/grinder"],
@@ -57,7 +74,8 @@ export const demoMemberInputs: CreateFamilyMemberInput[] = [
     dietaryRestrictions: ["Mild spice", "Soft texture"],
     healthConditions: [],
     doctorRestrictions: [],
-    specialStatuses: ["Senior requiring soft food"]
+    specialStatuses: ["Senior requiring soft food"],
+    fastingPreference: defaultFastingPreference
   },
   {
     name: "Father",
@@ -80,7 +98,20 @@ export const demoMemberInputs: CreateFamilyMemberInput[] = [
     dietaryRestrictions: ["Avoid sugary beverages"],
     healthConditions: ["Type 2 diabetes"],
     doctorRestrictions: ["Avoid sugary beverages"],
-    specialStatuses: []
+    specialStatuses: [],
+    fastingPreference: {
+      observesFasting: "occasionally",
+      regularDays: ["Monday"],
+      fastType: "restricted_food_fast",
+      reasonOrTradition: "Family fasting day",
+      allowedFoods: ["Fruit", "Curd", "Roasted makhana", "Potato"],
+      avoidedFoods: ["Rice", "Wheat", "Onion"],
+      fastingMealCount: 2,
+      fruitsAllowed: true,
+      dairyAllowed: true,
+      grainsRestricted: true,
+      customRules: ["Keep salt and sugar moderate."]
+    }
   },
   {
     name: "Mother",
@@ -103,7 +134,8 @@ export const demoMemberInputs: CreateFamilyMemberInput[] = [
     dietaryRestrictions: [],
     healthConditions: [],
     doctorRestrictions: [],
-    specialStatuses: []
+    specialStatuses: [],
+    fastingPreference: defaultFastingPreference
   },
   {
     name: "Son",
@@ -126,7 +158,8 @@ export const demoMemberInputs: CreateFamilyMemberInput[] = [
     dietaryRestrictions: [],
     healthConditions: [],
     doctorRestrictions: [],
-    specialStatuses: []
+    specialStatuses: [],
+    fastingPreference: defaultFastingPreference
   },
   {
     name: "Daughter",
@@ -149,7 +182,8 @@ export const demoMemberInputs: CreateFamilyMemberInput[] = [
     dietaryRestrictions: [],
     healthConditions: [],
     doctorRestrictions: [],
-    specialStatuses: ["Child growth stage"]
+    specialStatuses: ["Child growth stage"],
+    fastingPreference: defaultFastingPreference
   }
 ];
 
