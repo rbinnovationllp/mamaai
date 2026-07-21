@@ -1,4 +1,4 @@
-# MAMA AI Security
+﻿# MAMA AI Security
 
 ## Security Principles
 
@@ -119,6 +119,23 @@ Production APIs should rate limit:
 - Store only data needed for the product experience.
 - Avoid logging sensitive health details.
 
+## Website Analytics Privacy
+
+- Use Vercel Web Analytics for lightweight hosted page analytics where available.
+- Track MVP product events with anonymous visitor/session ids only.
+- Do not store raw IP addresses for visitor counting.
+- Do not use non-essential tracking cookies before privacy/consent requirements are reviewed.
+- Keep analytics failures isolated from the core meal-planning flow.
+- Separate page views, visits/sessions, and estimated unique visitors in admin reporting.
+
+
+## Ask MAMA Security
+
+- Use the controlled product knowledge base as the source of truth for hackathon answers.
+- Do not expose system prompts, API keys, webhook secrets, AWS configuration, admin data, private user data, or internal implementation details.
+- Treat medical and health-sensitive questions as safety-sensitive; do not diagnose, treat, prescribe, or replace professional advice.
+- Track only anonymous assistant events, categories, and short labels in the MVP. Do not store full sensitive chat transcripts without production consent and retention controls.
+- Keep Ask MAMA separate from the meal-planning engine until authenticated user context and safety controls are production-ready.
 ## Security Review Checklist
 
 - No secrets in client bundle.
@@ -128,3 +145,5 @@ Production APIs should rate limit:
 - Admin routes enforce RBAC.
 - Sensitive data is not visible to unauthorized roles.
 - Demo data is fictional.
+- Ask MAMA refuses prompt-injection, secret-disclosure, private-data, and medical-treatment requests.
+

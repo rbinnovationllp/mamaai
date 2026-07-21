@@ -1,4 +1,4 @@
-# MAMA AI Architecture
+﻿# MAMA AI Architecture
 
 ## Product Focus
 
@@ -114,6 +114,36 @@ The same AWS account can host MAMAAI and education projects if each project is i
 
 For Vercel deployment, route handlers should access AWS using server-side environment variables only. Use least-privilege IAM credentials or an AWS-supported identity flow; never expose AWS keys through `NEXT_PUBLIC_` variables.
 
+## Website Analytics
+
+Vercel Web Analytics is integrated through `@vercel/analytics/next` for lightweight hosted page analytics on Vercel. MAMAAI also includes a small MVP analytics event endpoint for hackathon product metrics:
+
+- Homepage visit
+- Try Demo click
+- Get Started click
+- Create Family / registration-style success
+- Meal plan generated
+- Ask MAMA opens, questions, unresolved topics, and common categories
+
+The internal tracker uses anonymous local visitor/session ids and does not store raw IP addresses. It clearly separates page views, visits/sessions, and estimated unique visitors. In production, analytics should move from the in-memory store to DynamoDB, a managed privacy-friendly analytics product, or Vercel Analytics where the metric is supported.
+## Ask MAMA Assistant
+
+Ask MAMA is a floating product-help and navigation assistant. The hackathon version uses a controlled MAMAAI knowledge base in `lib/ask-mama/knowledge-base.ts` and the `/api/ask-mama` route instead of sending a large open-ended prompt on every question. This keeps answers short, predictable, and aligned with the actual submitted build.
+
+Current scope:
+
+- Explain what MAMAAI is and how the family meal-planning flow works.
+- Guide users to Judge/Demo Mode or family creation.
+- Explain allergies, dislikes, fasting support, ingredient quantities, recipes, meal replacement, grocery planning, subscriptions, testing-stage limitations, and support contact.
+- Refuse requests for secrets, internal prompts, private data, admin details, diagnosis, treatment, or medication guidance.
+- Track anonymous `ask_mama_open`, `ask_mama_question`, and `ask_mama_unresolved` events with category labels.
+
+Future scope:
+
+- Add multilingual responses.
+- Add authenticated user-aware guidance with strict privacy boundaries.
+- Add OpenAI-powered answer generation constrained by the same structured knowledge base and safety rules.
+
 ## Retention and Exports
 
 Detailed generated meal plans use a 15-day retention policy. The plan includes `expiresAt` and `retentionPolicy` metadata and the UI shows a `Download / Export / Save` action. In production, DynamoDB TTL should use an epoch timestamp attribute such as `expiresAtEpoch` to expire detailed meal-plan items automatically.
@@ -161,6 +191,7 @@ Owns tests, security review, accessibility, responsive checks, error states, and
 ```text
 app/
   api/
+    ask-mama/route.ts
     demo/route.ts
     families/route.ts
     meal-plans/route.ts
@@ -169,9 +200,12 @@ app/
   layout.tsx
   globals.css
 components/
+  AskMamaWidget.tsx
   FamilyFlow.tsx
   MamaFamilyTable.tsx
 lib/
+  ask-mama/
+    knowledge-base.ts
   ai/
     prompts/family-meal-plan.ts
     ai-service.ts
@@ -247,3 +281,4 @@ Repositories own key construction. Services must not know DynamoDB key shapes.
 - Admin/CRM contracts are documented but not prioritized over the family meal vertical slice.
 - RevenueCat plan metadata is defined in code, but production billing is not allowed to block hackathon submission.
 - Judge Access bypasses payment only for fictional demo data and does not weaken normal production entitlement logic.
+

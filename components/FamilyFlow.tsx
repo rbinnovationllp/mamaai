@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AskMamaWidget } from "./AskMamaWidget";
 import { MamaFamilyTable } from "./MamaFamilyTable";
+import { trackAnalyticsEvent } from "@/lib/shared/client-analytics";
 import type {
   CreateFamilyMemberInput,
   Family,
@@ -43,6 +45,33 @@ const familyDietOptions: { value: FamilyDietPreference; label: string }[] = [
   { value: "semi_vegetarian", label: "Semi vegetarian" },
   { value: "eggetarian", label: "Eggetarian" },
   { value: "mixed", label: "Mixed family" }
+];
+
+const familyNeedCards = [
+  { icon: "GM", name: "Grandmother", need: "Softer, easy-to-digest food", color: "green" },
+  { icon: "FA", name: "Father", need: "Diet-aware portions", color: "orange" },
+  { icon: "MO", name: "Mother", need: "Balanced nutrition", color: "yellow" },
+  { icon: "SO", name: "Son", need: "Additional protein", color: "aqua" },
+  { icon: "CH", name: "Child", need: "Growth-supportive nutrition", color: "plum" }
+];
+
+const featureCards = [
+  ["AI Family Meal Planning", "One practical meal planned around the whole family.", "AI"],
+  ["Personalized Portions", "Different portions and adjustments for individual needs.", "PT"],
+  ["Allergy & Dislike Aware", "Avoid unsafe ingredients and account for disliked foods.", "SA"],
+  ["Regional & Seasonal Foods", "Adapted to location, cuisine preference, season and availability.", "RG"],
+  ["Fasting-Aware Planning", "Different guidance for fasting or restricted-food days.", "FT"],
+  ["Ingredients & Quantities", "Know what to cook and approximately how much to prepare.", "IQ"],
+  ["Smart Grocery Planning", "Turn meals into organized grocery requirements.", "GL"],
+  ["Recipes & Cooking Help", "Written recipes stay available; video options are clearly labeled.", "RC"]
+];
+
+const planPreviewRows = [
+  ["Breakfast", "Vegetable poha with curd and fruit"],
+  ["Lunch", "Dal, roti, seasonal sabzi and salad"],
+  ["High Tea", "Vegetable chilla and unsweetened tea"],
+  ["Dinner", "Moong dal khichdi with member adjustments"],
+  ["Fruit & Hydration", "Guava, papaya, water and buttermilk guidance"]
 ];
 
 const addOnNutrition: Record<string, NutritionEstimate> = {
@@ -274,6 +303,7 @@ export function FamilyFlow() {
   }, [customNutrition, mealPlan, selectedAddOn]);
 
   useEffect(() => {
+    trackAnalyticsEvent("homepage_visit");
     loadDemo();
     // Demo data should load once on first visit; later reloads are user-triggered.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -327,6 +357,9 @@ export function FamilyFlow() {
   }
 
   async function loadDemo(mode: "judge" | "standard" = "standard") {
+    if (mode === "judge") {
+      trackAnalyticsEvent("try_demo_click");
+    }
     setJudgeMode(mode === "judge");
     setError("");
     setFeedbackSaved(false);
@@ -357,8 +390,10 @@ export function FamilyFlow() {
   }
 
   function startCustomFamily() {
+    trackAnalyticsEvent("get_started_click");
     setJudgeMode(false);
     setStatus("Custom family mode ready. Edit the family members, create the family, then plan today.");
+    document.getElementById("planner")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   async function createFamily() {
@@ -403,6 +438,8 @@ export function FamilyFlow() {
 
     setCreatedFamily(data.family);
     setCreatedMembers(data.members);
+    trackAnalyticsEvent("create_family_success");
+    trackAnalyticsEvent("registration_success");
     syncMealAttendance(data.members);
     setMealPlan(null);
     setNutritionContexts([]);
@@ -447,6 +484,7 @@ export function FamilyFlow() {
 
     setNutritionContexts(data.nutritionContexts);
     setMealPlan(data.mealPlan);
+    trackAnalyticsEvent("meal_plan_generated");
     setStatus(
       userPlanningMode === "returning_user_weekly_editable"
         ? "Weekly editable planning mode selected. This demo shows the next meal while preserving the lower-cost reuse strategy."
@@ -537,36 +575,204 @@ export function FamilyFlow() {
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark">M</span>
-          <span>MAMA AI</span>
+          <span>MAMAAI</span>
         </div>
-        <p className="muted">The Wisdom of Maa. The Intelligence of AI.</p>
+        <nav className="nav-links" aria-label="Main navigation">
+          <a href="#home">Home</a>
+          <a href="#how-it-works">How It Works</a>
+          <a href="#features">Features</a>
+          <a href="#about">About</a>
+          <a href="#pricing">Pricing</a>
+        </nav>
+        <div className="nav-actions">
+          <button className="button secondary" onClick={() => loadDemo("judge")}>
+            Try Demo
+          </button>
+          <button className="button" onClick={startCustomFamily}>
+            Get Started
+          </button>
+        </div>
       </header>
 
       <main className="main">
-        <section className="hero">
-          <p className="eyebrow">One Family. Different Needs. One Intelligent Meal Plan.</p>
-          <h1>What Shall MAMA Plan for Your Family Today?</h1>
-          <div className="judge-banner">
-            <div>
-              <p className="eyebrow">Codex Hackathon Judge Access</p>
-              <h2>Try the full MAMA AI demo without registration or payment.</h2>
-              <p>
-                Uses only fictional family data and shows the core innovation in minutes: one common family meal with
-                personalized portions, modifications, fruit, hydration, replacement, grocery update, and the MAMA Family Table.
-              </p>
+        <section className="hero landing-hero" id="home">
+          <div className="hero-copy">
+            <p className="eyebrow">Meal & Aahaar Management Assistant</p>
+            <h1>One Family. Different Needs. One Intelligent Meal Plan.</h1>
+            <p className="lead">
+              Tell MAMAAI about your family once. It helps plan what to cook, how much to cook, and how the same family meal
+              can be adjusted for everyone.
+            </p>
+            <div className="actions hero-actions">
+              <button className="button hero-button" onClick={startCustomFamily}>
+                Plan My Family Meals
+              </button>
+              <button className="button judge-button" onClick={() => loadDemo("judge")}>
+                Try Demo
+              </button>
             </div>
+            <p className="testing-notice">
+              You are using a testing version of MAMAAI. Some features that depend on external services may be limited or temporarily
+              unavailable. These integrations are planned to be enabled or expanded as the application progresses toward production.
+            </p>
+          </div>
+          <div className="hero-visual" aria-label="MAMAAI meal planner preview">
+            <div className="family-illustration">
+              {familyNeedCards.map((member) => (
+                <div className={`family-avatar ${member.color}`} key={member.name}>
+                  <span>{member.icon}</span>
+                  <small>{member.name}</small>
+                </div>
+              ))}
+            </div>
+            <div className="phone-preview">
+              <p className="eyebrow">Today&apos;s Family Meal</p>
+              <h2>Dal + Rice + Vegetables</h2>
+              <div className="meal-chip-row">
+                <span>Softer for Grandmother</span>
+                <span>Adjusted for Father</span>
+                <span>Extra protein for Son</span>
+              </div>
+              <div className="preview-actions">
+                <span>View Recipe</span>
+                <span>Replace Meal</span>
+                <span>Grocery List</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="story-section">
+          <div>
+            <p className="eyebrow">The daily food problem</p>
+            <h2>Every Family Eats Together. But Everyone&apos;s Needs Are Different.</h2>
+          </div>
+          <div className="need-card-grid">
+            {familyNeedCards.map((member) => (
+              <article className={`need-card ${member.color}`} key={member.name}>
+                <span>{member.icon}</span>
+                <h3>{member.name}</h3>
+                <p>{member.need}</p>
+              </article>
+            ))}
+          </div>
+          <div className="common-meal-bridge">
+            <span>These profiles come together into</span>
+            <strong>One Common Family Meal</strong>
+            <small>with personalized portions and adjustments</small>
+          </div>
+        </section>
+
+        <section className="story-section" id="how-it-works">
+          <div>
+            <p className="eyebrow">How MAMAAI Works</p>
+            <h2>From family profile to practical cooking plan.</h2>
+          </div>
+          <div className="steps-grid">
+            <article>
+              <span>1</span>
+              <h3>Tell MAMAAI About Your Family</h3>
+              <p>Add members, preferences, allergies, fasting, region, cuisine and kitchen context.</p>
+            </article>
+            <article>
+              <span>2</span>
+              <h3>MAMAAI Plans One Practical Meal</h3>
+              <p>It considers the family together instead of creating separate diet plans for everyone.</p>
+            </article>
+            <article>
+              <span>3</span>
+              <h3>Everyone Gets What They Need</h3>
+              <p>Portions, adjustments, fruit, hydration, recipes, ingredients and groceries update together.</p>
+            </article>
+          </div>
+        </section>
+
+        <section className="story-section" id="features">
+          <div>
+            <p className="eyebrow">Core Features</p>
+            <h2>Built for real family kitchens.</h2>
+          </div>
+          <div className="feature-grid">
+            {featureCards.map(([title, description, icon]) => (
+              <article className="feature-card" key={title}>
+                <span>{icon}</span>
+                <h3>{title}</h3>
+                <p>{description}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="family-table-showcase">
+          <div>
+            <p className="eyebrow">MAMA Family Table</p>
+            <h2>One Meal. Personalized for Everyone.</h2>
+            <p className="lead">Tonight&apos;s family dinner can stay common while each person gets what they need.</p>
+          </div>
+          <div className="table-orbit">
+            <div className="central-meal">
+              <span>Dinner</span>
+              <strong>Dal + Rice + Mixed Vegetables + Salad</strong>
+            </div>
+            <p>Grandmother - softer preparation</p>
+            <p>Father - adjusted portion</p>
+            <p>Mother - balanced portion</p>
+            <p>Son - extra protein</p>
+            <p>Child - age-appropriate portion + fruit</p>
+          </div>
+        </section>
+
+        <section className="preview-section">
+          <div>
+            <p className="eyebrow">Daily Plan Preview</p>
+            <h2>Everything a family needs to cook today.</h2>
+          </div>
+          <div className="dashboard-preview">
+            <div className="dashboard-header">
+              <strong>Today&apos;s Family Meal Plan</strong>
+              <span>Bengaluru - Indian family food</span>
+            </div>
+            {planPreviewRows.map(([meal, detail]) => (
+              <div className="plan-row" key={meal}>
+                <span>{meal}</span>
+                <p>{detail}</p>
+              </div>
+            ))}
+            <div className="preview-actions">
+              <span>View Recipe</span>
+              <span>Replace Meal</span>
+              <span>View Ingredients</span>
+              <span>Grocery List</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="brand-story" id="about">
+          <p className="eyebrow">Inspired by the Wisdom of Maa</p>
+          <h2>For generations, mothers and grandmothers remembered everyone&apos;s needs before deciding what to cook.</h2>
+          <p>
+            They remembered what everyone likes, who needs special care, what is available in the kitchen, and what the family can
+            afford. MAMAAI brings that caring family wisdom into the AI era.
+          </p>
+          <strong>The Wisdom of Maa. The Intelligence of AI.</strong>
+        </section>
+
+        <section className="final-cta" id="pricing">
+          <h2>Stop Asking &quot;What Should We Cook Today?&quot;</h2>
+          <p>Let MAMAAI plan smarter for your family.</p>
+          <div className="actions">
+            <button className="button hero-button" onClick={startCustomFamily}>
+              Create My Family
+            </button>
             <button className="button judge-button" onClick={() => loadDemo("judge")}>
-              Try Demo / Judge Access
+              Try MAMAAI Demo
             </button>
           </div>
-          <p className="lead">
-            Create a family, add the needs of each family member, and generate one practical common meal with personal portions,
-            fruit, hydration, and a grocery list that updates when the meal changes.
-          </p>
-          <p className="testing-notice">
-            You are using a testing version of MAMAAI. Some features that depend on external services may be limited or temporarily
-            unavailable. These integrations are planned to be enabled or expanded as the application progresses toward production.
-          </p>
+        </section>
+
+        <section className="planner-shell" id="planner">
+          <p className="eyebrow">Live Demo Planner</p>
+          <h2>What Shall MAMAAI Plan for Your Family Today?</h2>
           <div className="actions">
             <label className="compact-control">
               Meal
@@ -1137,6 +1343,7 @@ export function FamilyFlow() {
           </section>
         </div>
       </main>
+      <AskMamaWidget onStartFamily={startCustomFamily} onTryDemo={() => loadDemo("judge")} />
     </div>
   );
 }

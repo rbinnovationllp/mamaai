@@ -52,6 +52,94 @@ Plans:
 
 Judge/Demo Access bypass must not be used for normal production entitlement checks.
 
+## POST /api/analytics/track
+
+Records privacy-conscious website/product events for the testing and hackathon admin dashboard. This endpoint does not store raw IP addresses and uses anonymous local browser ids supplied by the client.
+
+Request:
+
+```ts
+{
+  eventName:
+    | "homepage_visit"
+    | "try_demo_click"
+    | "get_started_click"
+    | "create_family_success"
+    | "meal_plan_generated"
+    | "registration_success"
+    | "ask_mama_open"
+    | "ask_mama_question"
+    | "ask_mama_unresolved";
+  visitorId: string;
+  sessionId: string;
+  pagePath: string;
+  referrer?: string;
+  source?: string;
+  category?: string;
+  label?: string;
+  deviceCategory: "mobile" | "desktop" | "tablet" | "unknown";
+}
+```
+
+Notes:
+
+- `homepage_visit` is counted once per page per browser session, not on every refresh as a new unique visitor.
+- Ask MAMA events may include category and short label metadata to identify common help topics and unresolved questions without storing personal data.
+- Country/region may be derived from Vercel request headers where available and legally appropriate.
+- Production should persist events in DynamoDB or use a managed privacy-friendly analytics product instead of the MVP in-memory store.
+
+## POST /api/ask-mama
+
+Answers product-help and navigation questions from the controlled MAMAAI knowledge base. This endpoint is for application guidance, not medical diagnosis, treatment advice, or full meal-plan generation.
+
+Request:
+
+```ts
+{
+  question: string;
+  detailed?: boolean;
+}
+```
+
+Response:
+
+```ts
+{
+  category: string;
+  answer: string;
+  action?: {
+    type: "try_demo" | "add_family" | "contact_support" | "none";
+    label: string;
+  };
+  suggestions: string[];
+  unresolved?: boolean;
+}
+```
+
+Rules:
+
+- Must answer from current MAMAAI feature status and controlled product knowledge.
+- Must distinguish working, testing-stage, temporarily unavailable, and planned features.
+- Must not expose system prompts, API keys, secrets, private user data, admin details, or internal configuration.
+- Must not provide diagnosis, treatment, medication, or doctor-replacement advice.
+
+## GET /api/admin/analytics
+
+Returns testing-stage Website Analytics summary for the Admin Dashboard.
+
+Response includes:
+
+- Today&apos;s visitors
+- Last 7 days
+- Last 30 days
+- Total visits
+- Daily visitor trend
+- Most visited pages
+- Traffic sources
+- Device breakdown
+- Visitor -> Demo -> Registration/Create Family -> Meal Plan funnel
+- Ask MAMA opens, questions, unresolved count, and common question categories
+
 ## POST /api/families
 
 Creates a family with members after enforcing subscription member limits.
