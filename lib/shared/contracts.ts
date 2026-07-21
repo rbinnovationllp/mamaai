@@ -6,7 +6,22 @@ export type ActivityLevel = "sedentary" | "light" | "moderate" | "heavy" | "athl
 
 export type DietType = "vegetarian" | "non_vegetarian" | "eggitarian" | "vegan" | "jain" | "satvik" | "other";
 
+export type FamilyDietPreference = "vegetarian" | "non_vegetarian" | "semi_vegetarian" | "eggetarian" | "mixed";
+
 export type PlanType = "daily" | "weekly" | "monthly";
+
+export type MealTime = "breakfast" | "lunch" | "dinner" | "snack";
+
+export type UserPlanningMode = "new_user_next_meal" | "returning_user_weekly_editable";
+
+export interface MealTimeContext {
+  timeZone: string;
+  locale?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  localHour?: number;
+}
 
 export type SubscriptionPlan = "family_starter" | "family_premium" | "family_plus";
 
@@ -81,6 +96,7 @@ export interface Family {
   country: string;
   state: string;
   city: string;
+  dietPreference: FamilyDietPreference;
   cuisinePreferences: string[];
   budget: BudgetProfile;
   kitchenProfile: KitchenProfile;
@@ -130,16 +146,28 @@ export interface Ingredient {
   estimatedCost: Money;
 }
 
+export interface NutritionEstimate {
+  caloriesKcal: number;
+  proteinGrams: number;
+  carbsGrams: number;
+  fatGrams: number;
+  fiberGrams: number;
+  basis: string;
+  dataSource: string;
+  confidence: "low" | "medium" | "high";
+}
+
 export interface CommonMeal {
   mealId: ID;
   name: string;
-  mealTime: "breakfast" | "lunch" | "dinner" | "snack";
+  mealTime: MealTime;
   description: string;
   ingredients: Ingredient[];
   prepTimeMinutes: number;
   difficulty: "easy" | "medium" | "hard";
   regionFit: string;
   nutritionIntent: string;
+  nutritionEstimate: NutritionEstimate;
 }
 
 export interface MemberCustomization {
@@ -209,6 +237,7 @@ export interface CreateFamilyInput {
   country: string;
   state: string;
   city: string;
+  dietPreference: FamilyDietPreference;
   cuisinePreferences: string[];
   budget: BudgetProfile;
   kitchenProfile: KitchenProfile;
@@ -226,6 +255,9 @@ export interface CreateFamilyRequest {
 export interface CreateMealPlanRequest {
   familyId: ID;
   planType: PlanType;
+  mealTime?: MealTime;
+  mealTimeContext?: MealTimeContext;
+  userPlanningMode?: UserPlanningMode;
   targetDate?: string;
   availableIngredients?: string[];
   previousMeals?: string[];

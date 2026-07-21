@@ -23,6 +23,7 @@ export const demoFamily: Family = {
   country: "India",
   state: "Karnataka",
   city: "Bengaluru",
+  dietPreference: "vegetarian",
   cuisinePreferences: ["Indian", "North Indian", "South Indian"],
   budget: { type: "daily", amount: 450, currency: "INR" },
   kitchenProfile: {

@@ -21,6 +21,7 @@ export const createFamilyInputSchema = z.object({
   country: z.string().min(2),
   state: z.string().min(2),
   city: z.string().min(2),
+  dietPreference: z.enum(["vegetarian", "non_vegetarian", "semi_vegetarian", "eggetarian", "mixed"]),
   cuisinePreferences: z.array(z.string().min(1)),
   budget: budgetProfileSchema,
   kitchenProfile: kitchenProfileSchema,
@@ -58,6 +59,17 @@ export const ingredientSchema = z.object({
   estimatedCost: moneySchema
 });
 
+export const nutritionEstimateSchema = z.object({
+  caloriesKcal: z.number().nonnegative(),
+  proteinGrams: z.number().nonnegative(),
+  carbsGrams: z.number().nonnegative(),
+  fatGrams: z.number().nonnegative(),
+  fiberGrams: z.number().nonnegative(),
+  basis: z.string().min(1),
+  dataSource: z.string().min(1),
+  confidence: z.enum(["low", "medium", "high"])
+});
+
 export const familyMealPlanSchema = z.object({
   mealPlanId: z.string().min(1),
   familyId: z.string().min(1),
@@ -72,7 +84,8 @@ export const familyMealPlanSchema = z.object({
     prepTimeMinutes: z.number().int().positive(),
     difficulty: z.enum(["easy", "medium", "hard"]),
     regionFit: z.string().min(1),
-    nutritionIntent: z.string().min(1)
+    nutritionIntent: z.string().min(1),
+    nutritionEstimate: nutritionEstimateSchema
   }),
   memberCustomizations: z.array(z.object({
     memberId: z.string().min(1),
@@ -120,9 +133,21 @@ export const familyMealPlanSchema = z.object({
   updatedAt: z.string().min(1)
 });
 
+export const mealTimeContextSchema = z.object({
+  timeZone: z.string().min(1),
+  locale: z.string().optional(),
+  country: z.string().optional(),
+  region: z.string().optional(),
+  city: z.string().optional(),
+  localHour: z.number().int().min(0).max(23).optional()
+});
+
 export const createMealPlanRequestSchema = z.object({
   familyId: z.string().min(1),
   planType: z.enum(["daily", "weekly", "monthly"]),
+  mealTime: z.enum(["breakfast", "lunch", "dinner", "snack"]).optional(),
+  mealTimeContext: mealTimeContextSchema.optional(),
+  userPlanningMode: z.enum(["new_user_next_meal", "returning_user_weekly_editable"]).optional(),
   targetDate: z.string().optional(),
   availableIngredients: z.array(z.string()).optional(),
   previousMeals: z.array(z.string()).optional()

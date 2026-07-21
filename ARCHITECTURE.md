@@ -23,6 +23,39 @@ Current priority order:
 
 RevenueCat and Google Play Billing must not delay the judge-facing demo. Billing remains integration-ready, while Judge Access uses a safe fictional-data-only payment bypass.
 
+## Region-Aware Meal Planning
+
+The MVP includes a meal-time selector with user-local defaults. The browser detects the user's timezone and locale, then the meal-plan request also carries the family country, region/state, and city when available.
+
+- Before 9:00 AM local time: breakfast.
+- 9:00-10:00 AM local time: let the user choose breakfast or lunch.
+- Late morning/afternoon local time: lunch.
+- From 6:00 PM local time onward: dinner.
+
+The frontend sends `mealTime` and `mealTimeContext` to the API so AI/service logic can plan the appropriate meal for the user's region instead of assuming India-only timing.
+
+## Diet Preference and Nutrition Estimates
+
+First-time family setup captures the family food pattern:
+
+- Vegetarian
+- Non vegetarian
+- Semi vegetarian
+- Eggetarian
+- Mixed family
+
+The meal optimizer uses this contract before suggesting the common meal. Mixed and semi-vegetarian families receive a vegetarian base meal with optional egg/chicken add-ons so one family table can still work.
+
+Each generated common meal includes `nutritionEstimate` with estimated calories, protein, carbs, fat, and fiber. The UI also allows the user to add an extra food or custom values and recalculates the estimate immediately. MVP values are educational estimates based on public food-composition concepts such as USDA FoodData Central nutrient fields and ICMR/NIN food-group guidance. Production should connect verified ingredient-weight nutrition lookup before claiming precise nutrition analysis.
+
+## AI Cost-Control Strategy
+
+To protect the economics of low-price plans, the product should avoid unnecessary full regeneration:
+
+- New users: generate a focused next-meal plan for onboarding.
+- Returning users: prefer an editable weekly plan and reuse previous structure where possible.
+- Meal replacement should update only affected meal/grocery data rather than regenerating everything.
+
 ## Application Stack
 
 - Frontend: Next.js App Router, React, TypeScript, Tailwind CSS-compatible styling.
@@ -126,6 +159,7 @@ Production-ready next steps:
 AI meal generation must return a validated `FamilyMealPlan` containing:
 
 - `commonMeal`
+- `commonMeal.nutritionEstimate`
 - `memberCustomizations`
 - `fruits`
 - `hydration`

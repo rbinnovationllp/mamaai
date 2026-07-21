@@ -61,7 +61,17 @@ Request:
 ```ts
 {
   userId: string;
-  family: CreateFamilyInput;
+  family: {
+    name: string;
+    country: string;
+    state: string;
+    city: string;
+    dietPreference: "vegetarian" | "non_vegetarian" | "semi_vegetarian" | "eggetarian" | "mixed";
+    cuisinePreferences: string[];
+    budget: BudgetProfile;
+    kitchenProfile: KitchenProfile;
+    subscriptionPlan: SubscriptionPlan;
+  };
   members: CreateFamilyMemberInput[];
 }
 ```
@@ -91,11 +101,35 @@ Request:
 {
   familyId: string;
   planType: "daily" | "weekly" | "monthly";
+  mealTime?: "breakfast" | "lunch" | "dinner" | "snack";
+  mealTimeContext?: {
+    timeZone: string;
+    locale?: string;
+    country?: string;
+    region?: string;
+    city?: string;
+    localHour?: number;
+  };
+  userPlanningMode?: "new_user_next_meal" | "returning_user_weekly_editable";
   targetDate?: string;
   availableIngredients?: string[];
   previousMeals?: string[];
 }
 ```
+
+Meal-time defaulting:
+
+- The frontend uses the user's browser timezone and locale by default.
+- Family country, region/state, and city are sent in `mealTimeContext` when available.
+- Before 9:00 AM local time: breakfast.
+- 9:00-10:00 AM local time: user can choose breakfast or lunch.
+- Late morning/afternoon local time: lunch.
+- From 6:00 PM local time onward: dinner.
+
+Cost-control rule:
+
+- New users should receive a focused next-meal plan.
+- Returning users should be guided toward editable weekly plans to reduce repeated AI generation cost.
 
 Response:
 
@@ -218,6 +252,7 @@ Response:
 `FamilyMealPlan` must include:
 
 - `commonMeal`
+- `commonMeal.nutritionEstimate` with estimated kcal, protein, carbs, fat, fiber, basis, data source, and confidence
 - `memberCustomizations`
 - `fruits`
 - `hydration`
@@ -228,3 +263,5 @@ Response:
 - `disclaimer`
 
 Validation happens before display, persistence, grocery generation, analytics, and replacement.
+
+Nutrition estimates are informational approximations. MVP estimates are modeled around public food-composition fields such as USDA FoodData Central nutrient data and ICMR/NIN-style food-group guidance. Production should replace static estimates with ingredient-weight lookup, regional food databases, and reviewed nutrition rules.

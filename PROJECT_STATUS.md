@@ -30,6 +30,20 @@
 - Improved Judge Access presentation after live text review: Judge Mode now shows clean read-only fictional family profile cards instead of the large editable form.
 - Replaced non-ASCII separator bullets in key UI text with ASCII hyphens to avoid mojibake such as `Â·` in deployments or text captures.
 - Validation passed after Judge Access UI cleanup: `npm run lint`, `npm run build`, and `npm run typecheck`.
+- Added region-aware meal selection with breakfast/lunch/dinner defaults based on the user's browser timezone and manual override.
+- Added `mealTimeContext` API contract so meal planning can receive timezone, locale, country, region/state, city, and local hour.
+- Added new-user vs returning-user planning mode to support AI cost control.
+- Updated meal-plan API contract with `mealTime` and `userPlanningMode`.
+- Updated deterministic demo meal generation to return breakfast, lunch, dinner, or replacement meals based on selected meal time.
+- Updated meal-plan target date to use the user's local timezone instead of UTC-only date slicing.
+- Validation passed after region-aware meal planning work: `npm run typecheck`, `npm run lint`, and `npm run build`.
+- Added first-time family food-pattern selection: vegetarian, non-vegetarian, semi-vegetarian, eggetarian, and mixed family.
+- Updated family contracts and schemas with `dietPreference`.
+- Updated the meal generator to choose diet-compatible common meals and optional add-on meals for mixed families.
+- Added structured common-meal nutrition estimates for calories, protein, carbs, fat, and fiber.
+- Added editable nutrition calculator so users can add common extra foods or custom values and see recalculated estimates.
+- Documented nutrition estimate source basis and the need for verified ingredient-weight lookup after the hackathon.
+- Validation passed after diet preference and nutrition estimate work: `npm run typecheck`, `npm run lint`, and `npm run build`.
 
 ## In Progress
 
@@ -67,6 +81,8 @@
 - Keep admin/CRM as documented contracts until the core family planning flow is fully hardened.
 - Judge Access bypasses payment only for fictional demo data and must stay separate from production entitlement checks.
 - RevenueCat/Google Play Billing must not block the hackathon submission; production billing follows core MVP, judge demo, testing, deployment, and Devpost demo readiness.
+- Meal-time defaults must use the user's local timezone and family region context, not India-only assumptions.
+- Nutrition values in the MVP are estimates for education and demo clarity; production requires verified ingredient weights and nutrition database integration before precision claims.
 
 ## Required Environment Variables
 
