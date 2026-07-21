@@ -1,4 +1,4 @@
-import type { Family, FamilyMealPlan, FamilyMember, User } from "@/lib/shared/contracts";
+import type { Family, FamilyMealPlan, FamilyMember, PaymentTransaction, SubscriptionRecord, User } from "@/lib/shared/contracts";
 import { demoFamily, demoMembers, demoUser } from "@/lib/shared/demo-data";
 
 export type AnalyticsEventName =
@@ -36,6 +36,8 @@ interface StoreState {
   families: Family[];
   members: FamilyMember[];
   mealPlans: FamilyMealPlan[];
+  subscriptionRecords: SubscriptionRecord[];
+  paymentTransactions: PaymentTransaction[];
   analyticsEvents: AnalyticsEvent[];
 }
 
@@ -46,6 +48,8 @@ export const store: StoreState = globalForStore.mamaAiStore ?? {
   families: [demoFamily],
   members: demoMembers,
   mealPlans: [],
+  subscriptionRecords: [],
+  paymentTransactions: [],
   analyticsEvents: []
 };
 

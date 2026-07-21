@@ -104,7 +104,12 @@
 - Judge/Demo Access cannot expose real personal or medical data.
 - RevenueCat webhook secrets are not exposed to the frontend.
 - `/api/subscriptions/status` returns server-resolved entitlement data and the UI does not trust a frontend-only premium flag.
-- Fake payment buttons are not present in the hackathon build.
+- Razorpay subscription creation returns a clear testing-stage message when MAMAAI Razorpay env values are missing.
+- Razorpay Checkout signature verification rejects invalid signatures.
+- Razorpay webhook rejects requests without a valid `x-razorpay-signature`.
+- Razorpay webhook records subscription/payment events only after signature verification.
+- Same Razorpay account usage for other projects does not share MAMAAI plan IDs, webhook secret, or entitlement records.
+- Fake payment must never activate premium access.
 - AWS credentials and table/bucket names are server-side only except safe public app URL.
 - DynamoDB TTL never targets allergy, restriction, fasting, subscription, or account records.
 - S3 exports are private and should be served by signed URL in production.

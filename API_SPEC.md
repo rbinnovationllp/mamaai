@@ -70,6 +70,102 @@ Query:
 }
 ```
 
+## POST /api/razorpay/subscriptions
+
+Creates a Razorpay test-mode subscription for Indian web/PWA billing when MAMAAI-specific Razorpay environment variables are configured. Secrets stay server-side.
+
+Request:
+
+```ts
+{
+  userId: string;
+  plan: "family_starter" | "family_premium" | "family_plus";
+  customerNotify?: boolean;
+}
+```
+
+Response when configured:
+
+```ts
+{
+  configured: true;
+  provider: "razorpay";
+  billingMarket: "india";
+  subscriptionId: string;
+  shortUrl?: string;
+  checkout: {
+    key: string;
+    subscription_id: string;
+    name: "MAMAAI";
+    description: string;
+    notes: {
+      project: "mamaai";
+      userId: string;
+      plan: string;
+    };
+  };
+  subscriptionRecord: SubscriptionRecord;
+}
+```
+
+Response when Razorpay is not configured:
+
+```ts
+{
+  configured: false;
+  status: "testing_stage_not_configured";
+  message: string;
+  requiredEnvironment: string[];
+  judgeDemoUnaffected: true;
+}
+```
+
+## POST /api/razorpay/verify
+
+Verifies Razorpay Checkout signature server-side before activating an entitlement. The frontend must never mark a user as paid before this endpoint succeeds.
+
+Request:
+
+```ts
+{
+  userId: string;
+  plan: "family_starter" | "family_premium" | "family_plus";
+  razorpayPaymentId: string;
+  razorpaySubscriptionId: string;
+  razorpaySignature: string;
+}
+```
+
+## POST /api/razorpay/webhook
+
+Receives Razorpay subscription/payment webhooks. The route verifies `x-razorpay-signature` using `RAZORPAY_WEBHOOK_SECRET` before updating subscription/payment records.
+
+Handled event classes:
+
+- `subscription.activated`
+- `subscription.charged`
+- `subscription.completed`
+- `subscription.cancelled`
+- `subscription.paused`
+- `subscription.resumed`
+- `subscription.pending`
+- `payment.failed`
+
+Use a MAMAAI-specific webhook URL and secret even if the same Razorpay account is also used for other projects such as Syllabus Synk.
+
+## POST /api/razorpay/subscriptions/{subscriptionId}/cancel
+
+Cancels a Razorpay subscription server-side when Razorpay keys are configured. Production UI should require authenticated user ownership before exposing this action.
+
+Request:
+
+```ts
+{
+  userId: string;
+  cancelAtCycleEnd: boolean;
+}
+```
+
 Response:
 
 ```ts

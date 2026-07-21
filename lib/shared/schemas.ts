@@ -319,6 +319,25 @@ export const feedbackRequestSchema = z.object({
   notes: z.string().optional()
 });
 
+export const createRazorpaySubscriptionSchema = z.object({
+  userId: z.string().min(1).default("demo-user"),
+  plan: z.enum(["family_starter", "family_premium", "family_plus"]),
+  customerNotify: z.boolean().optional()
+});
+
+export const verifyRazorpayPaymentSchema = z.object({
+  userId: z.string().min(1).default("demo-user"),
+  plan: z.enum(["family_starter", "family_premium", "family_plus"]),
+  razorpayPaymentId: z.string().min(1),
+  razorpaySubscriptionId: z.string().min(1),
+  razorpaySignature: z.string().min(1)
+});
+
+export const cancelRazorpaySubscriptionSchema = z.object({
+  userId: z.string().min(1).default("demo-user"),
+  cancelAtCycleEnd: z.boolean().default(true)
+});
+
 export const revenueCatWebhookSchema = z.object({
   event: z.object({
     type: z.string().min(1),

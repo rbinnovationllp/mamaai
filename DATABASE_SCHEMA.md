@@ -271,13 +271,41 @@ RevenueCat-ready fields:
 - `startsAt`
 - `renewsAt`
 - `cancelledAt`
+- `razorpayCustomerId`
+- `razorpaySubscriptionId`
+- `razorpayPaymentId`
+- `razorpayPlanId`
 - `currentPeriodEndsAt`
 - `lastRevenueCatEventType`
 - `lastRevenueCatEventAt`
+- `lastRazorpayEventType`
+- `lastRazorpayEventAt`
 
 Judge/Demo Access uses `source = demo_judge_access`, `isActive = true`, and `bypassPaymentForDemo = true` only for fictional demo data.
 
 Production subscription records must be written from verified backend payment/webhook events. The frontend can display the returned entitlement, but it must not create or trust its own premium flag.
+
+## Payment Transactions
+
+Store payment history separately from entitlement state:
+
+- `transactionId`
+- `userId`
+- `plan`
+- `subscriptionRecordId`
+- `paymentChannel`
+- `paymentStatus`
+- `amount`
+- `currency`
+- `providerPaymentId`
+- `providerSubscriptionId`
+- `providerInvoiceId`
+- `providerOrderId`
+- `providerEvent`
+- `rawStatus`
+- `createdAt`
+
+For Razorpay, store MAMAAI-specific plan IDs and webhook events with `project=mamaai` metadata. If the same Razorpay account is shared with Syllabus Synk or another project, never share DynamoDB keys, webhook secrets, or entitlement records across projects.
 
 ## Sensitive Data Rules
 

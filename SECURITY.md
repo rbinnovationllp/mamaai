@@ -80,10 +80,24 @@ Use environment variables for:
 - Auth secret
 - RevenueCat keys
 - RevenueCat webhook secret
+- Razorpay key ID
+- Razorpay key secret
+- Razorpay webhook secret
+- Razorpay MAMAAI plan IDs
 - YouTube API key
 - Webhook secrets
 
 Never commit real secrets. Keep `.env.example` current.
+
+## Razorpay Security
+
+- Create Razorpay subscriptions only from server-side route handlers.
+- Never expose `RAZORPAY_KEY_SECRET` or `RAZORPAY_WEBHOOK_SECRET` to the browser or GitHub.
+- Verify Razorpay Checkout signatures before activating entitlement.
+- Verify `x-razorpay-signature` before accepting webhook events.
+- Store subscription status and transaction history server-side; never trust a frontend-only premium flag.
+- Use MAMAAI-specific Razorpay plan IDs, webhook URL, webhook secret, and metadata (`project=mamaai`), even if the same Razorpay account is also used for Syllabus Synk.
+- Production GST/invoice settings must be configured inside Razorpay according to the billing entity before collecting real customer payments.
 
 ## AWS Security Architecture
 

@@ -25,6 +25,30 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 }
 
+interface RazorpayCheckoutResponse {
+  razorpay_payment_id: string;
+  razorpay_subscription_id: string;
+  razorpay_signature: string;
+}
+
+interface RazorpayConstructorOptions {
+  key: string;
+  subscription_id: string;
+  name: string;
+  description: string;
+  notes: Record<string, string>;
+  handler: (response: RazorpayCheckoutResponse) => void;
+  modal?: {
+    ondismiss?: () => void;
+  };
+}
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: RazorpayConstructorOptions) => { open: () => void };
+  }
+}
+
 type DemoResponse = {
   family: Family;
   members: FamilyMember[];
@@ -364,6 +388,8 @@ export function FamilyFlow() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [installMessage, setInstallMessage] = useState("");
+  const [paymentMessage, setPaymentMessage] = useState("");
+  const [paymentLoadingPlan, setPaymentLoadingPlan] = useState<"family_starter" | "family_premium" | "family_plus" | null>(null);
 
   const canGenerate = useMemo(() => Boolean(createdFamily), [createdFamily]);
   const adjustedNutrition = useMemo(() => {
@@ -479,6 +505,85 @@ export function FamilyFlow() {
       "To install on iPhone: open Safari share menu and tap Add to Home Screen. On Android: open browser menu and tap Install app or Add to Home screen."
     );
     trackAnalyticsEvent("pwa_install_prompt", { category: "manual_instructions" });
+  }
+
+  async function loadRazorpayCheckoutScript() {
+    if (window.Razorpay) return true;
+    return new Promise<boolean>((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  }
+
+  async function startRazorpaySubscription(plan: "family_starter" | "family_premium" | "family_plus") {
+    setPaymentLoadingPlan(plan);
+    setPaymentMessage("Preparing secure Razorpay checkout...");
+
+    try {
+      const response = await fetch("/api/razorpay/subscriptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: createdFamily?.userId ?? "demo-user",
+          plan,
+          customerNotify: true
+        })
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.configured) {
+        setPaymentMessage(
+          data.message ??
+            "Razorpay test-mode checkout is not configured yet. Add the MAMAAI Razorpay keys and plan IDs in Vercel environment variables."
+        );
+        return;
+      }
+
+      const scriptReady = await loadRazorpayCheckoutScript();
+      if (!scriptReady || !window.Razorpay) {
+        setPaymentMessage("Razorpay checkout script could not load. Please try again after checking browser/network access.");
+        return;
+      }
+
+      const checkout = new window.Razorpay({
+        ...data.checkout,
+        handler: async (checkoutResponse) => {
+          const verifyResponse = await fetch("/api/razorpay/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: createdFamily?.userId ?? "demo-user",
+              plan,
+              razorpayPaymentId: checkoutResponse.razorpay_payment_id,
+              razorpaySubscriptionId: checkoutResponse.razorpay_subscription_id,
+              razorpaySignature: checkoutResponse.razorpay_signature
+            })
+          });
+
+          setPaymentMessage(
+            verifyResponse.ok
+              ? "Payment verified server-side. Subscription entitlement has been updated in the backend test store."
+              : "Payment could not be verified. Premium access was not activated."
+          );
+          setPaymentLoadingPlan(null);
+        },
+        modal: {
+          ondismiss: () => {
+            setPaymentMessage("Checkout closed before payment completion.");
+            setPaymentLoadingPlan(null);
+          }
+        }
+      });
+
+      checkout.open();
+    } catch {
+      setPaymentMessage("Razorpay checkout could not be started in this testing build.");
+    } finally {
+      setPaymentLoadingPlan(null);
+    }
   }
 
   async function loadDemo(mode: "judge" | "standard" = "standard") {
@@ -1575,18 +1680,43 @@ export function FamilyFlow() {
                       <p className="mini-title">Family Starter</p>
                       <p className="muted">{planPriceLabel("starter", createdFamily?.country ?? country)} - 4 members</p>
                       <p className="muted">Other markets: US$4.99/month</p>
+                      <button
+                        className="button secondary"
+                        type="button"
+                        onClick={() => startRazorpaySubscription("family_starter")}
+                        disabled={paymentLoadingPlan !== null}
+                      >
+                        {paymentLoadingPlan === "family_starter" ? "Preparing..." : "Subscribe with Razorpay"}
+                      </button>
                     </div>
                     <div>
                       <p className="mini-title">Family Premium</p>
                       <p className="muted">{planPriceLabel("premium", createdFamily?.country ?? country)} - 6 members</p>
                       <p className="muted">Other markets: US$6.99/month</p>
+                      <button
+                        className="button secondary"
+                        type="button"
+                        onClick={() => startRazorpaySubscription("family_premium")}
+                        disabled={paymentLoadingPlan !== null}
+                      >
+                        {paymentLoadingPlan === "family_premium" ? "Preparing..." : "Subscribe with Razorpay"}
+                      </button>
                     </div>
                     <div>
                       <p className="mini-title">Family Plus</p>
                       <p className="muted">{planPriceLabel("plus", createdFamily?.country ?? country)} - 10 members</p>
                       <p className="muted">Other markets: US$8.99/month</p>
+                      <button
+                        className="button secondary"
+                        type="button"
+                        onClick={() => startRazorpaySubscription("family_plus")}
+                        disabled={paymentLoadingPlan !== null}
+                      >
+                        {paymentLoadingPlan === "family_plus" ? "Preparing..." : "Subscribe with Razorpay"}
+                      </button>
                     </div>
                   </div>
+                  {paymentMessage ? <p className="notice">{paymentMessage}</p> : null}
                   <p className="notice">
                     Recommended web/PWA payment path: use a production web payment provider with server-side verification, then
                     sync the user&apos;s single MAMAAI entitlement record with future RevenueCat, Google Play, and iOS channels.

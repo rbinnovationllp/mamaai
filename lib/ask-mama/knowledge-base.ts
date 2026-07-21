@@ -202,7 +202,7 @@ export function answerAskMama(question: string, detailed = false): AskMamaAnswer
     return {
       category: "subscriptions",
       answer:
-        "Current planned plans are Family Starter at INR 399/month in India or US$4.99/month internationally for up to 4 members, Family Premium at INR 599/month or US$6.99/month for up to 6, and Family Plus at INR 799/month or US$8.99/month for up to 10. Judge/Demo Mode bypasses payment safely.",
+        "Current planned plans are Family Starter at INR 399/month in India or US$4.99/month internationally for up to 4 members, Family Premium at INR 599/month or US$6.99/month for up to 6, and Family Plus at INR 799/month or US$8.99/month for up to 10. For Indian web/PWA subscriptions, MAMAAI is Razorpay-ready with server-side verification when test keys and MAMAAI plan IDs are configured. Judge/Demo Mode bypasses payment safely.",
       suggestions: ["How does MAMAAI work?", "Plan meals for my family", "What is unavailable in test version?"]
     };
   }

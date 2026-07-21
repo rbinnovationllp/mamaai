@@ -1,4 +1,5 @@
 import { AnalyticsService } from "@/lib/services/analytics-service";
+import { store } from "@/lib/repositories/in-memory-store";
 
 function maxValue(items: Array<{ value: number }>) {
   return Math.max(1, ...items.map((item) => item.value));
@@ -27,6 +28,8 @@ function BarList({ items }: { items: Array<{ label: string; value: number }> }) 
 
 export default function AdminPage() {
   const analytics = new AnalyticsService().summary();
+  const recentSubscriptions = [...store.subscriptionRecords].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 8);
+  const recentTransactions = [...store.paymentTransactions].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
 
   return (
     <main className="admin-shell">
@@ -114,6 +117,38 @@ export default function AdminPage() {
       <section className="notice">
         <p>{analytics.privacy}</p>
         <p>Page views, visits/sessions and unique visitors are separated because they are different metrics.</p>
+      </section>
+
+      <section className="analytics-grid">
+        <article className="panel">
+          <h2>Subscription Status</h2>
+          <div className="event-metrics">
+            {recentSubscriptions.length ? (
+              recentSubscriptions.map((record) => (
+                <p key={record.subscriptionRecordId}>
+                  {record.userId}: {record.plan} - {record.status} - {record.paymentChannel}
+                </p>
+              ))
+            ) : (
+              <p className="muted">No paid subscription records yet. Judge/Demo Mode remains payment-free.</p>
+            )}
+          </div>
+        </article>
+        <article className="panel">
+          <h2>Payment History</h2>
+          <div className="event-metrics">
+            {recentTransactions.length ? (
+              recentTransactions.map((transaction) => (
+                <p key={transaction.transactionId}>
+                  {transaction.userId}: {transaction.paymentChannel} - {transaction.paymentStatus} -{" "}
+                  {transaction.providerEvent ?? "checkout"}
+                </p>
+              ))
+            ) : (
+              <p className="muted">No payment transactions recorded yet.</p>
+            )}
+          </div>
+        </article>
       </section>
     </main>
   );
