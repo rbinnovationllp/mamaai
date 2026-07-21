@@ -120,6 +120,12 @@ export interface FamilyMember {
   likes: string[];
   dislikes: string[];
   allergies: string[];
+  foodAllergies: string[];
+  ingredientAllergies: string[];
+  foodDislikes: string[];
+  dislikedMeals: string[];
+  excludedIngredients: string[];
+  dietaryRestrictions: string[];
   healthConditions: string[];
   doctorRestrictions: string[];
   specialStatuses: string[];
@@ -157,6 +163,25 @@ export interface NutritionEstimate {
   confidence: "low" | "medium" | "high";
 }
 
+export interface RecipeDetails {
+  title: string;
+  servings: number;
+  prepTimeMinutes: number;
+  cookTimeMinutes: number;
+  difficulty: "easy" | "medium" | "hard";
+  ingredients: Ingredient[];
+  steps: string[];
+  estimatedNutrition: NutritionEstimate;
+  estimatedCost: Money;
+  familyAdjustments: string[];
+  alternativeIngredients: string[];
+  videoRecommendation?: {
+    label: string;
+    url?: string;
+    note: string;
+  };
+}
+
 export interface CommonMeal {
   mealId: ID;
   name: string;
@@ -168,6 +193,7 @@ export interface CommonMeal {
   regionFit: string;
   nutritionIntent: string;
   nutritionEstimate: NutritionEstimate;
+  recipe: RecipeDetails;
 }
 
 export interface MemberCustomization {
@@ -176,6 +202,29 @@ export interface MemberCustomization {
   modification: string;
   portionGuidance: string;
   safetyNotes: string[];
+}
+
+export type PreferenceResolutionOptionId = "separate_alternative" | "one_common_meal" | "two_compatible_options";
+
+export interface PreferenceResolutionOption {
+  optionId: PreferenceResolutionOptionId;
+  label: string;
+  description: string;
+  cookingImpact: string;
+}
+
+export interface PreferenceResolution {
+  hasSoftConflict: boolean;
+  prompt: string;
+  affectedMembers: Array<{
+    memberId: ID;
+    memberName: string;
+    conflicts: string[];
+    suggestedAlternative: string;
+  }>;
+  recommendedOptionId: PreferenceResolutionOptionId;
+  options: PreferenceResolutionOption[];
+  minimumCookingStrategy: string;
 }
 
 export interface FruitRecommendation {
@@ -218,6 +267,7 @@ export interface FamilyMealPlan {
   targetDate: string;
   commonMeal: CommonMeal;
   memberCustomizations: MemberCustomization[];
+  preferenceResolution?: PreferenceResolution;
   fruits: FruitRecommendation[];
   hydration: HydrationRecommendation[];
   estimatedCost: CostEstimate;

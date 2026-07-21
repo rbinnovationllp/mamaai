@@ -72,7 +72,27 @@ Request:
     kitchenProfile: KitchenProfile;
     subscriptionPlan: SubscriptionPlan;
   };
-  members: CreateFamilyMemberInput[];
+  members: Array<{
+    name: string;
+    relationship: string;
+    age: number;
+    gender: Gender;
+    activityLevel: ActivityLevel;
+    goals: string[];
+    dietType: DietType;
+    likes: string[];
+    dislikes: string[];
+    allergies: string[];
+    foodAllergies: string[];
+    ingredientAllergies: string[];
+    foodDislikes: string[];
+    dislikedMeals: string[];
+    excludedIngredients: string[];
+    dietaryRestrictions: string[];
+    healthConditions: string[];
+    doctorRestrictions: string[];
+    specialStatuses: string[];
+  }>;
 }
 ```
 
@@ -253,7 +273,9 @@ Response:
 
 - `commonMeal`
 - `commonMeal.nutritionEstimate` with estimated kcal, protein, carbs, fat, fiber, basis, data source, and confidence
+- `commonMeal.recipe` with ingredients, quantities, servings, steps, prep time, cook time, difficulty, nutrition, cost, adjustments, alternatives, and video recommendation metadata
 - `memberCustomizations`
+- `preferenceResolution`, when a soft dislike affects one or more members but the meal is otherwise suitable for the family
 - `fruits`
 - `hydration`
 - `estimatedCost`
@@ -265,3 +287,11 @@ Response:
 Validation happens before display, persistence, grocery generation, analytics, and replacement.
 
 Nutrition estimates are informational approximations. MVP estimates are modeled around public food-composition fields such as USDA FoodData Central nutrient data and ICMR/NIN-style food-group guidance. Production should replace static estimates with ingredient-weight lookup, regional food databases, and reviewed nutrition rules.
+
+Allergy and preference handling:
+
+- Food allergies, ingredient allergies, excluded ingredients, dietary restrictions, and doctor restrictions are hard restrictions.
+- Food dislikes and disliked dishes are soft preferences.
+- The safety validator checks common meal and recipe ingredients against hard restrictions before display or persistence.
+- If a common meal has a member-specific conflict, the plan must include a clear individual modification or safe alternative for that member.
+- If a soft dislike affects only part of the family, the UI asks whether to prepare a separate simple alternative, keep only one common meal, or suggest two compatible options. This preference flow must not be used for allergies or medical restrictions.

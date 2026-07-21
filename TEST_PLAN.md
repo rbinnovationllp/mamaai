@@ -33,6 +33,10 @@
 - BMI and nutrition context calculation.
 - Structured AI output validation.
 - Allergy exclusion.
+- Food allergy and ingredient allergy hard-restriction checks.
+- Excluded ingredient and dietary restriction checks.
+- Food dislike and disliked-meal individual modification checks.
+- Soft dislike preference-resolution options are generated without treating dislike as an allergy.
 - Doctor restriction exclusion.
 - Grocery recalculation after replacement.
 - Family satisfaction score bounds.
@@ -52,6 +56,9 @@
 - Each family member has modification and portion guidance.
 - Fruits/hydration are visible.
 - Replace meal updates grocery items.
+- View Recipe / How to Cook opens for every generated common meal.
+- Recipe modal shows ingredients, quantities, servings, steps, prep/cook time, difficulty, nutrition, cost, adjustments, alternatives, and video recommendation metadata.
+- Preference-resolution card shows the three choices for separate alternative, one common meal, and two compatible options when a soft dislike affects only part of the family.
 - Disclaimer appears.
 - Error and loading states are visible.
 

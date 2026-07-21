@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { FamilyMealPlan, FamilyMember, NutritionContext } from "@/lib/shared/contracts";
 
 interface MamaFamilyTableProps {
@@ -7,6 +10,11 @@ interface MamaFamilyTableProps {
 }
 
 export function MamaFamilyTable({ members, nutritionContexts, mealPlan }: MamaFamilyTableProps) {
+  const [recipeOpen, setRecipeOpen] = useState(false);
+  const [selectedPreferenceOption, setSelectedPreferenceOption] = useState<string | null>(null);
+  const recipe = mealPlan.commonMeal.recipe;
+  const selectedOption = mealPlan.preferenceResolution?.options.find((option) => option.optionId === selectedPreferenceOption);
+
   return (
     <section className="table-zone" aria-label="MAMA Family Table">
       <div className="common-meal">
@@ -21,7 +29,138 @@ export function MamaFamilyTable({ members, nutritionContexts, mealPlan }: MamaFa
           {mealPlan.commonMeal.nutritionEstimate.proteinGrams} g protein, {mealPlan.commonMeal.nutritionEstimate.carbsGrams} g carbs,{" "}
           {mealPlan.commonMeal.nutritionEstimate.fatGrams} g fat, and {mealPlan.commonMeal.nutritionEstimate.fiberGrams} g fiber for the family meal.
         </p>
+        <button className="button" onClick={() => setRecipeOpen(true)}>
+          View Recipe / How to Cook
+        </button>
       </div>
+
+      {recipeOpen ? (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label={`Recipe for ${recipe.title}`}>
+          <div className="recipe-modal">
+            <div className="member-header">
+              <div>
+                <p className="eyebrow">How to Cook</p>
+                <h2>{recipe.title}</h2>
+              </div>
+              <button className="button secondary" onClick={() => setRecipeOpen(false)}>
+                Close
+              </button>
+            </div>
+
+            <div className="recipe-meta">
+              <span>Serves {recipe.servings}</span>
+              <span>Prep {recipe.prepTimeMinutes} min</span>
+              <span>Cook {recipe.cookTimeMinutes} min</span>
+              <span>{recipe.difficulty}</span>
+              <span>INR {recipe.estimatedCost.amount}</span>
+            </div>
+
+            <section className="recipe-section">
+              <h3>Ingredients</h3>
+              <div className="grocery">
+                {recipe.ingredients.map((ingredient) => (
+                  <div className="grocery-item" key={`${ingredient.name}-${ingredient.quantity}`}>
+                    <p className="mini-title">{ingredient.name}</p>
+                    <p className="muted">
+                      {ingredient.quantity} - INR {ingredient.estimatedCost.amount}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="recipe-section">
+              <h3>Steps</h3>
+              <ol className="recipe-steps">
+                {recipe.steps.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+            </section>
+
+            <section className="recipe-section">
+              <h3>Estimated Nutrition</h3>
+              <p className="muted">
+                {recipe.estimatedNutrition.caloriesKcal} kcal, {recipe.estimatedNutrition.proteinGrams} g protein,{" "}
+                {recipe.estimatedNutrition.carbsGrams} g carbs, {recipe.estimatedNutrition.fatGrams} g fat,{" "}
+                {recipe.estimatedNutrition.fiberGrams} g fiber.
+              </p>
+            </section>
+
+            <section className="recipe-section">
+              <h3>Family Adjustments</h3>
+              <ul className="recipe-list">
+                {recipe.familyAdjustments.map((adjustment) => (
+                  <li key={adjustment}>{adjustment}</li>
+                ))}
+                {mealPlan.memberCustomizations.map((customization) => (
+                  <li key={customization.memberId}>
+                    {customization.memberName}: {customization.modification}
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="recipe-section">
+              <h3>Alternatives</h3>
+              <ul className="recipe-list">
+                {recipe.alternativeIngredients.map((alternative) => (
+                  <li key={alternative}>{alternative}</li>
+                ))}
+              </ul>
+            </section>
+
+            {recipe.videoRecommendation ? (
+              <section className="recipe-section">
+                <h3>Recipe Video</h3>
+                {recipe.videoRecommendation.url ? (
+                  <a href={recipe.videoRecommendation.url} target="_blank" rel="noreferrer">
+                    {recipe.videoRecommendation.label}
+                  </a>
+                ) : (
+                  <p className="mini-title">{recipe.videoRecommendation.label}</p>
+                )}
+                <p className="muted">{recipe.videoRecommendation.note}</p>
+              </section>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {mealPlan.preferenceResolution?.hasSoftConflict ? (
+        <section className="panel preference-card">
+          <p className="eyebrow">Family Preference Choice</p>
+          <h2>Keep satisfaction high without extra cooking?</h2>
+          <p className="lead">{mealPlan.preferenceResolution.prompt}</p>
+          <div className="preference-affected">
+            {mealPlan.preferenceResolution.affectedMembers.map((member) => (
+              <div className="grocery-item" key={member.memberId}>
+                <p className="mini-title">{member.memberName}</p>
+                <p className="muted">Does not prefer: {member.conflicts.join(", ")}</p>
+                <p className="muted">Simple alternative: {member.suggestedAlternative}</p>
+              </div>
+            ))}
+          </div>
+          <div className="preference-options">
+            {mealPlan.preferenceResolution.options.map((option) => (
+              <button
+                className={option.optionId === selectedPreferenceOption ? "button" : "button secondary"}
+                key={option.optionId}
+                onClick={() => setSelectedPreferenceOption(option.optionId)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <p className="notice">
+            {selectedOption
+              ? `${selectedOption.description} ${selectedOption.cookingImpact}`
+              : `${mealPlan.preferenceResolution.minimumCookingStrategy} Recommended: ${
+                  mealPlan.preferenceResolution.options.find((option) => option.optionId === mealPlan.preferenceResolution?.recommendedOptionId)?.label
+                }.`}
+          </p>
+        </section>
+      ) : null}
 
       <div className="family-table">
         {mealPlan.memberCustomizations.map((customization) => {

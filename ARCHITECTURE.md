@@ -48,6 +48,14 @@ The meal optimizer uses this contract before suggesting the common meal. Mixed a
 
 Each generated common meal includes `nutritionEstimate` with estimated calories, protein, carbs, fat, and fiber. The UI also allows the user to add an extra food or custom values and recalculates the estimate immediately. MVP values are educational estimates based on public food-composition concepts such as USDA FoodData Central nutrient fields and ICMR/NIN food-group guidance. Production should connect verified ingredient-weight nutrition lookup before claiming precise nutrition analysis.
 
+## Allergy, Dislike, and Recipe Handling
+
+Member profiles capture separate fields for food allergies, ingredient allergies, food dislikes, disliked meals/dishes, ingredients never to include, dietary restrictions, and doctor restrictions. The planner treats allergies, excluded ingredients, dietary restrictions, and doctor restrictions as hard constraints. Dislikes are softer preferences and should first be handled through individual member modifications when only one member is affected.
+
+Soft dislikes use a preference-resolution flow instead of automatically weakening the entire family meal. When a member dislikes a meal or ingredient that is otherwise suitable for the rest of the family, MAMA AI presents three options: prepare a separate simple alternative, keep only one common meal and regenerate, or suggest two compatible options with a small second component. The default recommendation favors minimum additional cooking while preserving maximum family satisfaction.
+
+Every generated common meal includes a `recipe` object. The UI exposes it through `View Recipe / How to Cook`, showing recipe name, ingredient quantities, servings, step-by-step cooking instructions, prep time, cook time, difficulty, estimated nutrition, estimated cost, family-member-specific adjustments, alternatives, and a video recommendation placeholder. YouTube search/API integration remains a production roadmap item, but the contract is ready.
+
 ## AI Cost-Control Strategy
 
 To protect the economics of low-price plans, the product should avoid unnecessary full regeneration:
@@ -160,7 +168,9 @@ AI meal generation must return a validated `FamilyMealPlan` containing:
 
 - `commonMeal`
 - `commonMeal.nutritionEstimate`
+- `commonMeal.recipe`
 - `memberCustomizations`
+- `preferenceResolution` when soft dislikes need user choice
 - `fruits`
 - `hydration`
 - `estimatedCost`
