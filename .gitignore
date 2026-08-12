@@ -63,3 +63,6 @@ dist/
 
 # Editor/test artifacts
 .vscode-test/
+
+.vercel
+.env*
