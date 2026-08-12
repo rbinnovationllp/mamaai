@@ -20,6 +20,8 @@ coverage
 # Dependency directories
 node_modules/
 jspm_packages/
+/.pnp
+.pnp.js
 web_modules/
 
 # TypeScript cache
@@ -36,13 +38,15 @@ web_modules/
 # Environment files
 .env
 .env.local
+.env.production
 .env.*.local
 .env.*
 !.env.example
 
-# Next.js build output
-.next/
-out/
+# Testing & Cache
+/.next/
+/out/
+/build
 
 # Other framework/build output
 dist/

@@ -1,4 +1,63 @@
 # MAMA AI Database Schema
+// lib/types.ts
+
+export type MemberType = 'HUMAN' | 'PET';
+
+export interface FamilyMember {
+  id: string;
+  familyId: string;
+  name: string;
+  type: MemberType;
+  
+  // Human / Common Attributes
+  age?: number;
+  allergies: string[]; // Hard safety constraints
+  dislikes: string[];  // Preference constraints
+  isPickyEater?: boolean;
+
+  // Pet-Specific Attributes (Nullable for Humans)
+  species?: 'DOG' | 'CAT' | 'OTHER';
+  breed?: string;
+  weightKg?: number;
+  activityLevel?: 'LOW' | 'MODERATE' | 'HIGH';
+  foodType?: 'COMMERCIAL' | 'HOME_PREPARED' | 'MIXED' | 'VET_DIET';
+  brandPreference?: string;
+  vetInstructions?: string;
+  isMedicalDiet?: boolean;
+}
+
+export interface PantryItem {
+  id: string;
+  familyId: string;
+  ingredientName: string;
+  category: 'Vegetables' | 'Fruits' | 'Grains' | 'Pulses' | 'Dairy' | 'Eggs' | 'Meat/Fish' | 'Spices' | 'Oils' | 'Snacks' | 'Beverages' | 'Other';
+  quantity: number;
+  unit: string;
+  minimumStock: number;
+  purchaseDate?: Date;
+  expiryDate?: Date;
+  status: 'AVAILABLE' | 'RUNNING_LOW' | 'USE_SOON' | 'OUT_OF_STOCK';
+}
+
+export interface MealPreference {
+  id: string;
+  familyMemberId: string;
+  dishName: string;
+  rating: 'LOVED' | 'GOOD' | 'AVERAGE' | 'DISLIKED' | 'REJECTED';
+  lastSuggestedAt: Date;
+  timesSuggested: number;
+  doNotSuggest: boolean;
+}
+
+export interface ProactivePlanSettings {
+  familyId: string;
+  enabled: boolean;
+  planningDay: 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
+  planningTime: string; // e.g., "18:00"
+  usePantry: boolean;
+  useMealHistory: boolean;
+  considerFasting: boolean;
+}
 
 ## Production Database
 
