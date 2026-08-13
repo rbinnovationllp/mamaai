@@ -6,16 +6,18 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Runtime data
+# Runtime data & PIDs
 pids
 *.pid
 *.seed
 *.pid.lock
 
-# Coverage
+# Coverage & Testing output
 coverage
 *.lcov
 .nyc_output
+/out/
+/build
 
 # Dependency directories
 node_modules/
@@ -24,45 +26,39 @@ jspm_packages/
 .pnp.js
 web_modules/
 
-# TypeScript cache
+# TypeScript & Tool Caches
 *.tsbuildinfo
-
-# Tool caches
 .npm-cache/
+.npm
 .eslintcache
 .stylelintcache
 .cache
 .parcel-cache
 .vite/
 
-# Environment files
+# Environment Files (CRITICAL - Keeps Secrets Safe)
 .env
 .env.local
+.env.development
 .env.production
-.env.*.local
+.env*.local
 .env.*
 !.env.example
 
-# Testing & Cache
-/.next/
-/out/
-/build
+# Next.js, Vercel & Build Caches
+.next/
+.vercel/
 
 # Other framework/build output
 dist/
 .output/
 .temp/
 
-# Serverless and local service data
+# Serverless and local database service data
 .serverless/
 .dynamodb/
 .firebase/
 
-# Package artifacts
+# Package & Editor artifacts
 *.tgz
-
-# Editor/test artifacts
 .vscode-test/
-
-.vercel
-.env*
