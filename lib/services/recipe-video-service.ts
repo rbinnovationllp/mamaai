@@ -1,12 +1,13 @@
-import type { RecipeVideoResult, RecipeVideoSearchRequest, RecipeVideoSearchResponse } from "@/lib/shared/contracts";
+import type {
+  RecipeVideoResult,
+  RecipeVideoSearchRequest,
+  RecipeVideoSearchResponse,
+} from "@/lib/shared/contracts";
 
 const thirdPartyDisclaimer =
   "External recipe videos are third-party content. MAMA AI has not medically or nutritionally verified the video unless explicitly marked as reviewed.";
 
-const testingUnavailableMessage =
-  "This feature is currently unavailable in the testing version because the required external API/service has not yet been activated. It is planned for the production release after the required production integration is completed.";
-
-function countryToRegionCode(country?: string) {
+function countryToRegionCode(country?: string): string {
   const normalized = country?.trim().toLowerCase();
   if (!normalized) return "US";
   const known: Record<string, string> = {
@@ -19,12 +20,12 @@ function countryToRegionCode(country?: string) {
     australia: "AU",
     singapore: "SG",
     uae: "AE",
-    "united arab emirates": "AE"
+    "united arab emirates": "AE",
   };
   return known[normalized] ?? (country && country.length === 2 ? country.toUpperCase() : "US");
 }
 
-function buildQuery(request: RecipeVideoSearchRequest) {
+function buildQuery(request: RecipeVideoSearchRequest): string {
   return [
     request.dishName,
     request.region,
@@ -34,7 +35,7 @@ function buildQuery(request: RecipeVideoSearchRequest) {
     request.dietaryPreference?.replace("_", " "),
     request.healthyPreparation ? "healthy home cooking" : "home cooking",
     request.familyRequirements?.join(" "),
-    "recipe"
+    "recipe",
   ]
     .filter(Boolean)
     .join(" ")
@@ -42,13 +43,13 @@ function buildQuery(request: RecipeVideoSearchRequest) {
     .trim();
 }
 
-function fallbackResult(query: string): RecipeVideoResult {
+function fallbackResult(query: string, dishName: string): RecipeVideoResult {
   return {
-    title: `Search YouTube for: ${query}`,
-    channelTitle: "YouTube search",
+    title: `Watch ${dishName} Recipe Video`,
+    channelTitle: "YouTube Search",
     url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
     source: "fallback_search",
-    thirdPartyDisclaimer
+    thirdPartyDisclaimer,
   };
 }
 
@@ -65,58 +66,71 @@ export class RecipeVideoService {
   async search(request: RecipeVideoSearchRequest): Promise<RecipeVideoSearchResponse> {
     const query = buildQuery(request);
     const apiKey = process.env.YOUTUBE_API_KEY;
+
     if (!apiKey) {
       return {
         query,
         usedOfficialApi: false,
-        status: "temporarily_disabled",
-        statusLabel: "Currently Unavailable in Test Version",
-        results: [],
-        note: testingUnavailableMessage
+        status: "demo_test_only",
+        statusLabel: "YouTube Video Search Link",
+        results: [fallbackResult(query, request.dishName)],
+        note: "Direct YouTube search link provided for testing mode. The written recipe remains available.",
       };
     }
 
-    const url = new URL("https://www.googleapis.com/youtube/v3/search");
-    url.searchParams.set("part", "snippet");
-    url.searchParams.set("q", query);
-    url.searchParams.set("type", "video");
-    url.searchParams.set("maxResults", "3");
-    url.searchParams.set("safeSearch", "strict");
-    url.searchParams.set("videoEmbeddable", "true");
-    url.searchParams.set("regionCode", countryToRegionCode(request.country));
-    url.searchParams.set("key", apiKey);
+    try {
+      const url = new URL("https://www.googleapis.com/youtube/v3/search");
+      url.searchParams.set("part", "snippet");
+      url.searchParams.set("q", query);
+      url.searchParams.set("type", "video");
+      url.searchParams.set("maxResults", "3");
+      url.searchParams.set("safeSearch", "strict");
+      url.searchParams.set("videoEmbeddable", "true");
+      url.searchParams.set("regionCode", countryToRegionCode(request.country));
+      url.searchParams.set("key", apiKey);
 
-    const response = await fetch(url);
-    if (!response.ok) {
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        return {
+          query,
+          usedOfficialApi: true,
+          status: "demo_test_only",
+          statusLabel: "Demo/Test Fallback",
+          results: [fallbackResult(query, request.dishName)],
+          note: "YouTube API quota or error encountered; safe YouTube link returned. The written recipe remains available.",
+        };
+      }
+
+      const payload = (await response.json()) as { items?: YouTubeSearchItem[] };
+      const results: RecipeVideoResult[] = (payload.items ?? [])
+        .filter((item) => item.id?.videoId)
+        .map((item) => ({
+          title: item.snippet?.title ?? request.dishName,
+          channelTitle: item.snippet?.channelTitle ?? "YouTube",
+          url: `https://www.youtube.com/watch?v=${item.id?.videoId}`,
+          thumbnailUrl:
+            item.snippet?.thumbnails?.medium?.url ?? item.snippet?.thumbnails?.default?.url,
+          source: "youtube" as const,
+          thirdPartyDisclaimer,
+        }));
+
       return {
         query,
         usedOfficialApi: true,
+        status: "fully_functional",
+        statusLabel: "Fully Functional",
+        results: results.length ? results : [fallbackResult(query, request.dishName)],
+        note: "Results retrieved from official YouTube Data API.",
+      };
+    } catch {
+      return {
+        query,
+        usedOfficialApi: false,
         status: "demo_test_only",
         statusLabel: "Demo/Test Fallback",
-        results: [fallbackResult(query)],
-        note: "Recipe video search is limited in this testing version, so MAMA AI returned a safe third-party search fallback. The written recipe remains available."
+        results: [fallbackResult(query, request.dishName)],
+        note: "Video search fallback active. Written recipe remains available.",
       };
     }
-
-    const payload = (await response.json()) as { items?: YouTubeSearchItem[] };
-    const results = (payload.items ?? [])
-      .filter((item) => item.id?.videoId)
-      .map((item) => ({
-        title: item.snippet?.title ?? request.dishName,
-        channelTitle: item.snippet?.channelTitle ?? "YouTube",
-        url: `https://www.youtube.com/watch?v=${item.id?.videoId}`,
-        thumbnailUrl: item.snippet?.thumbnails?.medium?.url ?? item.snippet?.thumbnails?.default?.url,
-        source: "youtube" as const,
-        thirdPartyDisclaimer
-      }));
-
-    return {
-      query,
-      usedOfficialApi: true,
-      status: "fully_functional",
-      statusLabel: "Fully Functional",
-      results: results.length ? results : [fallbackResult(query)],
-      note: "Results come from the official YouTube Data API search endpoint and are third-party content."
-    };
   }
 }
