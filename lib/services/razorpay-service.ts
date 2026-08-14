@@ -1,5 +1,10 @@
 import crypto from "crypto";
-import type { PaymentStatus, SubscriptionPlan, SubscriptionRecord, SubscriptionStatus } from "@/lib/shared/contracts";
+import type {
+  PaymentStatus,
+  SubscriptionPlan,
+  SubscriptionRecord,
+  SubscriptionStatus,
+} from "@/lib/shared/contracts";
 import { createId, nowIso, store } from "@/lib/repositories/in-memory-store";
 import { SubscriptionService, subscriptionLimits } from "./subscription-service";
 
@@ -14,7 +19,7 @@ type RazorpaySubscriptionEvent =
   | "payment.failed"
   | string;
 
-interface CreateRazorpaySubscriptionInput {
+export interface CreateRazorpaySubscriptionInput {
   userId: string;
   plan: SubscriptionPlan;
   customerNotify?: boolean;
@@ -38,15 +43,21 @@ function configuredRazorpayKey() {
   return {
     keyId: process.env.RAZORPAY_KEY_ID,
     keySecret: process.env.RAZORPAY_KEY_SECRET,
-    webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET
+    webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET,
   };
 }
 
-function mapSubscriptionStatus(eventType: RazorpaySubscriptionEvent, providerStatus?: string): SubscriptionStatus {
+function mapSubscriptionStatus(
+  eventType: RazorpaySubscriptionEvent,
+  providerStatus?: string
+): SubscriptionStatus {
   if (eventType === "subscription.cancelled" || providerStatus === "cancelled") return "cancelled";
   if (eventType === "payment.failed") return "past_due";
   if (eventType === "subscription.completed" || providerStatus === "completed") return "expired";
-  if (["subscription.activated", "subscription.charged", "subscription.resumed"].includes(eventType) || providerStatus === "active") {
+  if (
+    ["subscription.activated", "subscription.charged", "subscription.resumed"].includes(eventType) ||
+    providerStatus === "active"
+  ) {
     return "active";
   }
   if (eventType === "subscription.pending" || providerStatus === "created") return "trialing";
@@ -82,7 +93,7 @@ export class RazorpayService {
         configured: false,
         message:
           "Razorpay test-mode subscription creation is not configured yet. Add RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, and the MAMAAI-specific Razorpay plan ID environment variables.",
-        requiredEnvironment: ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", planDefinition.razorpayPlanIdEnv]
+        requiredEnvironment: ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", planDefinition.razorpayPlanIdEnv],
       };
     }
 
@@ -91,23 +102,25 @@ export class RazorpayService {
       method: "POST",
       headers: {
         Authorization: `Basic ${auth}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         plan_id: planDefinition.razorpayPlanId,
         total_count: 120,
         quantity: 1,
-        customer_notify: input.customerNotify ?? 1,
+        customer_notify: input.customerNotify ? 1 : 0,
         notes: {
           project: "mamaai",
           userId: input.userId,
           plan: input.plan,
-          billingMarket: "india"
-        }
-      })
+          billingMarket: "india",
+        },
+      }),
     });
 
-    const data = (await response.json()) as RazorpaySubscriptionResponse & { error?: { description?: string } };
+    const data = (await response.json()) as RazorpaySubscriptionResponse & {
+      error?: { description?: string };
+    };
 
     if (!response.ok) {
       throw new Error(data.error?.description ?? "Razorpay subscription creation failed.");
@@ -121,7 +134,7 @@ export class RazorpayService {
       providerStatus: data.status ?? "created",
       eventType: "subscription.pending",
       startsAt: toIsoFromSeconds(data.current_start),
-      renewsAt: toIsoFromSeconds(data.current_end ?? data.charge_at)
+      renewsAt: toIsoFromSeconds(data.current_end ?? data.charge_at),
     });
 
     return {
@@ -130,32 +143,41 @@ export class RazorpayService {
       shortUrl: data.short_url,
       keyId: keys.keyId,
       plan: planDefinition,
-      subscriptionRecord
+      subscriptionRecord,
     };
   }
 
-  async cancelSubscription(input: { userId: string; razorpaySubscriptionId: string; cancelAtCycleEnd: boolean }) {
+  async cancelSubscription(input: {
+    userId: string;
+    razorpaySubscriptionId: string;
+    cancelAtCycleEnd: boolean;
+  }) {
     const keys = configuredRazorpayKey();
     if (!keys.keyId || !keys.keySecret) {
       return {
         configured: false,
-        message: "Razorpay cancellation is not configured yet. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET."
+        message: "Razorpay cancellation is not configured yet. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.",
       };
     }
 
     const auth = Buffer.from(`${keys.keyId}:${keys.keySecret}`).toString("base64");
-    const response = await fetch(`https://api.razorpay.com/v1/subscriptions/${input.razorpaySubscriptionId}/cancel`, {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${auth}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        cancel_at_cycle_end: input.cancelAtCycleEnd ? 1 : 0
-      })
-    });
+    const response = await fetch(
+      `https://api.razorpay.com/v1/subscriptions/${input.razorpaySubscriptionId}/cancel`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${auth}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cancel_at_cycle_end: input.cancelAtCycleEnd ? 1 : 0,
+        }),
+      }
+    );
 
-    const data = (await response.json()) as RazorpaySubscriptionResponse & { error?: { description?: string } };
+    const data = (await response.json()) as RazorpaySubscriptionResponse & {
+      error?: { description?: string };
+    };
     if (!response.ok) {
       throw new Error(data.error?.description ?? "Razorpay subscription cancellation failed.");
     }
@@ -166,13 +188,17 @@ export class RazorpayService {
       razorpayPlanId: data.plan_id,
       providerStatus: data.status ?? "cancelled",
       eventType: "subscription.cancelled",
-      cancelledAt: input.cancelAtCycleEnd ? undefined : nowIso()
+      cancelledAt: input.cancelAtCycleEnd ? undefined : nowIso(),
     });
 
     return { configured: true, subscriptionRecord: record };
   }
 
-  verifyCheckoutSignature(input: { razorpayPaymentId: string; razorpaySubscriptionId: string; razorpaySignature: string }) {
+  verifyCheckoutSignature(input: {
+    razorpayPaymentId: string;
+    razorpaySubscriptionId: string;
+    razorpaySignature: string;
+  }) {
     const secret = process.env.RAZORPAY_KEY_SECRET;
     if (!secret) return false;
 
@@ -183,7 +209,10 @@ export class RazorpayService {
 
     const expectedBuffer = Buffer.from(expected);
     const providedBuffer = Buffer.from(input.razorpaySignature);
-    return expectedBuffer.length === providedBuffer.length && crypto.timingSafeEqual(expectedBuffer, providedBuffer);
+    return (
+      expectedBuffer.length === providedBuffer.length &&
+      crypto.timingSafeEqual(expectedBuffer, providedBuffer)
+    );
   }
 
   verifyWebhookSignature(rawBody: string, signature: string | null) {
@@ -192,7 +221,10 @@ export class RazorpayService {
     const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
     const expectedBuffer = Buffer.from(expected);
     const providedBuffer = Buffer.from(signature);
-    return expectedBuffer.length === providedBuffer.length && crypto.timingSafeEqual(expectedBuffer, providedBuffer);
+    return (
+      expectedBuffer.length === providedBuffer.length &&
+      crypto.timingSafeEqual(expectedBuffer, providedBuffer)
+    );
   }
 
   upsertSubscriptionFromProvider(input: {
@@ -207,9 +239,11 @@ export class RazorpayService {
     renewsAt?: string;
     cancelledAt?: string;
   }) {
-    const plan = input.plan ?? findPlanByRazorpayPlanId(input.razorpayPlanId) ?? "family_starter";
+    const plan = input.plan ?? findPlanByRazorpayPlanId(input.razorpayPlanId) ?? "starter";
     const existing = store.subscriptionRecords.find(
-      (record) => record.paymentChannel === "razorpay" && record.razorpaySubscriptionId === input.razorpaySubscriptionId
+      (record) =>
+        record.paymentChannel === "razorpay" &&
+        record.razorpaySubscriptionId === input.razorpaySubscriptionId
     );
     const timestamp = nowIso();
     const status = mapSubscriptionStatus(input.eventType, input.providerStatus);
@@ -223,7 +257,7 @@ export class RazorpayService {
       paymentChannel: "razorpay",
       paymentStatus,
       source: "razorpay",
-      memberLimit: subscriptionLimits[plan],
+      memberLimit: subscriptionLimits[plan] ?? 4,
       startsAt: input.startsAt ?? existing?.startsAt ?? timestamp,
       renewsAt: input.renewsAt ?? existing?.renewsAt,
       expiresAt: existing?.expiresAt,
@@ -234,7 +268,7 @@ export class RazorpayService {
       lastProviderEvent: input.eventType,
       lastProviderEventAt: timestamp,
       createdAt: existing?.createdAt ?? timestamp,
-      updatedAt: timestamp
+      updatedAt: timestamp,
     };
 
     if (existing) {
@@ -255,7 +289,7 @@ export class RazorpayService {
       providerSubscriptionId: input.razorpaySubscriptionId,
       providerEvent: input.eventType,
       rawStatus: input.providerStatus,
-      createdAt: timestamp
+      createdAt: timestamp,
     });
 
     return record;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { RazorpayService } from "@/lib/services/razorpay-service";
-import { createRazorpaySubscriptionSchema } from "@/lib/shared/schemas";
+import { createRazorpaySubscriptionSchema, normalizePlanTier } from "@/lib/shared/schemas";
+import type { SubscriptionPlan } from "@/lib/shared/contracts";
 
 export async function POST(request: Request) {
   try {
@@ -14,7 +15,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await new RazorpayService().createSubscription(parsed.data);
+    // Convert legacy aliases to canonical plan types
+    const normalizedPlan = normalizePlanTier(parsed.data.plan) as SubscriptionPlan;
+
+    const result = await new RazorpayService().createSubscription({
+      userId: parsed.data.userId,
+      plan: normalizedPlan,
+      customerNotify: parsed.data.customerNotify,
+    });
 
     if (!result.configured || !("plan" in result)) {
       return NextResponse.json(
@@ -23,7 +31,7 @@ export async function POST(request: Request) {
           status: "testing_stage_not_configured",
           message: result.message,
           requiredEnvironment: result.requiredEnvironment,
-          judgeDemoUnaffected: true
+          judgeDemoUnaffected: true,
         },
         { status: 503 }
       );
@@ -43,18 +51,18 @@ export async function POST(request: Request) {
         notes: {
           project: "mamaai",
           userId: parsed.data.userId,
-          plan: parsed.data.plan
-        }
+          plan: normalizedPlan,
+        },
       },
-      subscriptionRecord: result.subscriptionRecord
+      subscriptionRecord: result.subscriptionRecord,
     });
   } catch (error) {
     return NextResponse.json(
       {
         error: {
           code: "RAZORPAY_SUBSCRIPTION_CREATE_FAILED",
-          message: error instanceof Error ? error.message : "Unable to create Razorpay subscription."
-        }
+          message: error instanceof Error ? error.message : "Unable to create Razorpay subscription.",
+        },
       },
       { status: 500 }
     );
