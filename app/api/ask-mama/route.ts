@@ -68,7 +68,8 @@ export async function POST(request: Request) {
         {
           error: {
             code: "RATE_LIMIT_EXCEEDED",
-            message: "You have reached the free public testing limit for Ask MAMA. Please create an account or use Judge Demo mode for continued access.",
+            message:
+              "You have reached the free public testing limit for Ask MAMA. Please create an account or use Judge Demo mode for continued access.",
           },
         },
         { status: 429 }
