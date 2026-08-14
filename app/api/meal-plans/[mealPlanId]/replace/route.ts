@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { MealPlanningService } from "@/lib/services/meal-planning-service";
 import { replaceMealRequestSchema } from "@/lib/shared/schemas";
+import type { ReplaceMealRequest } from "@/lib/shared/contracts";
 
 export async function POST(request: Request, context: { params: Promise<{ mealPlanId: string }> }) {
   try {
@@ -15,7 +16,7 @@ export async function POST(request: Request, context: { params: Promise<{ mealPl
       );
     }
 
-    const result = new MealPlanningService().replace(params.mealPlanId, parsed.data);
+    const result = new MealPlanningService().replace(params.mealPlanId, parsed.data as ReplaceMealRequest);
     return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json(

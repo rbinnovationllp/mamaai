@@ -333,8 +333,8 @@ function billingMarketForCountry(countryName: string): "india" | "international"
 function planPriceLabel(plan: "starter" | "premium" | "plus", countryName: string): string {
   const prices = {
     starter: { inr: 399, usd: 4.99 },
-    premium: { inr: 599, usd: 6.99 },
-    plus: { inr: 799, usd: 8.99 },
+    premium: { inr: 599, usd: 7.99 },
+    plus: { inr: 999, usd: 12.99 },
   };
   const price = prices[plan];
   return billingMarketForCountry(countryName) === "india"
@@ -1644,7 +1644,7 @@ export function FamilyFlow() {
                   </p>
                   <div className="plan-grid">
                     <div>
-                      <p className="mini-title">Family Starter</p>
+                      <p className="mini-title">Family Standard</p>
                       <p className="muted">{planPriceLabel("starter", createdFamily?.country ?? country)} - 4 members</p>
                       <p className="muted">Other markets: US$4.99/month</p>
                       <button
@@ -1659,7 +1659,7 @@ export function FamilyFlow() {
                     <div>
                       <p className="mini-title">Family Premium</p>
                       <p className="muted">{planPriceLabel("premium", createdFamily?.country ?? country)} - 6 members</p>
-                      <p className="muted">Other markets: US$6.99/month</p>
+                      <p className="muted">Other markets: US$7.99/month</p>
                       <button
                         className="button secondary"
                         type="button"
@@ -1672,7 +1672,7 @@ export function FamilyFlow() {
                     <div>
                       <p className="mini-title">Family Plus</p>
                       <p className="muted">{planPriceLabel("plus", createdFamily?.country ?? country)} - 10 members</p>
-                      <p className="muted">Other markets: US$8.99/month</p>
+                      <p className="muted">Other markets: US$12.99/month</p>
                       <button
                         className="button secondary"
                         type="button"

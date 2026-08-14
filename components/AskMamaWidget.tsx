@@ -12,6 +12,7 @@ export interface ChatMessage {
 export interface AskMamaWidgetProps {
   onStartFamily?: () => void;
   onTryDemo?: () => Promise<void> | void;
+  compact?: boolean;
 }
 
 const SUGGESTED_QUESTIONS: string[] = [
@@ -22,7 +23,7 @@ const SUGGESTED_QUESTIONS: string[] = [
   'What can I cook tonight with pantry staples?',
 ];
 
-export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps = {}) {
+export function AskMamaWidget({ onStartFamily, onTryDemo, compact = false }: AskMamaWidgetProps = {}) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -104,7 +105,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
   };
 
   return (
-    <div className="w-full flex flex-col bg-white rounded-3xl border border-gray-200/80 shadow-xl overflow-hidden min-h-[550px]">
+    <div className={`w-full flex flex-col bg-white rounded-3xl border border-gray-200/80 shadow-xl overflow-hidden ${compact ? "min-h-[420px]" : "min-h-[550px]"}`}>
       {/* Header */}
       <div className="p-4 sm:p-5 border-b border-gray-100 bg-emerald-600 text-white flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -134,7 +135,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
       </div>
 
       {/* Message Log */}
-      <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 max-h-[50vh]">
+      <div className={`flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 ${compact ? "max-h-[42vh]" : "max-h-[50vh]"}`}>
         {messages.map((msg: ChatMessage) => (
           <div
             key={msg.id}

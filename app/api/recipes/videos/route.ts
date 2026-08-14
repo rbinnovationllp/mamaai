@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { RecipeVideoService } from "@/lib/services/recipe-video-service";
 import { recipeVideoSearchRequestSchema } from "@/lib/shared/schemas";
+import type { RecipeVideoSearchRequest } from "@/lib/shared/contracts";
 
 const service = new RecipeVideoService();
 
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await service.search(parsed.data);
+    const result = await service.search(parsed.data as RecipeVideoSearchRequest);
     return NextResponse.json(result);
   } catch (error: unknown) {
     const errorMessage =

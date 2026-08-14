@@ -193,7 +193,7 @@ export function answerAskMama(question: string, detailed = false): AskMamaAnswer
   if (hasAny(text, ["subscription", "price", "pricing", "plan", "revenuecat", "payment"])) {
     return {
       category: "subscriptions",
-      answer: "Planned tiers are Family Starter (INR 399/mo | US$4.99/mo for up to 4), Family Premium (INR 599/mo | US$6.99/mo for up to 6), and Family Plus (INR 799/mo | US$8.99/mo for up to 10). Judge/Demo Mode bypasses payment so you can explore all features.",
+      answer: "Planned tiers are Family Standard (Rs. 399/mo | US$4.99/mo for up to 4), Family Premium (Rs. 599/mo | US$7.99/mo for up to 6), and Family Plus (Rs. 999/mo | US$12.99/mo for up to 10). Family Plus adds extended four-paw member meal planning with separate pet-appropriate guidance. Judge/Demo Mode bypasses payment so you can explore all features.",
       suggestions: ["How does MAMAAI work?", "Plan meals for my family"],
     };
   }
