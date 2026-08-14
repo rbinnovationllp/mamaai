@@ -2,15 +2,19 @@ import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { store } from "@/lib/repositories/in-memory-store";
 
-// In-memory sliding window rate limiter for public & trial protection
+// In-memory sliding window rate limiter for fair public testing & trial protection
 const usageTracker = new Map<string, { count: number; resetAt: number }>();
 
-function checkRateLimit(identifier: string, isJudge: boolean, isTrialUser: boolean): { allowed: boolean; remaining: number } {
+function checkRateLimit(
+  identifier: string,
+  isJudge: boolean,
+  isTrialUser: boolean
+): { allowed: boolean; remaining: number } {
   if (isJudge) return { allowed: true, remaining: 999 };
 
-  const limit = isTrialUser ? 50 : 15; // 15 free queries for anonymous visitors, 50 for registered
+  const limit = isTrialUser ? 50 : 15; // 15 free queries for public guests, 50 for registered users
   const now = Date.now();
-  const windowMs = 24 * 60 * 60 * 1000; // 24 hours
+  const windowMs = 24 * 60 * 60 * 1000; // 24-hour sliding window
 
   const userUsage = usageTracker.get(identifier);
   if (!userUsage || now > userUsage.resetAt) {
@@ -28,14 +32,17 @@ function checkRateLimit(identifier: string, isJudge: boolean, isTrialUser: boole
 
 const SYSTEM_INSTRUCTION = `
 You are "MAMA", the flagship culinary AI assistant and product expert for MAMAAI (mamaai.in).
-You are currently interacting with international visitors, judges, and family meal planners.
+You are interacting with international visitors, hackathon judges, and family meal planners.
 
-CORE OBJECTIVES:
-1. APPLICATION SUPPORT: Explain MAMAAI clearly—single-dish family meal planning, custom dietary modifications, Indian & global cuisine support, doctor-restriction compliance, automated grocery generation, and subscription tiers (Starter, Premium, Family Plus).
-2. KITCHEN ASSISTANT: Suggest recipes, pantry-based dinners, taste-dislike swaps, and multi-member meal strategies.
-3. ALLERGY SAFETY: Reassure users that Hard Constraints (genuine allergies & doctor restrictions) are strictly separated from Soft Constraints (taste dislikes).
+CORE ROLES & OBJECTIVES:
+1. APPLICATION SUPPORT AGENT:
+   - Explain MAMAAI clearly: Single-dish family meal planning with individual customized modifications, automated grocery list generation, doctor-restriction compliance, and subscription tiers (Starter, Premium, Family Plus).
+   - Guide users through onboarding, setting up family member profiles, trial usage, and Judge Demo access.
+2. PERSONAL AI KITCHEN COMPANION:
+   - Suggest recipes, pantry-based dinners, taste-dislike swaps, and multi-member meal strategies.
+   - Respect dietary tiers: Strictly exclude medical allergies & doctor restrictions (Hard Safety Constraints) from affected members, while optimizing soft taste dislikes with ingredient substitutions.
 
-TONE: Welcoming, intelligent, culturally aware, concise, and helpful. Keep responses scannable and direct.
+TONE: Warm, encouraging, culturally aware (Indian & international cuisines), concise, and direct. Use markdown formatting for readability.
 `;
 
 export async function POST(request: Request) {
@@ -50,7 +57,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Identify client for fair-use rate limiting
+    // Determine client identity and access tier
     const clientIp = request.headers.get("x-forwarded-for") || userId || "anonymous-visitor";
     const isJudge = Boolean(isJudgeMode || process.env.MAMA_AI_JUDGE_ACCESS_ENABLED === "true");
     const isTrialUser = Boolean(userId && userId !== "demo-user");
@@ -61,7 +68,7 @@ export async function POST(request: Request) {
         {
           error: {
             code: "RATE_LIMIT_EXCEEDED",
-            message: "You have reached the free public testing limit for Ask MAMA. Register or use Judge Demo mode for extended access.",
+            message: "You have reached the free public testing limit for Ask MAMA. Please create an account or use Judge Demo mode for continued access.",
           },
         },
         { status: 429 }
@@ -70,7 +77,6 @@ export async function POST(request: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      // High-quality contextual fallback if API key is not yet set in Vercel environment
       return NextResponse.json({
         success: true,
         role: "model",
@@ -80,7 +86,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // Attach contextual household information if available
+    // Attach household context if familyId or userId is provided
     const userFamily = familyId
       ? store.families.find((f) => f.familyId === familyId)
       : store.families.find((f) => f.userId === userId) || store.families[0];
@@ -135,20 +141,19 @@ export async function POST(request: Request) {
   }
 }
 
-// Built-in intelligent answers for core product queries during initial deployment
 function getIntelligentFallback(query: string): string {
   const q = query.toLowerCase();
   if (q.includes("how does mamaai work") || q.includes("how it works")) {
-    return "MAMAAI is a family-first meal operating system. Instead of cooking separate meals for different diet requirements, MAMAAI plans **One Common Family Dish** with personalized modifications for each member (e.g., separating spice, removing dairy, or adjusting portions) along with automated grocery lists.";
+    return "MAMAAI is a family-first meal operating system. Instead of cooking separate meals for every family member, MAMAAI plans **One Common Family Dish** with personalized modifications (adjusting spice, removing allergens, altering portions) alongside automated grocery lists.";
   }
   if (q.includes("allerg") || q.includes("restriction")) {
-    return "MAMAAI enforces a strict two-tier safety model: **Hard Constraints** (Medical Allergies and Doctor-Advised Restrictions) are strictly excluded from ingredients. **Soft Constraints** (Taste Dislikes) are optimized using smart ingredient swaps without adding extra kitchen workload.";
+    return "MAMAAI enforces a strict two-tier safety model: **Hard Constraints** (Medical Allergies & Doctor Restrictions) are strictly excluded from ingredients. **Soft Constraints** (Taste Dislikes) are optimized using smart ingredient swaps without creating extra kitchen workload.";
   }
   if (q.includes("subscription") || q.includes("plan") || q.includes("pricing")) {
-    return "MAMAAI offers three simple plans:\n- **Starter (₹399/mo | $4.99/mo):** Up to 4 family members, daily meal plans, and grocery summaries.\n- **Premium (₹599/mo | $7.99/mo):** Up to 6 members, weekly planning, doctor compliance, and recipe video guides.\n- **Family Plus (₹999/mo | $12.99/mo):** Up to 10 members, full household optimization, and priority AI support.";
+    return "MAMAAI offers three straightforward tiers:\n- **Starter (₹399/mo | $4.99/mo):** Up to 4 family members, daily meal plans, and grocery summaries.\n- **Premium (₹599/mo | $7.99/mo):** Up to 6 members, weekly planning, doctor compliance, and video guides.\n- **Family Plus (₹999/mo | $12.99/mo):** Up to 10 members, full household optimization, and priority AI support.";
   }
   if (q.includes("plan meals") || q.includes("cook")) {
-    return "To start planning meals, head over to the **Meal Planner** tab or **Family Profile** page (`/profile/family`). Add your household members, configure their dietary preferences, and generate a customized daily or weekly meal plan instantly!";
+    return "To start planning meals, head over to the **Meal Planner** tab or **Family Profile** page (`/profile/family`). Add your household members and their dietary preferences to generate a customized daily or weekly plan instantly!";
   }
-  return "Namaste! I am MAMA, your culinary AI assistant. You can ask me to plan family dinners, suggest recipes with your pantry items, handle allergies, or explain how MAMAAI works.";
+  return "Namaste! I am MAMA, your culinary AI assistant. You can ask me to plan family dinners, suggest recipes from your pantry, handle allergies, or explain how MAMAAI works.";
 }
