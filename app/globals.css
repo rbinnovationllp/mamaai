@@ -1,3 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Your other global styles below... */
+
 :root {
   --ink: #28231f;
   --muted: #6e6258;

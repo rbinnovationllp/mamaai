@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 
+// Defining types for implicit 'any' errors
 interface ChatMessage {
   id: string;
   sender: 'user' | 'mama';
@@ -9,6 +10,7 @@ interface ChatMessage {
   timestamp: string;
 }
 
+// Definition matching how it is called in FamilyFlow.tsx
 export interface AskMamaWidgetProps {
   onStartFamily?: () => void;
   onTryDemo?: () => Promise<void> | void;
@@ -19,7 +21,7 @@ const SUGGESTED_QUESTIONS = [
   'Plan meals for my family',
   'How are allergies handled?',
   'Show subscription plans',
-  'What should I cook tonight with pantry staples?',
+  'What can I cook tonight with pantry staples?',
 ];
 
 export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps = {}) {
@@ -47,11 +49,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
     const query = (textToSend || inputMessage).trim();
     if (!query || isLoading) return;
 
-    // Handle interactive button triggers if the user clicks specific quick actions
-    if (query === 'Plan meals for my family' && onStartFamily) {
-      onStartFamily();
-    }
-
+    // Type the 'prev' parameter for state setter
     const userMsg: ChatMessage = {
       id: `u_${Date.now()}`,
       sender: 'user',
@@ -59,14 +57,15 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev: ChatMessage[]) => [...prev, userMsg]);
     if (!textToSend) setInputMessage('');
     setIsLoading(true);
 
     try {
+      // Typing parameter 'm' for messages filter/map
       const history = messages
-        .filter((m) => m.id !== 'welcome')
-        .map((m) => ({
+        .filter((m: ChatMessage) => m.id !== 'welcome')
+        .map((m: ChatMessage) => ({
           role: (m.sender === 'user' ? 'user' : 'model') as 'user' | 'model',
           parts: m.text,
         }));
@@ -94,7 +93,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
-      setMessages((prev) => [...prev, mamaMsg]);
+      setMessages((prev: ChatMessage[]) => [...prev, mamaMsg]);
     } catch (err) {
       const errorMsg: ChatMessage = {
         id: `err_${Date.now()}`,
@@ -102,7 +101,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
         text: `⚠️ ${err instanceof Error ? err.message : 'Something went wrong. Please check your connection and try again.'}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
-      setMessages((prev) => [...prev, errorMsg]);
+      setMessages((prev: ChatMessage[]) => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }
@@ -139,7 +138,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
 
       {/* Message Log */}
       <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 max-h-[50vh]">
-        {messages.map((msg) => (
+        {messages.map((msg: ChatMessage) => (
           <div
             key={msg.id}
             className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
@@ -182,7 +181,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
 
       {/* Input Form */}
       <form
-        onSubmit={(e) => {
+        onSubmit={(e: React.FormEvent) => {
           e.preventDefault();
           handleSendMessage();
         }}
@@ -191,7 +190,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
         <input
           type="text"
           value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputMessage(e.target.value)}
           placeholder="Ask about app features, dinner ideas, recipes, or dietary swaps..."
           disabled={isLoading}
           className="flex-1 px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition disabled:bg-gray-50"
@@ -208,4 +207,5 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
   );
 }
 
+// Default export included for backward compatibility
 export default AskMamaWidget;
