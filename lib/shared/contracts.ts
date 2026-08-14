@@ -23,13 +23,23 @@ export interface MealTimeContext {
   localHour?: number;
 }
 
-export type SubscriptionPlan = "family_starter" | "family_premium" | "family_plus";
+export type SubscriptionPlan =
+  | "starter"
+  | "premium"
+  | "family_plus"
+  | "family_starter"
+  | "family_premium";
 
 export type EntitlementSource = "demo_judge_access" | "local_demo" | "razorpay" | "revenuecat" | "manual_admin";
 
 export type PaymentChannel = "demo" | "razorpay" | "web_payment" | "google_play" | "apple_app_store" | "manual_admin";
 
-export type SubscriptionStatus = "free_demo" | "trialing" | "active" | "past_due" | "cancelled" | "expired";
+export type SubscriptionStatus =
+  | "active"
+  | "trialing"
+  | "past_due"
+  | "cancelled"
+  | "expired";
 
 export type PaymentStatus = "not_required" | "pending" | "paid" | "failed" | "refunded" | "unknown";
 
@@ -77,22 +87,20 @@ export interface SubscriptionEntitlement {
 }
 
 export interface SubscriptionRecord {
-  subscriptionRecordId: ID;
-  userId: ID;
+  subscriptionRecordId: string;
+  userId: string;
   plan: SubscriptionPlan;
   status: SubscriptionStatus;
-  paymentChannel: PaymentChannel;
+  paymentChannel: "razorpay" | "revenuecat" | "manual";
   paymentStatus: PaymentStatus;
-  source: EntitlementSource;
+  source: string;
   memberLimit: number;
-  startsAt?: string;
+  startsAt: string;
   renewsAt?: string;
   expiresAt?: string;
   cancelledAt?: string;
-  razorpayCustomerId?: string;
   razorpaySubscriptionId?: string;
   razorpayPlanId?: string;
-  revenueCatCustomerId?: string;
   providerStatus?: string;
   lastProviderEvent?: string;
   lastProviderEventAt?: string;
@@ -129,7 +137,7 @@ export type MealReplacementReason =
 
 export interface Money {
   amount: number;
-  currency: "INR";
+  currency: "INR" | "USD";
 }
 
 export interface User {
@@ -150,7 +158,7 @@ export interface User {
 export interface BudgetProfile {
   type: "per_meal" | "daily" | "weekly" | "monthly" | "none";
   amount?: number;
-  currency: "INR";
+  currency: "INR" | "USD";
   priority?: "strict" | "flexible";
   preferLowCostMeals?: boolean;
 }

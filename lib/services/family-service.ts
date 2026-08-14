@@ -1,12 +1,16 @@
 import { createId, nowIso, store } from "@/lib/repositories/in-memory-store";
-import type { CreateFamilyRequest, Family, FamilyMember } from "@/lib/shared/contracts";
+import type { Family, FamilyMember } from "@/lib/shared/contracts";
+import type { CreateFamilyRequest } from "@/lib/shared/schemas";
 import { SubscriptionService } from "./subscription-service";
 
 export class FamilyService {
   private readonly subscriptionService = new SubscriptionService();
 
   createFamily(request: CreateFamilyRequest): { family: Family; members: FamilyMember[] } {
-    this.subscriptionService.assertMemberLimit(request.family.subscriptionPlan, request.members.length);
+    this.subscriptionService.assertMemberLimit(
+      request.family.subscriptionPlan,
+      request.members.length
+    );
 
     const timestamp = nowIso();
     const family: Family = {
@@ -14,13 +18,13 @@ export class FamilyService {
       familyId: createId("family"),
       userId: request.userId,
       createdAt: timestamp,
-      updatedAt: timestamp
+      updatedAt: timestamp,
     };
 
     const members: FamilyMember[] = request.members.map((member) => ({
       ...member,
       familyId: family.familyId,
-      memberId: createId("member")
+      memberId: createId("member"),
     }));
 
     store.families.push(family);
@@ -37,7 +41,7 @@ export class FamilyService {
 
     return {
       family,
-      members: store.members.filter((member) => member.familyId === familyId)
+      members: store.members.filter((member) => member.familyId === familyId),
     };
   }
 }

@@ -1,40 +1,90 @@
 import { z } from "zod";
 
+// ==========================================
+// 1. BASIC & SHARED SCHEMAS
+// ==========================================
+
 export const moneySchema = z.object({
   amount: z.number().nonnegative(),
-  currency: z.literal("INR")
+  currency: z.enum(["INR", "USD"]).default("INR"),
 });
 
 export const budgetProfileSchema = z.object({
   type: z.enum(["per_meal", "daily", "weekly", "monthly", "none"]),
   amount: z.number().positive().optional(),
-  currency: z.literal("INR"),
+  currency: z.enum(["INR", "USD"]).default("INR"),
   priority: z.enum(["strict", "flexible"]).optional(),
-  preferLowCostMeals: z.boolean().optional()
+  preferLowCostMeals: z.boolean().optional(),
 });
 
 export const kitchenProfileSchema = z.object({
   equipment: z.array(z.string().min(1)),
-  cookingTimePreference: z.enum(["under_30", "30_to_60", "over_60"])
+  cookingTimePreference: z.enum(["under_30", "30_to_60", "over_60"]),
 });
+
+export const mealTimeSchema = z.enum([
+  "breakfast",
+  "lunch",
+  "dinner",
+  "snack",
+  "evening_snack",
+  "high_tea",
+]);
+
+// Standardized Subscription Tier Schema
+export const planTierSchema = z.enum(["starter", "premium", "family_plus"]);
+
+// Legacy/Compatibility Subscription Enum
+export const legacyPlanTierSchema = z.enum([
+  "starter",
+  "premium",
+  "family_plus",
+  "family_starter",
+  "family_premium",
+]);
+
+// Union for backward compatibility
+export const anyPlanTierSchema = z.union([planTierSchema, legacyPlanTierSchema]);
+
+// Helper function to normalize plan names to standard keys
+export function normalizePlanTier(plan: string): "starter" | "premium" | "family_plus" {
+  if (plan === "family_starter") return "starter";
+  if (plan === "family_premium") return "premium";
+  if (plan === "starter" || plan === "premium" || plan === "family_plus") return plan;
+  return "starter";
+}
+
+// ==========================================
+// 2. FAMILY & MEMBER PROFILES
+// ==========================================
 
 export const createFamilyInputSchema = z.object({
   name: z.string().min(2),
   country: z.string().min(2),
   state: z.string().min(2),
   city: z.string().min(2),
-  dietPreference: z.enum(["vegetarian", "non_vegetarian", "semi_vegetarian", "eggetarian", "mixed"]),
+  dietPreference: z.enum([
+    "vegetarian",
+    "non_vegetarian",
+    "semi_vegetarian",
+    "eggetarian",
+    "mixed",
+  ]),
   cuisinePreferences: z.array(z.string().min(1)),
-  cuisinePreferenceWeights: z.array(z.object({
-    cuisine: z.string().min(1),
-    frequency: z.enum(["mostly", "often", "sometimes", "rarely"]),
-    percentage: z.number().min(0).max(100).optional()
-  })).optional(),
+  cuisinePreferenceWeights: z
+    .array(
+      z.object({
+        cuisine: z.string().min(1),
+        frequency: z.enum(["mostly", "often", "sometimes", "rarely"]),
+        percentage: z.number().min(0).max(100).optional(),
+      })
+    )
+    .optional(),
   indianRegionalPreferences: z.array(z.string()).optional(),
   localIngredientAvailabilityNotes: z.array(z.string()).optional(),
   budget: budgetProfileSchema,
   kitchenProfile: kitchenProfileSchema,
-  subscriptionPlan: z.enum(["family_starter", "family_premium", "family_plus"])
+  subscriptionPlan: anyPlanTierSchema,
 });
 
 export const createFamilyMemberInputSchema = z.object({
@@ -44,9 +94,23 @@ export const createFamilyMemberInputSchema = z.object({
   gender: z.enum(["female", "male", "other", "prefer_not_to_say"]),
   heightCm: z.number().positive().optional(),
   weightKg: z.number().positive().optional(),
-  activityLevel: z.enum(["sedentary", "light", "moderate", "heavy", "athlete"]),
+  activityLevel: z.enum([
+    "sedentary",
+    "light",
+    "moderate",
+    "heavy",
+    "athlete",
+  ]),
   goals: z.array(z.string()),
-  dietType: z.enum(["vegetarian", "non_vegetarian", "eggitarian", "vegan", "jain", "satvik", "other"]),
+  dietType: z.enum([
+    "vegetarian",
+    "non_vegetarian",
+    "eggitarian",
+    "vegan",
+    "jain",
+    "satvik",
+    "other",
+  ]),
   likes: z.array(z.string()),
   dislikes: z.array(z.string()),
   allergies: z.array(z.string()),
@@ -59,35 +123,55 @@ export const createFamilyMemberInputSchema = z.object({
   healthConditions: z.array(z.string()),
   doctorRestrictions: z.array(z.string()),
   specialStatuses: z.array(z.string()),
-  fastingPreference: z.object({
-    observesFasting: z.enum(["no", "yes", "occasionally"]),
-    regularDays: z.array(z.string()),
-    fastType: z.enum(["full_fast", "restricted_food_fast", "time_restricted", "custom"]).optional(),
-    reasonOrTradition: z.string().optional(),
-    allowedFoods: z.array(z.string()),
-    avoidedFoods: z.array(z.string()),
-    fastingMealCount: z.number().int().positive().optional(),
-    fruitsAllowed: z.boolean(),
-    dairyAllowed: z.boolean(),
-    grainsRestricted: z.boolean(),
-    customRules: z.array(z.string())
-  }).optional()
+  fastingPreference: z
+    .object({
+      observesFasting: z.enum(["no", "yes", "occasionally"]),
+      regularDays: z.array(z.string()),
+      fastType: z
+        .enum([
+          "full_fast",
+          "restricted_food_fast",
+          "time_restricted",
+          "custom",
+        ])
+        .optional(),
+      reasonOrTradition: z.string().optional(),
+      allowedFoods: z.array(z.string()),
+      avoidedFoods: z.array(z.string()),
+      fastingMealCount: z.number().int().positive().optional(),
+      fruitsAllowed: z.boolean(),
+      dairyAllowed: z.boolean(),
+      grainsRestricted: z.boolean(),
+      customRules: z.array(z.string()),
+    })
+    .optional(),
 });
 
 export const createFamilyRequestSchema = z.object({
   userId: z.string().min(1),
   family: createFamilyInputSchema,
-  members: z.array(createFamilyMemberInputSchema).min(1)
+  members: z.array(createFamilyMemberInputSchema).min(1),
 });
+
+// ==========================================
+// 3. MEALS, RECIPES & INGREDIENTS
+// ==========================================
 
 export const ingredientSchema = z.object({
   name: z.string().min(1),
   quantity: z.string().min(1),
-  category: z.enum(["vegetables", "fruits", "grains", "pulses", "dairy", "protein", "spices", "other"]),
-  estimatedCost: moneySchema
+  category: z.enum([
+    "vegetables",
+    "fruits",
+    "grains",
+    "pulses",
+    "dairy",
+    "protein",
+    "spices",
+    "other",
+  ]),
+  estimatedCost: moneySchema,
 });
-
-export const mealTimeSchema = z.enum(["breakfast", "lunch", "dinner", "snack", "evening_snack", "high_tea"]);
 
 export const nutritionEstimateSchema = z.object({
   caloriesKcal: z.number().nonnegative(),
@@ -97,7 +181,7 @@ export const nutritionEstimateSchema = z.object({
   fiberGrams: z.number().nonnegative(),
   basis: z.string().min(1),
   dataSource: z.string().min(1),
-  confidence: z.enum(["low", "medium", "high"])
+  confidence: z.enum(["low", "medium", "high"]),
 });
 
 export const recipeDetailsSchema = z.object({
@@ -112,30 +196,46 @@ export const recipeDetailsSchema = z.object({
   estimatedCost: moneySchema,
   familyAdjustments: z.array(z.string()),
   alternativeIngredients: z.array(z.string()),
-  videoRecommendation: z.object({
-    label: z.string().min(1),
-    url: z.string().optional(),
-    note: z.string().min(1)
-  }).optional()
+  videoRecommendation: z
+    .object({
+      label: z.string().min(1),
+      url: z.string().optional(),
+      note: z.string().min(1),
+    })
+    .optional(),
 });
 
 export const preferenceResolutionSchema = z.object({
   hasSoftConflict: z.boolean(),
   prompt: z.string().min(1),
-  affectedMembers: z.array(z.object({
-    memberId: z.string().min(1),
-    memberName: z.string().min(1),
-    conflicts: z.array(z.string().min(1)),
-    suggestedAlternative: z.string().min(1)
-  })),
-  recommendedOptionId: z.enum(["separate_alternative", "one_common_meal", "two_compatible_options"]),
-  options: z.array(z.object({
-    optionId: z.enum(["separate_alternative", "one_common_meal", "two_compatible_options"]),
-    label: z.string().min(1),
-    description: z.string().min(1),
-    cookingImpact: z.string().min(1)
-  })).min(1),
-  minimumCookingStrategy: z.string().min(1)
+  affectedMembers: z.array(
+    z.object({
+      memberId: z.string().min(1),
+      memberName: z.string().min(1),
+      conflicts: z.array(z.string().min(1)),
+      suggestedAlternative: z.string().min(1),
+    })
+  ),
+  recommendedOptionId: z.enum([
+    "separate_alternative",
+    "one_common_meal",
+    "two_compatible_options",
+  ]),
+  options: z
+    .array(
+      z.object({
+        optionId: z.enum([
+          "separate_alternative",
+          "one_common_meal",
+          "two_compatible_options",
+        ]),
+        label: z.string().min(1),
+        description: z.string().min(1),
+        cookingImpact: z.string().min(1),
+      })
+    )
+    .min(1),
+  minimumCookingStrategy: z.string().min(1),
 });
 
 export const recipeVideoSearchRequestSchema = z.object({
@@ -144,12 +244,12 @@ export const recipeVideoSearchRequestSchema = z.object({
   region: z.string().optional(),
   preferredLanguage: z.string().optional(),
   cuisine: z.array(z.string()).optional(),
-  dietaryPreference: z.enum(["vegetarian", "non_vegetarian", "semi_vegetarian", "eggetarian", "mixed"]).optional(),
+  dietaryPreference: z
+    .enum(["vegetarian", "non_vegetarian", "semi_vegetarian", "eggetarian", "mixed"])
+    .optional(),
   healthyPreparation: z.boolean().optional(),
-  familyRequirements: z.array(z.string()).optional()
+  familyRequirements: z.array(z.string()).optional(),
 });
-
-export const featureAvailabilityStatusSchema = z.enum(["fully_functional", "demo_test_only", "temporarily_disabled", "planned"]);
 
 export const familyMealPlanSchema = z.object({
   mealPlanId: z.string().min(1),
@@ -160,7 +260,7 @@ export const familyMealPlanSchema = z.object({
   retentionPolicy: z.object({
     detailedHistoryDays: z.number().int().positive(),
     userMessage: z.string().min(1),
-    retainedLongTermSignals: z.array(z.string())
+    retainedLongTermSignals: z.array(z.string()),
   }),
   commonMeal: z.object({
     mealId: z.string().min(1),
@@ -173,95 +273,116 @@ export const familyMealPlanSchema = z.object({
     regionFit: z.string().min(1),
     nutritionIntent: z.string().min(1),
     nutritionEstimate: nutritionEstimateSchema,
-    recipe: recipeDetailsSchema
+    recipe: recipeDetailsSchema,
   }),
-  memberCustomizations: z.array(z.object({
-    memberId: z.string().min(1),
-    memberName: z.string().min(1),
-    modification: z.string().min(1),
-    portionGuidance: z.string().min(1),
-    safetyNotes: z.array(z.string())
-  })).min(1),
+  memberCustomizations: z
+    .array(
+      z.object({
+        memberId: z.string().min(1),
+        memberName: z.string().min(1),
+        modification: z.string().min(1),
+        portionGuidance: z.string().min(1),
+        safetyNotes: z.array(z.string()),
+      })
+    )
+    .min(1),
   preferenceResolution: preferenceResolutionSchema.optional(),
-  fruits: z.array(z.object({
-    memberId: z.string().min(1),
-    memberName: z.string().min(1),
-    fruit: z.string().min(1),
-    portion: z.string().min(1),
-    timing: z.string().min(1),
-    alternatives: z.array(z.string()),
-    caution: z.string().optional()
-  })).min(1),
-  hydration: z.array(z.object({
-    memberId: z.string().min(1),
-    memberName: z.string().min(1),
-    guidance: z.string().min(1),
-    suitableBeverages: z.array(z.string()),
-    caution: z.string().optional()
-  })).min(1),
+  fruits: z
+    .array(
+      z.object({
+        memberId: z.string().min(1),
+        memberName: z.string().min(1),
+        fruit: z.string().min(1),
+        portion: z.string().min(1),
+        timing: z.string().min(1),
+        alternatives: z.array(z.string()),
+        caution: z.string().optional(),
+      })
+    )
+    .min(1),
+  hydration: z
+    .array(
+      z.object({
+        memberId: z.string().min(1),
+        memberName: z.string().min(1),
+        guidance: z.string().min(1),
+        suitableBeverages: z.array(z.string()),
+        caution: z.string().optional(),
+      })
+    )
+    .min(1),
   estimatedCost: z.object({
     mealCost: moneySchema,
-    dailyCost: moneySchema
+    dailyCost: moneySchema,
   }),
-  groceryItems: z.array(z.object({
-    itemId: z.string().min(1),
-    name: z.string().min(1),
-    category: z.enum(["vegetables", "fruits", "grains", "pulses", "dairy", "protein", "spices", "other"]),
-    quantity: z.string().min(1),
-    estimatedCost: moneySchema,
-    pantryQuantity: z.string().optional(),
-    quantityToPurchase: z.string().min(1)
-  })).min(1),
-  mealAttendance: z.array(z.object({
-    mealTime: mealTimeSchema,
-    participatingMemberIds: z.array(z.string()),
-    absentMemberIds: z.array(z.string()),
-    fastingMemberIds: z.array(z.string()),
-    guestCount: z.number().int().nonnegative(),
-    enabled: z.boolean()
-  })),
-  mealIngredientRequirements: z.array(z.object({
-    itemId: z.string().min(1),
-    mealTime: z.union([mealTimeSchema, z.literal("daily_total")]),
-    name: z.string().min(1),
-    category: z.enum(["vegetables", "fruits", "grains", "pulses", "dairy", "protein", "spices", "other"]),
-    baseQuantity: z.string().min(1),
-    adjustedQuantity: z.string().min(1),
-    quantityToPurchase: z.string().min(1),
-    portionUnits: z.number().nonnegative(),
-    estimatedCost: moneySchema,
-    notes: z.array(z.string())
-  })),
-  dailyGroceryRequirements: z.array(z.object({
-    itemId: z.string().min(1),
-    mealTime: z.literal("daily_total"),
-    name: z.string().min(1),
-    category: z.enum(["vegetables", "fruits", "grains", "pulses", "dairy", "protein", "spices", "other"]),
-    baseQuantity: z.string().min(1),
-    adjustedQuantity: z.string().min(1),
-    quantityToPurchase: z.string().min(1),
-    portionUnits: z.number().nonnegative(),
-    estimatedCost: moneySchema,
-    notes: z.array(z.string())
-  })),
-  fastingMealRequirements: z.array(z.object({
-    memberId: z.string().min(1),
-    memberName: z.string().min(1),
-    mealTime: mealTimeSchema,
-    suggestion: z.string().min(1),
-    allowedFoodsUsed: z.array(z.string()),
-    avoidedFoods: z.array(z.string()),
-    notes: z.array(z.string())
-  })),
+  groceryItems: z
+    .array(
+      z.object({
+        itemId: z.string().min(1),
+        name: z.string().min(1),
+        category: z.enum([
+          "vegetables",
+          "fruits",
+          "grains",
+          "pulses",
+          "dairy",
+          "protein",
+          "spices",
+          "other",
+        ]),
+        quantity: z.string().min(1),
+        estimatedCost: moneySchema,
+        pantryQuantity: z.string().optional(),
+        quantityToPurchase: z.string().min(1),
+      })
+    )
+    .min(1),
+  mealAttendance: z.array(
+    z.object({
+      mealTime: mealTimeSchema,
+      participatingMemberIds: z.array(z.string()),
+      absentMemberIds: z.array(z.string()),
+      fastingMemberIds: z.array(z.string()),
+      guestCount: z.number().int().nonnegative(),
+      enabled: z.boolean(),
+    })
+  ),
+  dailyGroceryRequirements: z.array(
+    z.object({
+      itemId: z.string().min(1),
+      mealTime: z.literal("daily_total"),
+      name: z.string().min(1),
+      category: z.enum([
+        "vegetables",
+        "fruits",
+        "grains",
+        "pulses",
+        "dairy",
+        "protein",
+        "spices",
+        "other",
+      ]),
+      baseQuantity: z.string().min(1),
+      adjustedQuantity: z.string().min(1),
+      quantityToPurchase: z.string().min(1),
+      portionUnits: z.number().nonnegative(),
+      estimatedCost: moneySchema,
+      notes: z.array(z.string()),
+    })
+  ),
   familySatisfactionScore: z.object({
     score: z.number().min(0).max(100),
-    explanation: z.string().min(1)
+    explanation: z.string().min(1),
   }),
   warnings: z.array(z.string()),
   disclaimer: z.string().min(1),
   createdAt: z.string().min(1),
-  updatedAt: z.string().min(1)
+  updatedAt: z.string().min(1),
 });
+
+// ==========================================
+// 4. REQUEST & API PAYLOAD SCHEMAS
+// ==========================================
 
 export const mealTimeContextSchema = z.object({
   timeZone: z.string().min(1),
@@ -269,7 +390,7 @@ export const mealTimeContextSchema = z.object({
   country: z.string().optional(),
   region: z.string().optional(),
   city: z.string().optional(),
-  localHour: z.number().int().min(0).max(23).optional()
+  localHour: z.number().int().min(0).max(23).optional(),
 });
 
 export const createMealPlanRequestSchema = z.object({
@@ -277,25 +398,12 @@ export const createMealPlanRequestSchema = z.object({
   planType: z.enum(["daily", "weekly", "monthly"]),
   mealTime: mealTimeSchema.optional(),
   mealTimeContext: mealTimeContextSchema.optional(),
-  userPlanningMode: z.enum(["new_user_next_meal", "returning_user_weekly_editable"]).optional(),
+  userPlanningMode: z
+    .enum(["new_user_next_meal", "returning_user_weekly_editable"])
+    .optional(),
   targetDate: z.string().optional(),
   availableIngredients: z.array(z.string()).optional(),
   previousMeals: z.array(z.string()).optional(),
-  mealAttendance: z.array(z.object({
-    mealTime: mealTimeSchema,
-    participatingMemberIds: z.array(z.string()),
-    absentMemberIds: z.array(z.string()),
-    fastingMemberIds: z.array(z.string()),
-    guestCount: z.number().int().nonnegative(),
-    enabled: z.boolean()
-  })).optional(),
-  highTeaPreference: z.object({
-    enabled: z.boolean(),
-    days: z.array(z.string()),
-    approximateTime: z.string(),
-    usualParticipantMemberIds: z.array(z.string()),
-    guestCount: z.number().int().nonnegative()
-  }).optional()
 });
 
 export const replaceMealRequestSchema = z.object({
@@ -306,36 +414,47 @@ export const replaceMealRequestSchema = z.object({
     "ingredient_unavailable",
     "too_difficult",
     "takes_too_long",
-    "health_concern"
+    "health_concern",
   ]),
   unavailableIngredients: z.array(z.string()).optional(),
-  dislikedFoods: z.array(z.string()).optional()
+  dislikedFoods: z.array(z.string()).optional(),
 });
 
 export const feedbackRequestSchema = z.object({
   mealPlanId: z.string().min(1),
   memberId: z.string().optional(),
   rating: z.enum(["loved", "good", "average", "dont_suggest_again"]),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+});
+
+// ==========================================
+// 5. SUBSCRIPTION & PAYMENT SCHEMAS
+// ==========================================
+
+export const subscriptionPlanRequestSchema = z.object({
+  planTier: planTierSchema,
+  billingMarket: z.enum(["IN", "INT"]).default("IN"),
+  judgeBypassKey: z.string().optional(),
 });
 
 export const createRazorpaySubscriptionSchema = z.object({
   userId: z.string().min(1).default("demo-user"),
-  plan: z.enum(["family_starter", "family_premium", "family_plus"]),
-  customerNotify: z.boolean().optional()
+  plan: anyPlanTierSchema,
+  customerNotify: z.boolean().optional(),
 });
 
 export const verifyRazorpayPaymentSchema = z.object({
   userId: z.string().min(1).default("demo-user"),
-  plan: z.enum(["family_starter", "family_premium", "family_plus"]),
+  plan: anyPlanTierSchema.optional(),
+  planTier: planTierSchema.optional(),
   razorpayPaymentId: z.string().min(1),
   razorpaySubscriptionId: z.string().min(1),
-  razorpaySignature: z.string().min(1)
+  razorpaySignature: z.string().min(1),
 });
 
 export const cancelRazorpaySubscriptionSchema = z.object({
   userId: z.string().min(1).default("demo-user"),
-  cancelAtCycleEnd: z.boolean().default(true)
+  cancelAtCycleEnd: z.boolean().default(true),
 });
 
 export const revenueCatWebhookSchema = z.object({
@@ -345,6 +464,25 @@ export const revenueCatWebhookSchema = z.object({
     original_app_user_id: z.string().optional(),
     product_id: z.string().optional(),
     entitlement_ids: z.array(z.string()).optional(),
-    expiration_at_ms: z.number().optional()
-  })
+    expiration_at_ms: z.number().optional(),
+  }),
 });
+
+// ==========================================
+// 6. EXPORTED INFERRED TYPES
+// ==========================================
+
+export type PlanTier = z.infer<typeof planTierSchema>;
+export type Money = z.infer<typeof moneySchema>;
+export type BudgetProfile = z.infer<typeof budgetProfileSchema>;
+export type KitchenProfile = z.infer<typeof kitchenProfileSchema>;
+export type CreateFamilyInput = z.infer<typeof createFamilyInputSchema>;
+export type CreateFamilyMemberInput = z.infer<typeof createFamilyMemberInputSchema>;
+export type CreateFamilyRequest = z.infer<typeof createFamilyRequestSchema>;
+export type FamilyMealPlan = z.infer<typeof familyMealPlanSchema>;
+export type CreateMealPlanRequest = z.infer<typeof createMealPlanRequestSchema>;
+export type SubscriptionPlanRequest = z.infer<typeof subscriptionPlanRequestSchema>;
+export type CreateRazorpaySubscription = z.infer<typeof createRazorpaySubscriptionSchema>;
+export type VerifyRazorpayPayment = z.infer<typeof verifyRazorpayPaymentSchema>;
+export type RecipeVideoSearchRequest = z.infer<typeof recipeVideoSearchRequestSchema>;
+export type RevenueCatWebhook = z.infer<typeof revenueCatWebhookSchema>;
