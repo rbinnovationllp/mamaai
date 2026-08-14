@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { MealPlanningService } from "@/lib/services/meal-planning-service";
 import { createMealPlanRequestSchema } from "@/lib/shared/schemas";
+import type { CreateMealPlanRequest } from "@/lib/shared/contracts";
 
 /**
  * Builds the compact, cost-optimized system prompt for Gemini 1.5 Flash.
  * Enforces strict constraint hierarchies and Option A vs. Option B meal strategies.
  */
-export function buildSystemPrompt(params: {
+function buildSystemPrompt(params: {
   familyAllergies: string[];
   doctorAdvisedRestrictions: string[];
   familyDislikes: string[];
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
     }
 
     const mealPlanningService = new MealPlanningService();
-    const result = await mealPlanningService.generate(parsed.data);
+    const result = await mealPlanningService.generate(parsed.data as CreateMealPlanRequest);
 
     return NextResponse.json(result);
   } catch (error) {

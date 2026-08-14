@@ -18,7 +18,7 @@ export const subscriptionLimits: Record<SubscriptionPlan, number> = {
 export const subscriptionPlans: SubscriptionPlanDefinition[] = [
   {
     plan: "starter",
-    displayName: "Standard Subscription",
+    displayName: "Family Standard",
     priceMonthlyInr: 399,
     priceMonthlyUsd: 4.99,
     memberLimit: 4,
@@ -36,7 +36,7 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
   },
   {
     plan: "premium",
-    displayName: "Premium Subscription",
+    displayName: "Family Premium",
     priceMonthlyInr: 599,
     priceMonthlyUsd: 7.99,
     memberLimit: 6,
@@ -54,7 +54,7 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
   },
   {
     plan: "family_plus",
-    displayName: "Plus Subscription",
+    displayName: "Family Plus",
     priceMonthlyInr: 999,
     priceMonthlyUsd: 12.99,
     memberLimit: 10,
@@ -116,6 +116,8 @@ export class SubscriptionService {
           "Advanced nutrient & allergy balancing",
           "Automated smart grocery list",
           "YouTube cooking tutorial recommendations",
+          "Extended four-paw family member meal planning",
+          "Separate pet-appropriate food guidance",
           "Priority nutrition expert support",
         ];
       case "premium":

@@ -13,19 +13,19 @@ export class FamilyService {
     );
 
     const timestamp = nowIso();
-    const family: Family = {
+    const family = {
       ...request.family,
       familyId: createId("family"),
       userId: request.userId,
       createdAt: timestamp,
       updatedAt: timestamp,
-    };
+    } as Family;
 
-    const members: FamilyMember[] = request.members.map((member) => ({
+    const members = request.members.map((member) => ({
       ...member,
       familyId: family.familyId,
       memberId: createId("member"),
-    }));
+    })) as FamilyMember[];
 
     store.families.push(family);
     store.members.push(...members);

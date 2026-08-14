@@ -190,10 +190,10 @@ export default function SubscriptionPage() {
           {/* 1. Standard Subscription (₹399 / $4.99) */}
           <div className="bg-white rounded-2xl border p-6 flex flex-col justify-between shadow-sm hover:shadow transition">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Standard Subscription</h2>
+              <h2 className="text-lg font-bold text-gray-900">Family Standard</h2>
               <div className="mt-3">
                 <span className="text-3xl font-extrabold text-gray-900">
-                  {billingMarket === 'IN' ? '₹399' : '$4.99'}
+                  {billingMarket === 'IN' ? 'Rs. 399' : '$4.99'}
                 </span>
                 <span className="text-xs text-gray-500">
                   /mo ({billingMarket === 'IN' ? 'India' : 'International'})
@@ -225,7 +225,7 @@ export default function SubscriptionPage() {
               disabled={loadingPlan === 'starter'}
               className="mt-6 w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition shadow"
             >
-              {loadingPlan === 'starter' ? 'Processing...' : 'Subscribe to Standard'}
+              {loadingPlan === 'starter' ? 'Processing...' : 'Subscribe to Family Standard'}
             </button>
           </div>
 
@@ -235,10 +235,10 @@ export default function SubscriptionPage() {
               MOST POPULAR
             </span>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Premium Subscription</h2>
+              <h2 className="text-lg font-bold text-gray-900">Family Premium</h2>
               <div className="mt-3">
                 <span className="text-3xl font-extrabold text-gray-900">
-                  {billingMarket === 'IN' ? '₹599' : '$7.99'}
+                  {billingMarket === 'IN' ? 'Rs. 599' : '$7.99'}
                 </span>
                 <span className="text-xs text-gray-500">
                   /mo ({billingMarket === 'IN' ? 'India' : 'International'})
@@ -270,33 +270,33 @@ export default function SubscriptionPage() {
               disabled={loadingPlan === 'premium'}
               className="mt-6 w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition shadow"
             >
-              {loadingPlan === 'premium' ? 'Processing...' : 'Subscribe to Premium'}
+              {loadingPlan === 'premium' ? 'Processing...' : 'Subscribe to Family Premium'}
             </button>
           </div>
 
           {/* 3. Plus Subscription (₹999 / $12.99) */}
           <div className="bg-white rounded-2xl border p-6 flex flex-col justify-between shadow-sm hover:shadow transition">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Plus Subscription</h2>
+              <h2 className="text-lg font-bold text-gray-900">Family Plus</h2>
               <div className="mt-3">
                 <span className="text-3xl font-extrabold text-gray-900">
-                  {billingMarket === 'IN' ? '₹999' : '$12.99'}
+                  {billingMarket === 'IN' ? 'Rs. 999' : '$12.99'}
                 </span>
                 <span className="text-xs text-gray-500">
                   /mo ({billingMarket === 'IN' ? 'India' : 'International'})
                 </span>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Extended family support including pets 🐾</p>
+              <p className="text-xs text-gray-500 mt-2">Rs. 999 Family Plus adds extended four-paw member meal planning.</p>
 
               <ul className="mt-5 space-y-2 text-xs text-gray-700">
                 <li className="flex items-center gap-1.5">
                   <span className="text-emerald-500 font-bold">✓</span> Everything in Premium Subscription
                 </li>
                 <li className="flex items-center gap-1.5">
-                  <span className="text-emerald-500 font-bold">✓</span> Dog and Cat extended family profiles
+                  <span className="text-emerald-500 font-bold">✓</span> Extended four-paw member profiles
                 </li>
                 <li className="flex items-center gap-1.5">
-                  <span className="text-emerald-500 font-bold">✓</span> Family Kitchen + Pet safety guard engine
+                  <span className="text-emerald-500 font-bold">✓</span> Separate pet-appropriate meal planning
                 </li>
                 <li className="flex items-center gap-1.5">
                   <span className="text-emerald-500 font-bold">✓</span> Pet food shopping & feeding reminders
@@ -312,7 +312,7 @@ export default function SubscriptionPage() {
               disabled={loadingPlan === 'family_plus'}
               className="mt-6 w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition shadow"
             >
-              {loadingPlan === 'family_plus' ? 'Processing...' : 'Upgrade to Plus Subscription'}
+              {loadingPlan === 'family_plus' ? 'Processing...' : 'Upgrade to Family Plus'}
             </button>
           </div>
         </div>
@@ -346,9 +346,9 @@ export default function SubscriptionPage() {
                   onChange={(e) => setJudgePlanSelection(e.target.value)}
                   className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
                 >
-                  <option value="starter">Standard Subscription (₹399 / $4.99)</option>
-                  <option value="premium">Premium Subscription (₹599 / $7.99)</option>
-                  <option value="family_plus">Plus Subscription (₹999 / $12.99)</option>
+                  <option value="starter">Family Standard (Rs. 399 / $4.99)</option>
+                  <option value="premium">Family Premium (Rs. 599 / $7.99)</option>
+                  <option value="family_plus">Family Plus (Rs. 999 / $12.99)</option>
                 </select>
               </div>
 

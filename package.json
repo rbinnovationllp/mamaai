@@ -4,9 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "build": "next build --webpack",
+    "start": "next start"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1108.0",

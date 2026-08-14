@@ -1,231 +1,182 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { AskMamaWidget } from '@/components/AskMamaWidget';
+import React, { useState } from "react";
+import Link from "next/link";
+import { AskMamaWidget } from "@/components/AskMamaWidget";
+
+const featureCards = [
+  ["Personalized meal plans", "One family meal with member-specific portions and adjustments.", "AI"],
+  ["Smart replacements", "Change one dish and update the grocery list without starting over.", "SR"],
+  ["Pantry intelligence", "Plan around what is available and what should be used soon.", "PI"],
+  ["Family+ four-paw care", "Separate pet-appropriate planning for extended family members.", "FP"],
+];
+
+const planCards = [
+  ["Family Standard", "Rs. 399 / US$4.99", "Up to 4 family members", "Daily meal planning and basic grocery support."],
+  ["Family Premium", "Rs. 599 / US$7.99", "Up to 6 family members", "More family profiles, recipe support, and richer planning."],
+  ["Family Plus", "Rs. 999 / US$12.99", "Up to 10 family members", "Adds extended four-paw member meal planning with separate pet-appropriate care."],
+];
 
 export default function HomePage() {
+  const [askOpen, setAskOpen] = useState(false);
+
   return (
-    <main className="min-h-screen bg-[#FDFBF7] text-[#1E293B] font-sans antialiased">
-      
-      {/* 1. HERO SECTION */}
-      <section className="pt-12 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          
-          {/* Left Column: Headlines & CTA */}
-          <div className="lg:col-span-7 space-y-6">
-            <span className="text-xs font-bold tracking-wider text-emerald-800 uppercase bg-emerald-100/70 px-3 py-1.5 rounded-md inline-block">
-              MEAL & ASHAAR MANAGEMENT ASSISTANT
-            </span>
+    <main className="min-h-screen bg-[#fff8ee] text-[#221b16]">
+      <header className="sticky top-0 z-40 border-b border-amber-100/80 bg-[#fff8ee]/90 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <Link href="/" className="text-2xl font-black tracking-tight">
+            <span className="text-orange-600">Mama</span><span className="text-emerald-800">AI</span>
+          </Link>
+          <nav className="hidden items-center gap-6 text-sm font-bold text-stone-600 md:flex">
+            <a href="#how">How it works</a>
+            <a href="#plans">Plans</a>
+            <Link href="/pantry">Pantry</Link>
+            <Link href="/subscription">Subscription</Link>
+          </nav>
+          <Link
+            href="/profile/family"
+            className="rounded-full bg-emerald-800 px-5 py-2.5 text-sm font-black text-white shadow-lg shadow-emerald-900/15 transition hover:bg-emerald-900"
+          >
+            Start planning
+          </Link>
+        </div>
+      </header>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 leading-[1.1] tracking-tight">
-              One Family. <br />
-              Different Needs. <br />
-              <span className="text-emerald-700">One Intelligent Meal Plan.</span>
-            </h1>
-
-            <p className="text-base sm:text-lg text-gray-600 max-w-xl leading-relaxed">
-              Tell MAMAAI about your family once. It helps plan what to cook, how much to cook, and how the same family meal can be adjusted for everyone.
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.16),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(22,101,52,0.14),transparent_34%)]" />
+        <div className="relative mx-auto grid min-h-[calc(100vh-72px)] max-w-7xl items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[0.88fr_1.12fr] lg:px-8">
+          <div className="z-10 max-w-2xl">
+            <p className="mb-4 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-emerald-900">
+              AI powered kitchen companion
             </p>
-
-            <div className="flex flex-wrap gap-4 pt-2">
+            <h1 className="text-4xl font-black leading-[1.02] tracking-tight text-stone-950 sm:text-6xl lg:text-7xl">
+              One Family. Different Needs.{" "}
+              <span className="text-emerald-800">One Intelligent Meal Plan.</span>
+            </h1>
+            <p className="mt-6 text-lg font-semibold leading-8 text-stone-700 sm:text-xl">
+              Planned with love for everyone you call family, with practical portions, restrictions,
+              recipes, groceries, and separate Family+ care for four-paw members.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
               <Link
                 href="/profile/family"
-                className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-7 py-3.5 rounded-xl shadow-sm transition hover:shadow-md"
+                className="rounded-full bg-orange-600 px-7 py-3.5 text-sm font-black text-white shadow-xl shadow-orange-900/20 transition hover:bg-orange-700"
               >
-                Plan My Family Meals
+                Plan my family meals
               </Link>
               <Link
                 href="/ask-mama"
-                className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-7 py-3.5 rounded-xl shadow-sm transition hover:shadow-md"
+                className="rounded-full border border-emerald-200 bg-white px-7 py-3.5 text-sm font-black text-emerald-900 shadow-sm transition hover:border-emerald-400"
               >
-                Try Demo / Judge Access
+                Try Judge Demo
               </Link>
             </div>
-
-            <div className="bg-emerald-50/60 border border-emerald-200/60 rounded-xl p-4 text-xs text-gray-600 max-w-xl">
-              You are experiencing MAMAAI. Custom family profile modifications, smart pantry substitutions, and allergen separations update dynamically.
-            </div>
-          </div>
-
-          {/* Right Column: Interactive Family Plate Preview Card */}
-          <div className="lg:col-span-5">
-            <div className="bg-amber-50/60 border border-amber-200/70 rounded-3xl p-6 shadow-sm">
-              {/* Member Badges */}
-              <div className="grid grid-cols-5 gap-2 text-center mb-6">
-                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-2">
-                  <div className="w-8 h-8 mx-auto rounded-full bg-emerald-800 text-white font-bold text-xs flex items-center justify-center">GM</div>
-                  <span className="text-[10px] font-bold text-gray-700 mt-1 block">Grandmother</span>
+            <div className="mt-7 grid gap-3 text-sm font-bold text-stone-700 sm:grid-cols-2">
+              {["Preferences and dislikes", "Allergies and restrictions", "Fasting and special days", "Pantry and grocery planning"].map((item) => (
+                <div key={item} className="rounded-2xl border border-amber-100 bg-white/80 px-4 py-3 shadow-sm">
+                  <span className="mr-2 text-emerald-700">✓</span>{item}
                 </div>
-                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-2">
-                  <div className="w-8 h-8 mx-auto rounded-full bg-emerald-700 text-white font-bold text-xs flex items-center justify-center">FA</div>
-                  <span className="text-[10px] font-bold text-gray-700 mt-1 block">Father</span>
-                </div>
-                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-2">
-                  <div className="w-8 h-8 mx-auto rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">MO</div>
-                  <span className="text-[10px] font-bold text-gray-700 mt-1 block">Mother</span>
-                </div>
-                <div className="bg-cyan-50 border border-cyan-100 rounded-xl p-2">
-                  <div className="w-8 h-8 mx-auto rounded-full bg-teal-600 text-white font-bold text-xs flex items-center justify-center">SO</div>
-                  <span className="text-[10px] font-bold text-gray-700 mt-1 block">Son</span>
-                </div>
-                <div className="bg-purple-50 border border-purple-100 rounded-xl p-2">
-                  <div className="w-8 h-8 mx-auto rounded-full bg-emerald-700 text-white font-bold text-xs flex items-center justify-center">CH</div>
-                  <span className="text-[10px] font-bold text-gray-700 mt-1 block">Child</span>
-                </div>
-              </div>
-
-              {/* Meal Summary Box */}
-              <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 block mb-1">
-                  TODAY'S FAMILY MEAL
-                </span>
-                <h3 className="text-xl font-extrabold text-gray-900 mb-4">
-                  Dal + Rice + Vegetables
-                </h3>
-                
-                <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                  <span className="bg-amber-100/70 text-amber-900 px-2.5 py-1 rounded-lg">Softer for Grandmother</span>
-                  <span className="bg-amber-100/70 text-amber-900 px-2.5 py-1 rounded-lg">Adjusted for Father</span>
-                  <span className="bg-amber-100/70 text-amber-900 px-2.5 py-1 rounded-lg">Extra protein for Son</span>
-                  <span className="bg-amber-100/70 text-amber-900 px-2.5 py-1 rounded-lg">Recipe opens in planner</span>
-                  <span className="bg-amber-100/70 text-amber-900 px-2.5 py-1 rounded-lg">Replace works after plan</span>
-                  <span className="bg-amber-100/70 text-amber-900 px-2.5 py-1 rounded-lg">Grocery list below</span>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
-        </div>
-      </section>
-
-      {/* 2. THE DAILY FOOD PROBLEM SECTION */}
-      <section className="py-14 bg-white/70 border-y border-amber-100/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">
-            THE DAILY FOOD PROBLEM
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 mb-8">
-            Every Family Eats Together. But Everyone's Needs Are Different.
-          </h2>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            <div className="bg-[#E6F4EA] p-5 rounded-2xl border border-emerald-200/50">
-              <div className="w-9 h-9 rounded-full bg-emerald-800 text-white font-bold text-xs flex items-center justify-center mb-3">GM</div>
-              <h4 className="font-bold text-gray-900 text-sm">Grandmother</h4>
-              <p className="text-xs text-gray-600 mt-1">Softer, easy-to-digest food</p>
+          <div className="relative">
+            <img
+              src="/images/mamaai-family-kitchen-hero.png"
+              alt="A warm multigenerational family around a kitchen meal with an AI kitchen companion and a separate four-paw family member nearby."
+              className="aspect-[16/10] w-full rounded-[2rem] border border-white/70 object-cover shadow-2xl shadow-stone-900/20"
+            />
+            <div className="absolute left-4 top-4 max-w-[15rem] rounded-3xl bg-white/92 p-4 shadow-xl backdrop-blur">
+              <p className="text-xs font-black uppercase tracking-wide text-orange-600">Today&apos;s question</p>
+              <p className="mt-1 text-xl font-black leading-tight text-stone-950">What should we cook today?</p>
             </div>
-            <div className="bg-[#FFF4E5] p-5 rounded-2xl border border-amber-200/50">
-              <div className="w-9 h-9 rounded-full bg-emerald-800 text-white font-bold text-xs flex items-center justify-center mb-3">FA</div>
-              <h4 className="font-bold text-gray-900 text-sm">Father</h4>
-              <p className="text-xs text-gray-600 mt-1">Diet-aware portions</p>
-            </div>
-            <div className="bg-[#FFFDE7] p-5 rounded-2xl border border-yellow-200/50">
-              <div className="w-9 h-9 rounded-full bg-emerald-800 text-white font-bold text-xs flex items-center justify-center mb-3">MO</div>
-              <h4 className="font-bold text-gray-900 text-sm">Mother</h4>
-              <p className="text-xs text-gray-600 mt-1">Balanced nutrition</p>
-            </div>
-            <div className="bg-[#E0F2FE] p-5 rounded-2xl border border-sky-200/50">
-              <div className="w-9 h-9 rounded-full bg-teal-700 text-white font-bold text-xs flex items-center justify-center mb-3">SO</div>
-              <h4 className="font-bold text-gray-900 text-sm">Son</h4>
-              <p className="text-xs text-gray-600 mt-1">Additional protein</p>
-            </div>
-            <div className="bg-[#F3E8FF] p-5 rounded-2xl border border-purple-200/50 col-span-2 sm:col-span-1">
-              <div className="w-9 h-9 rounded-full bg-emerald-800 text-white font-bold text-xs flex items-center justify-center mb-3">CH</div>
-              <h4 className="font-bold text-gray-900 text-sm">Child</h4>
-              <p className="text-xs text-gray-600 mt-1">Growth-supportive nutrition</p>
-            </div>
-          </div>
-
-          <div className="mt-6 bg-gradient-to-r from-amber-50 to-emerald-50 border border-amber-200/70 p-5 rounded-2xl text-center">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">These profiles come together into</span>
-            <p className="text-2xl font-black text-emerald-800 mt-1">One Common Family Meal</p>
-            <span className="text-xs text-gray-600">with personalized portions and adjustments</span>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. HOW MAMAAI WORKS */}
-      <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">
-          HOW MAMAAI WORKS
-        </span>
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 mb-10">
-          From family profile to practical cooking plan.
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs">
-            <div className="w-8 h-8 rounded-full bg-emerald-800 text-white font-bold text-xs flex items-center justify-center mb-4">1</div>
-            <h3 className="font-bold text-gray-900 text-base mb-2">Tell MAMAAI About Your Family</h3>
-            <p className="text-xs text-gray-600 leading-relaxed">Add members, preferences, allergies, fasting, region, cuisine, and kitchen context.</p>
-          </div>
-          <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs">
-            <div className="w-8 h-8 rounded-full bg-emerald-800 text-white font-bold text-xs flex items-center justify-center mb-4">2</div>
-            <h3 className="font-bold text-gray-900 text-base mb-2">MAMAAI Plans One Practical Meal</h3>
-            <p className="text-xs text-gray-600 leading-relaxed">It considers the family together instead of creating separate diet plans for everyone.</p>
-          </div>
-          <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs">
-            <div className="w-8 h-8 rounded-full bg-emerald-800 text-white font-bold text-xs flex items-center justify-center mb-4">3</div>
-            <h3 className="font-bold text-gray-900 text-base mb-2">Everyone Gets What They Need</h3>
-            <p className="text-xs text-gray-600 leading-relaxed">Portions, adjustments, fruit, hydration, recipes, ingredients, and groceries update together.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. ASK MAMA LIVE AI WIDGET SECTION */}
-      <section id="ask-mama" className="py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto w-full">
-        <div className="text-center mb-8">
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">
-            Live AI Assistant
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-3">
-            Ask MAMA Anything
-          </h2>
-          <p className="text-sm text-gray-600 max-w-xl mx-auto mt-2">
-            Ask questions about family meal planning, recipe swaps, dietary restrictions, or MAMAAI platform features.
-          </p>
-        </div>
-
-        {/* Embedded Live Ask MAMA Interactive Chatbot */}
-        <AskMamaWidget />
-      </section>
-
-      {/* 5. CORE FEATURES SECTION */}
-      <section className="py-16 bg-white/70 border-t border-amber-100/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">
-            CORE FEATURES
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 mb-10">
-            Built for real family kitchens.
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs">
-              <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-900 font-bold text-xs flex items-center justify-center mb-4">AI</div>
-              <h3 className="font-bold text-gray-900 text-sm mb-2">AI Family Meal Planning</h3>
-              <p className="text-xs text-gray-600 leading-relaxed">One practical meal planned around the whole family.</p>
-            </div>
-            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs">
-              <div className="w-9 h-9 rounded-xl bg-teal-100 text-teal-900 font-bold text-xs flex items-center justify-center mb-4">PT</div>
-              <h3 className="font-bold text-gray-900 text-sm mb-2">Personalized Portions</h3>
-              <p className="text-xs text-gray-600 leading-relaxed">Different portions and adjustments for individual needs.</p>
-            </div>
-            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs">
-              <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-900 font-bold text-xs flex items-center justify-center mb-4">SA</div>
-              <h3 className="font-bold text-gray-900 text-sm mb-2">Allergy & Dislike Aware</h3>
-              <p className="text-xs text-gray-600 leading-relaxed">Avoid unsafe ingredients and account for disliked foods.</p>
-            </div>
-            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs">
-              <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-900 font-bold text-xs flex items-center justify-center mb-4">RG</div>
-              <h3 className="font-bold text-gray-900 text-sm mb-2">Regional & Seasonal Foods</h3>
-              <p className="text-xs text-gray-600 leading-relaxed">Adapted to location, cuisine preference, season, and availability.</p>
+            <div className="absolute bottom-4 right-4 max-w-[17rem] rounded-3xl bg-emerald-900/92 p-4 text-white shadow-xl backdrop-blur">
+              <p className="text-xs font-black uppercase tracking-wide text-amber-200">Family Plus</p>
+              <p className="mt-1 text-lg font-black">Family Plus includes four-paw meal planning.</p>
+              <p className="mt-1 text-xs text-emerald-50">Separate pet-appropriate guidance, not shared human meals.</p>
             </div>
           </div>
         </div>
       </section>
 
+      <section id="how" className="border-y border-amber-100 bg-white/70 py-14">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-8 max-w-3xl">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800">Built for real kitchens</p>
+            <h2 className="mt-3 text-3xl font-black text-stone-950 sm:text-5xl">From family profile to cooking plan.</h2>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {featureCards.map(([title, body, icon]) => (
+              <article key={title} className="rounded-3xl border border-amber-100 bg-white p-6 shadow-sm">
+                <div className="mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-emerald-100 text-sm font-black text-emerald-900">
+                  {icon}
+                </div>
+                <h3 className="text-lg font-black text-stone-950">{title}</h3>
+                <p className="mt-2 text-sm font-medium leading-6 text-stone-600">{body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="plans" className="py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-700">Subscription clarity</p>
+              <h2 className="mt-3 text-3xl font-black text-stone-950 sm:text-5xl">Choose the household plan.</h2>
+            </div>
+            <Link href="/subscription" className="rounded-full bg-emerald-800 px-6 py-3 text-sm font-black text-white">
+              View checkout options
+            </Link>
+          </div>
+          <div className="grid gap-5 md:grid-cols-3">
+            {planCards.map(([name, price, limit, body], index) => (
+              <article
+                key={name}
+                className={`rounded-3xl border bg-white p-6 shadow-sm ${index === 2 ? "border-emerald-500 ring-4 ring-emerald-100" : "border-amber-100"}`}
+              >
+                {index === 2 ? (
+                  <p className="mb-3 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-900">
+                    Includes four-paw family
+                  </p>
+                ) : null}
+                <h3 className="text-xl font-black text-stone-950">{name}</h3>
+                <p className="mt-3 text-2xl font-black text-emerald-800">{price}</p>
+                <p className="mt-2 text-sm font-bold text-stone-700">{limit}</p>
+                <p className="mt-4 text-sm leading-6 text-stone-600">{body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-emerald-900 py-12 text-white">
+        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-5 px-4 sm:px-6 md:flex-row md:items-center lg:px-8">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-amber-200">Healthy families. Happy kitchens.</p>
+            <h2 className="mt-2 text-3xl font-black">Every day, one practical plan.</h2>
+          </div>
+          <Link href="/profile/family" className="rounded-full bg-white px-7 py-3.5 text-sm font-black text-emerald-900">
+            Create family profile
+          </Link>
+        </div>
+      </section>
+
+      <button
+        type="button"
+        onClick={() => setAskOpen((current) => !current)}
+        className="fixed bottom-5 right-5 z-50 rounded-full bg-emerald-800 px-5 py-3 text-sm font-black text-white shadow-2xl shadow-emerald-950/30 transition hover:bg-emerald-900"
+        aria-expanded={askOpen}
+      >
+        Ask MAMA
+      </button>
+
+      {askOpen ? (
+        <div className="fixed bottom-20 right-4 z-50 max-h-[calc(100vh-6rem)] w-[calc(100vw-2rem)] max-w-md overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-2xl">
+          <AskMamaWidget compact />
+        </div>
+      ) : null}
     </main>
   );
 }
