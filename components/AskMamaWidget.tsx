@@ -9,6 +9,11 @@ interface ChatMessage {
   timestamp: string;
 }
 
+export interface AskMamaWidgetProps {
+  onStartFamily?: () => void;
+  onTryDemo?: () => Promise<void> | void;
+}
+
 const SUGGESTED_QUESTIONS = [
   'How does MAMAAI work?',
   'Plan meals for my family',
@@ -17,7 +22,7 @@ const SUGGESTED_QUESTIONS = [
   'What should I cook tonight with pantry staples?',
 ];
 
-export function AskMamaWidget() {
+export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps = {}) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -41,6 +46,11 @@ export function AskMamaWidget() {
   const handleSendMessage = async (textToSend?: string) => {
     const query = (textToSend || inputMessage).trim();
     if (!query || isLoading) return;
+
+    // Handle interactive button triggers if the user clicks specific quick actions
+    if (query === 'Plan meals for my family' && onStartFamily) {
+      onStartFamily();
+    }
 
     const userMsg: ChatMessage = {
       id: `u_${Date.now()}`,
@@ -112,6 +122,14 @@ export function AskMamaWidget() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {onTryDemo && (
+            <button
+              onClick={() => onTryDemo()}
+              className="text-xs font-semibold px-2.5 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg transition"
+            >
+              Demo Mode
+            </button>
+          )}
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/80 backdrop-blur-sm text-white border border-emerald-400">
             <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
             Live Assistant
@@ -190,5 +208,4 @@ export function AskMamaWidget() {
   );
 }
 
-// Default export included for backward compatibility
 export default AskMamaWidget;
