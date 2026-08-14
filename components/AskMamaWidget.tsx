@@ -1,215 +1,192 @@
-"use client";
+'use client';
 
-import { FormEvent, useMemo, useState } from "react";
-import { trackAnalyticsEvent } from "@/lib/shared/client-analytics";
-import type { AskMamaActionType, AskMamaCategory } from "@/lib/ask-mama/knowledge-base";
+import React, { useState, useRef, useEffect } from 'react';
 
-interface AskMamaApiResponse {
-  category: AskMamaCategory;
-  answer: string;
-  action?: {
-    type: AskMamaActionType;
-    label: string;
-  };
-  suggestions: string[];
-  unresolved?: boolean;
-}
-
-interface AskMamaWidgetProps {
-  onStartFamily: () => void;
-  onTryDemo: () => void;
-}
-
-interface Message {
+interface ChatMessage {
   id: string;
-  role: "mama" | "user";
+  sender: 'user' | 'mama';
   text: string;
-  action?: AskMamaApiResponse["action"];
+  timestamp: string;
 }
 
-const welcomeText =
-  "Hi! I'm MAMA. I can help you understand MAMAAI, find features, and show you how to get the best meal plan for your family. What would you like to know?";
-
-const defaultQuestions = [
-  "How does MAMAAI work?",
-  "Plan meals for my family",
-  "How are allergies handled?",
-  "Show subscription plans"
+const SUGGESTED_QUESTIONS = [
+  'How does MAMAAI work?',
+  'Plan meals for my family',
+  'How are allergies handled?',
+  'Show subscription plans',
+  'What should I cook tonight with pantry staples?',
 ];
 
-function messageId() {
-  return `ask-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`;
-}
-
-export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [question, setQuestion] = useState("");
-  const [isThinking, setIsThinking] = useState(false);
-  const [suggestions, setSuggestions] = useState(defaultQuestions);
-  const [messages, setMessages] = useState<Message[]>([
+export default function AskMamaWidget() {
+  const [messages, setMessages] = useState<ChatMessage[]>([
     {
-      id: "welcome",
-      role: "mama",
-      text: welcomeText
-    }
+      id: 'welcome',
+      sender: 'mama',
+      text: "Namaste! I am MAMA, your kitchen companion and MAMAAI support assistant. How can I help you plan, cook, or balance your family's meals today?",
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    },
   ]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const hasMessages = useMemo(() => messages.length > 1, [messages.length]);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
-  function openChat() {
-    if (!isOpen) {
-      trackAnalyticsEvent("ask_mama_open", { category: "assistant" });
-    }
-    setIsOpen(true);
-  }
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isLoading]);
 
-  function closeChat() {
-    setIsOpen(false);
-  }
+  const handleSendMessage = async (textToSend?: string) => {
+    const query = (textToSend || inputMessage).trim();
+    if (!query || isLoading) return;
 
-  async function askMama(nextQuestion: string) {
-    const trimmed = nextQuestion.trim();
-    if (!trimmed || isThinking) return;
+    const userMsg: ChatMessage = {
+      id: `u_${Date.now()}`,
+      sender: 'user',
+      text: query,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
 
-    setQuestion("");
-    setIsThinking(true);
-    setMessages((current) => [...current, { id: messageId(), role: "user", text: trimmed }]);
+    setMessages((prev) => [...prev, userMsg]);
+    if (!textToSend) setInputMessage('');
+    setIsLoading(true);
 
     try {
-      const response = await fetch("/api/ask-mama", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: trimmed })
+      // Build conversation history for multi-turn context
+      const history = messages
+        .filter((m) => m.id !== 'welcome')
+        .map((m) => ({
+          role: (m.sender === 'user' ? 'user' : 'model') as 'user' | 'model',
+          parts: m.text,
+        }));
+
+      const res = await fetch('/api/ask-mama', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: query,
+          history,
+          isJudgeMode: true,
+        }),
       });
 
-      const data = (await response.json()) as AskMamaApiResponse & { error?: { message?: string } };
+      const data = await res.json();
 
-      if (!response.ok || data.error) {
-        throw new Error("Ask MAMA is unavailable.");
+      if (!res.ok || data.error) {
+        throw new Error(data.error?.message || 'Failed to get a response from MAMA.');
       }
 
-      setSuggestions(data.suggestions);
-      trackAnalyticsEvent("ask_mama_question", {
-        category: data.category,
-        label: trimmed.slice(0, 100)
-      });
+      const mamaMsg: ChatMessage = {
+        id: `m_${Date.now()}`,
+        sender: 'mama',
+        text: data.response,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
 
-      if (data.unresolved) {
-        trackAnalyticsEvent("ask_mama_unresolved", {
-          category: data.category,
-          label: trimmed.slice(0, 100)
-        });
-      }
-
-      setMessages((current) => [
-        ...current,
-        {
-          id: messageId(),
-          role: "mama",
-          text: data.answer,
-          action: data.action
-        }
-      ]);
-    } catch {
-      setMessages((current) => [
-        ...current,
-        {
-          id: messageId(),
-          role: "mama",
-          text: "Ask MAMA is temporarily unavailable in this testing version. You can still use the meal planner and Judge Demo."
-        }
-      ]);
+      setMessages((prev) => [...prev, mamaMsg]);
+    } catch (err) {
+      const errorMsg: ChatMessage = {
+        id: `err_${Date.now()}`,
+        sender: 'mama',
+        text: `⚠️ ${err instanceof Error ? err.message : 'Something went wrong. Please check your connection and try again.'}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
     } finally {
-      setIsThinking(false);
+      setIsLoading(false);
     }
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    void askMama(question);
-  }
-
-  function handleAction(action: AskMamaApiResponse["action"]) {
-    if (!action) return;
-
-    if (action.type === "try_demo") {
-      onTryDemo();
-      setIsOpen(false);
-      return;
-    }
-
-    if (action.type === "add_family") {
-      onStartFamily();
-      setIsOpen(false);
-      return;
-    }
-
-    return;
-  }
+  };
 
   return (
-    <div className="ask-mama">
-      {isOpen ? (
-        <section className="ask-mama-panel" aria-label="Ask MAMA chat">
-          <div className="ask-mama-header">
-            <div>
-              <p className="eyebrow">Ask MAMA</p>
-              <h2>Your MAMAAI guide</h2>
+    <div className="w-full flex flex-col bg-white rounded-3xl border border-gray-200/80 shadow-xl overflow-hidden min-h-[550px]">
+      {/* Header */}
+      <div className="p-4 sm:p-5 border-b border-gray-100 bg-emerald-600 text-white flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center font-bold text-xl shadow-inner">
+            👩‍🍳
+          </div>
+          <div>
+            <h2 className="text-base font-bold leading-tight">Ask MAMA</h2>
+            <p className="text-xs text-emerald-100">Live AI Support & Personal Kitchen Companion</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/80 backdrop-blur-sm text-white border border-emerald-400">
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+            Live Assistant
+          </span>
+        </div>
+      </div>
+
+      {/* Message Log */}
+      <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 max-h-[50vh]">
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+          >
+            <div
+              className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
+                msg.sender === 'user'
+                  ? 'bg-emerald-600 text-white rounded-tr-none'
+                  : 'bg-gray-100 text-gray-800 rounded-tl-none whitespace-pre-wrap'
+              }`}
+            >
+              {msg.text}
             </div>
-            <button className="icon-button" type="button" onClick={closeChat} aria-label="Close Ask MAMA">
-              x
-            </button>
+            <span className="text-[10px] text-gray-400 mt-1 px-1">{msg.timestamp}</span>
           </div>
+        ))}
 
-          <div className="ask-mama-messages">
-            {messages.map((message) => (
-              <div className={`ask-message ${message.role}`} key={message.id}>
-                <p>{message.text}</p>
-                {message.action?.type === "contact_support" ? (
-                  <a className="ask-action" href="mailto:support@mamaai.in">
-                    {message.action.label}
-                  </a>
-                ) : message.action && message.action.type !== "none" ? (
-                  <button className="ask-action" type="button" onClick={() => handleAction(message.action)}>
-                    {message.action.label}
-                  </button>
-                ) : null}
-              </div>
-            ))}
-            {isThinking ? (
-              <div className="ask-message mama">
-                <p>MAMA is checking the product guide...</p>
-              </div>
-            ) : null}
+        {isLoading && (
+          <div className="flex items-center gap-2 text-xs text-gray-500 italic bg-gray-50 px-3 py-2 rounded-xl w-fit border border-gray-100">
+            <span className="inline-block animate-spin text-emerald-600 font-bold">🌀</span>
+            MAMA is formulating your answer...
           </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
 
-          <div className="quick-questions" aria-label="Suggested Ask MAMA questions">
-            {!hasMessages ? <span>Try asking:</span> : null}
-            {suggestions.slice(0, 4).map((item) => (
-              <button type="button" key={item} onClick={() => askMama(item)}>
-                {item}
-              </button>
-            ))}
-          </div>
+      {/* Suggested Quick Prompts */}
+      <div className="px-4 py-2.5 bg-gray-50/80 border-t border-gray-100 flex gap-2 overflow-x-auto no-scrollbar">
+        {SUGGESTED_QUESTIONS.map((q, idx) => (
+          <button
+            key={idx}
+            onClick={() => handleSendMessage(q)}
+            disabled={isLoading}
+            className="text-xs whitespace-nowrap px-3.5 py-1.5 rounded-full border border-gray-200 bg-white hover:border-emerald-500 hover:text-emerald-700 text-gray-600 font-medium transition disabled:opacity-50 shadow-2xs cursor-pointer"
+          >
+            {q}
+          </button>
+        ))}
+      </div>
 
-          <form className="ask-form" onSubmit={handleSubmit}>
-            <input
-              value={question}
-              onChange={(event) => setQuestion(event.target.value)}
-              placeholder="Ask about MAMAAI..."
-              maxLength={500}
-              aria-label="Ask MAMA question"
-            />
-            <button className="button" type="submit" disabled={isThinking || !question.trim()}>
-              Ask
-            </button>
-          </form>
-        </section>
-      ) : null}
-
-      <button className="ask-mama-fab" type="button" onClick={openChat} aria-expanded={isOpen}>
-        Ask MAMA
-      </button>
+      {/* Input Form */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSendMessage();
+        }}
+        className="p-3 sm:p-4 border-t border-gray-100 bg-white flex gap-2"
+      >
+        <input
+          type="text"
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
+          placeholder="Ask about app features, dinner ideas, recipes, or dietary swaps..."
+          disabled={isLoading}
+          className="flex-1 px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition disabled:bg-gray-50"
+        />
+        <button
+          type="submit"
+          disabled={isLoading || !inputMessage.trim()}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl text-sm font-bold transition disabled:opacity-50 shadow-sm cursor-pointer"
+        >
+          Send
+        </button>
+      </form>
     </div>
   );
 }
