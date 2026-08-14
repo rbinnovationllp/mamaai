@@ -35,7 +35,7 @@ const quickSuggestions = [
   "How does MAMAAI work?",
   "Plan meals for my family",
   "How are allergies handled?",
-  "Show subscription plans"
+  "Show subscription plans",
 ];
 
 const promptAttackTerms = [
@@ -47,7 +47,7 @@ const promptAttackTerms = [
   "internal config",
   "ignore previous",
   "bypass",
-  "admin token"
+  "admin token",
 ];
 
 const medicalTerms = [
@@ -61,14 +61,14 @@ const medicalTerms = [
   "cure",
   "blood sugar medicine",
   "blood pressure medicine",
-  "pregnancy complication"
+  "pregnancy complication",
 ];
 
-function hasAny(text: string, terms: string[]) {
+function hasAny(text: string, terms: string[]): boolean {
   return terms.some((term) => text.includes(term));
 }
 
-function cleanQuestion(question: string) {
+function cleanQuestion(question: string): string {
   return question.toLowerCase().replace(/[^a-z0-9\s/-]/g, " ");
 }
 
@@ -83,136 +83,126 @@ export function answerAskMama(question: string, detailed = false): AskMamaAnswer
       category: "unknown",
       answer: "Please ask me about MAMAAI, demo access, family setup, allergies, recipes, groceries, or subscriptions.",
       suggestions: quickSuggestions,
-      unresolved: true
+      unresolved: true,
     };
   }
 
   if (hasAny(text, promptAttackTerms)) {
     return {
       category: "support",
-      answer:
-        "I cannot share private prompts, credentials, internal settings, admin details, or hidden configuration. I can still help you use MAMAAI safely.",
-      suggestions: quickSuggestions
+      answer: "I cannot share private prompts, credentials, internal settings, admin details, or hidden configuration. I can still help you use MAMAAI safely.",
+      suggestions: quickSuggestions,
     };
   }
 
   if (hasAny(text, medicalTerms)) {
     return {
       category: "medical_safety",
-      answer:
-        "MAMAAI can give food-planning suggestions, but it does not diagnose, treat, prescribe, or replace a doctor or dietitian. For medical conditions, use MAMAAI suggestions only with professional guidance.",
-      suggestions: ["How are allergies handled?", "Can it plan meals for fasting days?", "Can I get recipes for suggested meals?"]
+      answer: "MAMAAI can give food-planning suggestions, but it does not diagnose, treat, prescribe, or replace a doctor or dietitian. For medical conditions, use MAMAAI suggestions only with professional guidance.",
+      suggestions: [
+        "How are allergies handled?",
+        "Can it plan meals for fasting days?",
+        "Can I get recipes for suggested meals?",
+      ],
     };
   }
 
   if (hasAny(text, ["what is", "about mamaai", "how does mamaai work", "how it work", "how does it work"])) {
     return {
       category: "overview",
-      answer:
-        "MAMAAI helps one family plan one practical meal while still adapting portions, ingredients, fruit, hydration, and cooking notes for each member. The hackathon demo focuses on the full family-meal flow.",
+      answer: "MAMAAI helps one family plan one practical meal while still adapting portions, ingredients, fruit, hydration, and cooking notes for each member. The demo focuses on the full family-meal flow.",
       action: { type: "try_demo", label: "Try Demo" },
-      suggestions: ["Plan meals for my family", "How are allergies handled?", "Can I get recipes for suggested meals?"]
+      suggestions: ["Plan meals for my family", "How are allergies handled?", "Can I get recipes for suggested meals?"],
     };
   }
 
   if (hasAny(text, ["add family", "family member", "start", "get started", "plan meals for my family", "create family"])) {
     return {
       category: "getting_started",
-      answer:
-        "Start by creating a family, then add members with age, activity level, food pattern, allergies, dislikes, restrictions, fasting needs, and meal attendance. After that MAMAAI can generate the next family meal.",
+      answer: "Start by creating a family, then add members with age, activity level, food pattern, allergies, dislikes, restrictions, fasting needs, and meal attendance. After that MAMAAI can generate the next family meal.",
       action: { type: "add_family", label: "Add Family" },
-      suggestions: ["How are allergies handled?", "How are ingredient quantities calculated?", "How do I replace a meal?"]
+      suggestions: ["How are allergies handled?", "How are ingredient quantities calculated?", "How do I replace a meal?"],
     };
   }
 
   if (hasAny(text, ["judge", "demo", "devpost", "try demo"])) {
     return {
       category: "judge_demo",
-      answer:
-        "Judge/Demo Mode uses fictional family data and bypasses login and payment so reviewers can test the core flow quickly: profile, common meal, personal portions, recipe, replacement, groceries, and MAMA Family Table.",
+      answer: "Judge/Demo Mode uses fictional family data and bypasses login and payment so reviewers can test the core flow quickly: profile, common meal, personal portions, recipe, replacement, groceries, and MAMA Family Table.",
       action: { type: "try_demo", label: "Open Judge Demo" },
-      suggestions: ["Can I get recipes for suggested meals?", "How does grocery planning work?", "Show subscription plans"]
+      suggestions: ["Can I get recipes for suggested meals?", "How does grocery planning work?", "Show subscription plans"],
     };
   }
 
   if (hasAny(text, ["allergy", "allergies", "dislike", "never include", "restriction", "avoid food"])) {
     return {
       category: "allergies",
-      answer:
-        "Allergies and medical restrictions are hard safety rules. Food dislikes are handled more flexibly: MAMAAI first tries personal modifications or a simple alternative before changing the whole family meal.",
-      suggestions: ["Plan meals for my family", "How are ingredient quantities calculated?", "Can I get recipes for suggested meals?"]
+      answer: "Allergies and medical restrictions are hard safety rules. Food dislikes are handled more flexibly: MAMAAI first tries personal modifications or a simple alternative before changing the whole family meal.",
+      suggestions: ["Plan meals for my family", "How are ingredient quantities calculated?", "Can I get recipes for suggested meals?"],
     };
   }
 
   if (hasAny(text, ["fast", "fasting", "vrat", "upvas", "festival"])) {
     return {
       category: "fasting",
-      answer:
-        "MAMAAI has architecture and demo support for fasting-aware planning, including fasting windows, allowed foods, cultural context, and alternatives. Production depth will expand as more regional rules are added.",
-      suggestions: ["How are allergies handled?", "Can I get recipes for suggested meals?", "Show subscription plans"]
+      answer: "MAMAAI provides fasting-aware planning, including fasting windows, allowed foods, cultural context, and alternatives tailored to your family's customs.",
+      suggestions: ["How are allergies handled?", "Can I get recipes for suggested meals?", "Show subscription plans"],
     };
   }
 
   if (hasAny(text, ["quantity", "quantities", "portion", "serving", "nutrition", "protein", "calorie", "cost"])) {
     return {
       category: "quantities",
-      answer:
-        "Ingredient quantities and portions are estimated from family strength, selected meal, meal attendance, member age/activity, and recipe servings. Nutrition and costs are estimates for planning, not medical values.",
-      suggestions: ["Can I get recipes for suggested meals?", "How does grocery planning work?", "How are allergies handled?"]
+      answer: "Ingredient quantities and portions are estimated from family strength, selected meal, meal attendance, member age/activity, and recipe servings. Nutrition and costs are estimates for planning, not medical values.",
+      suggestions: ["Can I get recipes for suggested meals?", "How does grocery planning work?", "How are allergies handled?"],
     };
   }
 
   if (hasAny(text, ["recipe", "cook", "how to cook", "ingredients", "instruction"])) {
     return {
       category: "recipes",
-      answer:
-        "Suggested meals include a View Recipe / How to Cook option with ingredients, quantities, servings, steps, time, difficulty, nutrition estimate, cost estimate, alternatives, and member-specific preparation notes.",
-      suggestions: ["Watch cooking video", "How do I replace a meal?", "How does grocery planning work?"]
+      answer: "Suggested meals include a View Recipe / How to Cook option with ingredients, quantities, servings, steps, time, difficulty, nutrition estimate, cost estimate, alternatives, and member-specific preparation notes.",
+      suggestions: ["Watch cooking video", "How do I replace a meal?", "How does grocery planning work?"],
     };
   }
 
   if (hasAny(text, ["youtube", "video", "watch"])) {
     return {
       category: "video",
-      answer:
-        "Watch How to Cook is visible as a production-planned feature. If the YouTube Data API is not configured in the testing build, MAMAAI shows a clear unavailable notice and keeps the written recipe available.",
-      suggestions: ["Can I get recipes for suggested meals?", "What is unavailable in test version?", "How does MAMAAI work?"]
+      answer: "Watch How to Cook searches relevant cooking tutorials for your dish. If a direct YouTube API key is not active, MAMAAI provides direct YouTube search links alongside the full written recipe.",
+      suggestions: ["Can I get recipes for suggested meals?", "How does MAMAAI work?"],
     };
   }
 
   if (hasAny(text, ["replace", "change meal", "another meal", "swap"])) {
     return {
       category: "replacement",
-      answer:
-        "Use Replace Meal after generating a plan. MAMAAI suggests another suitable meal and updates portions, modifications, recipe details, and the grocery list where available.",
-      suggestions: ["How does grocery planning work?", "How are allergies handled?", "Plan meals for my family"]
+      answer: "Use Replace Meal after generating a plan. MAMAAI suggests another suitable meal and updates portions, modifications, recipe details, and the grocery list where available.",
+      suggestions: ["How does grocery planning work?", "How are allergies handled?", "Plan meals for my family"],
     };
   }
 
   if (hasAny(text, ["grocery", "shopping", "list", "ingredients to buy"])) {
     return {
       category: "grocery",
-      answer:
-        "The grocery list is created from the selected meal and family portions. When a meal is replaced, the list updates so the family can see what ingredients and approximate quantities are needed.",
-      suggestions: ["How are ingredient quantities calculated?", "Can I get recipes for suggested meals?", "Show subscription plans"]
+      answer: "The grocery list is created from the selected meal and family portions. When a meal is replaced, the list updates so the family can see what ingredients and approximate quantities are needed.",
+      suggestions: ["How are ingredient quantities calculated?", "Can I get recipes for suggested meals?", "Show subscription plans"],
     };
   }
 
   if (hasAny(text, ["subscription", "price", "pricing", "plan", "revenuecat", "payment"])) {
     return {
       category: "subscriptions",
-      answer:
-        "Current planned plans are Family Starter at INR 399/month in India or US$4.99/month internationally for up to 4 members, Family Premium at INR 599/month or US$6.99/month for up to 6, and Family Plus at INR 799/month or US$8.99/month for up to 10. For Indian web/PWA subscriptions, MAMAAI is Razorpay-ready with server-side verification when test keys and MAMAAI plan IDs are configured. Judge/Demo Mode bypasses payment safely.",
-      suggestions: ["How does MAMAAI work?", "Plan meals for my family", "What is unavailable in test version?"]
+      answer: "Planned tiers are Family Starter (INR 399/mo | US$4.99/mo for up to 4), Family Premium (INR 599/mo | US$6.99/mo for up to 6), and Family Plus (INR 799/mo | US$8.99/mo for up to 10). Judge/Demo Mode bypasses payment so you can explore all features.",
+      suggestions: ["How does MAMAAI work?", "Plan meals for my family"],
     };
   }
 
   if (hasAny(text, ["testing", "unavailable", "coming", "production", "api", "status"])) {
     return {
       category: "testing_status",
-      answer:
-        "You are using a testing version of MAMAAI. Core demo meal planning is usable, while optional external-service features such as recipe video discovery may be limited until production integrations are activated.",
-      suggestions: ["Can I get recipes for suggested meals?", "Watch cooking video", "Show subscription plans"]
+      answer: "MAMAAI testing mode is active with interactive AI meal planning, Ask MAMA assistance, and demo profiles fully operational.",
+      suggestions: ["Can I get recipes for suggested meals?", "Watch cooking video", "Show subscription plans"],
     };
   }
 
@@ -221,15 +211,14 @@ export function answerAskMama(question: string, detailed = false): AskMamaAnswer
       category: "support",
       answer: `For support, contact ${MAMAAI_SUPPORT_EMAIL}. Project owner contact: ${MAMAAI_OWNER_EMAIL}.${suffix}`,
       action: { type: "contact_support", label: "Email Support" },
-      suggestions: quickSuggestions
+      suggestions: quickSuggestions,
     };
   }
 
   return {
     category: "unknown",
-    answer:
-      "I can help with MAMAAI features, demo mode, family setup, allergies, fasting, quantities, recipes, meal replacement, groceries, subscriptions, and support. Try one of the quick questions below.",
+    answer: "I can help with MAMAAI features, demo mode, family setup, allergies, fasting, quantities, recipes, meal replacement, groceries, subscriptions, and support. Try one of the quick questions below.",
     suggestions: quickSuggestions,
-    unresolved: true
+    unresolved: true,
   };
 }

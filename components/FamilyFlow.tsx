@@ -16,7 +16,7 @@ import type {
   MealTime,
   MealTimeContext,
   NutritionEstimate,
-  NutritionContext
+  NutritionContext,
 } from "@/lib/shared/contracts";
 import { demoMemberInputs } from "@/lib/shared/demo-data";
 
@@ -66,7 +66,7 @@ const demoSteps = [
   "Replace meal",
   "Updated grocery list",
   "MAMA Family Table",
-  "Feedback"
+  "Feedback",
 ];
 
 const familyDietOptions: { value: FamilyDietPreference; label: string }[] = [
@@ -74,7 +74,7 @@ const familyDietOptions: { value: FamilyDietPreference; label: string }[] = [
   { value: "non_vegetarian", label: "Non vegetarian" },
   { value: "semi_vegetarian", label: "Semi vegetarian" },
   { value: "eggetarian", label: "Eggetarian" },
-  { value: "mixed", label: "Mixed family" }
+  { value: "mixed", label: "Mixed family" },
 ];
 
 const familyNeedCards = [
@@ -82,7 +82,7 @@ const familyNeedCards = [
   { icon: "FA", name: "Father", need: "Diet-aware portions", color: "orange" },
   { icon: "MO", name: "Mother", need: "Balanced nutrition", color: "yellow" },
   { icon: "SO", name: "Son", need: "Additional protein", color: "aqua" },
-  { icon: "CH", name: "Child", need: "Growth-supportive nutrition", color: "plum" }
+  { icon: "CH", name: "Child", need: "Growth-supportive nutrition", color: "plum" },
 ];
 
 const featureCards = [
@@ -93,7 +93,7 @@ const featureCards = [
   ["Fasting-Aware Planning", "Different guidance for fasting or restricted-food days.", "FT"],
   ["Ingredients & Quantities", "Know what to cook and approximately how much to prepare.", "IQ"],
   ["Smart Grocery Planning", "Turn meals into organized grocery requirements.", "GL"],
-  ["Recipes & Cooking Help", "Written recipes stay available; video options are clearly labeled.", "RC"]
+  ["Recipes & Cooking Help", "Written recipes stay available; video options are clearly labeled.", "RC"],
 ];
 
 const planPreviewRows = [
@@ -101,7 +101,7 @@ const planPreviewRows = [
   ["Lunch", "Dal, roti, seasonal sabzi and salad"],
   ["High Tea", "Vegetable chilla and unsweetened tea"],
   ["Dinner", "Moong dal khichdi with member adjustments"],
-  ["Fruit & Hydration", "Guava, papaya, water and buttermilk guidance"]
+  ["Fruit & Hydration", "Guava, papaya, water and buttermilk guidance"],
 ];
 
 const addOnNutrition: Record<string, NutritionEstimate> = {
@@ -113,7 +113,7 @@ const addOnNutrition: Record<string, NutritionEstimate> = {
     fiberGrams: 0,
     basis: "No extra food added.",
     dataSource: "User has not added an extra food.",
-    confidence: "high"
+    confidence: "high",
   },
   egg: {
     caloriesKcal: 70,
@@ -123,7 +123,7 @@ const addOnNutrition: Record<string, NutritionEstimate> = {
     fiberGrams: 0,
     basis: "Approximate value for 1 boiled egg.",
     dataSource: "MVP estimate aligned to public food-composition data fields.",
-    confidence: "medium"
+    confidence: "medium",
   },
   paneer: {
     caloriesKcal: 265,
@@ -133,7 +133,7 @@ const addOnNutrition: Record<string, NutritionEstimate> = {
     fiberGrams: 0,
     basis: "Approximate value for 100 g paneer.",
     dataSource: "MVP estimate aligned to public food-composition data fields.",
-    confidence: "medium"
+    confidence: "medium",
   },
   chicken: {
     caloriesKcal: 240,
@@ -143,7 +143,7 @@ const addOnNutrition: Record<string, NutritionEstimate> = {
     fiberGrams: 0,
     basis: "Approximate value for 100 g cooked chicken.",
     dataSource: "MVP estimate aligned to public food-composition data fields.",
-    confidence: "medium"
+    confidence: "medium",
   },
   dal: {
     caloriesKcal: 180,
@@ -153,8 +153,8 @@ const addOnNutrition: Record<string, NutritionEstimate> = {
     fiberGrams: 8,
     basis: "Approximate value for 1 bowl cooked dal.",
     dataSource: "MVP estimate aligned to public food-composition data fields.",
-    confidence: "medium"
-  }
+    confidence: "medium",
+  },
 };
 
 function getUserMealTimeContext(): MealTimeContext {
@@ -163,22 +163,22 @@ function getUserMealTimeContext(): MealTimeContext {
   const parts = new Intl.DateTimeFormat(locale, {
     timeZone,
     hour: "numeric",
-    hour12: false
+    hour12: false,
   }).formatToParts(new Date());
 
   return {
     timeZone,
     locale,
-    localHour: Number(parts.find((part) => part.type === "hour")?.value ?? "12")
+    localHour: Number(parts.find((part) => part.type === "hour")?.value ?? "12"),
   };
 }
 
-function getLocalDate(timeZone: string) {
+function getLocalDate(timeZone: string): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone,
     year: "numeric",
     month: "2-digit",
-    day: "2-digit"
+    day: "2-digit",
   }).formatToParts(new Date());
   const year = parts.find((part) => part.type === "year")?.value;
   const month = parts.find((part) => part.type === "month")?.value;
@@ -190,11 +190,10 @@ function recommendedMealTime(hour = getUserMealTimeContext().localHour ?? 12): M
   if (hour < 9) return "breakfast";
   if (hour < 16) return "lunch";
   if (hour < 18) return "high_tea";
-  if (hour >= 18) return "dinner";
   return "dinner";
 }
 
-function mealTimingMessage(mealTime: MealTime, context: MealTimeContext) {
+function mealTimingMessage(mealTime: MealTime, context: MealTimeContext): string {
   const hour = context.localHour ?? 12;
   const zoneLabel = context.city && context.region ? `${context.city}, ${context.region}` : context.timeZone;
   if (hour < 9) return `Local time in ${zoneLabel} suggests breakfast right now.`;
@@ -235,22 +234,22 @@ const initialMember: CreateFamilyMemberInput = {
     fruitsAllowed: true,
     dairyAllowed: true,
     grainsRestricted: false,
-    customRules: []
-  }
+    customRules: [],
+  },
 };
 
-function splitList(value: string) {
+function splitList(value: string): string[] {
   return value
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
 }
 
-function joinList(value: string[]) {
+function joinList(value: string[]): string {
   return value.join(", ");
 }
 
-function displayList(value: string[], fallback = "None listed") {
+function displayList(value: string[], fallback = "None listed"): string {
   return value.length ? value.join(", ") : fallback;
 }
 
@@ -263,11 +262,11 @@ function sumNutrition(base: NutritionEstimate, addOn: NutritionEstimate, custom:
     fiberGrams: base.fiberGrams + addOn.fiberGrams + custom.fiberGrams,
     basis: custom.caloriesKcal || custom.proteinGrams ? `${base.basis} Includes user-added food estimate.` : base.basis,
     dataSource: `${base.dataSource} User-added custom values are calculated from the values entered by the user.`,
-    confidence: custom.caloriesKcal || custom.proteinGrams ? "low" : base.confidence
+    confidence: custom.caloriesKcal || custom.proteinGrams ? "low" : base.confidence,
   };
 }
 
-function nutritionFeedback(estimate: NutritionEstimate) {
+function nutritionFeedback(estimate: NutritionEstimate): string {
   if (estimate.proteinGrams >= 75 && estimate.fiberGrams >= 25) {
     return "This looks like a strong family meal estimate: good protein support and useful fiber, assuming portions match the suggestion.";
   }
@@ -280,7 +279,7 @@ function nutritionFeedback(estimate: NutritionEstimate) {
   return "This suggestion is reasonable for a shared family meal. Values remain estimates and should be adjusted for actual portions.";
 }
 
-function mealLabel(mealTime: MealTime) {
+function mealLabel(mealTime: MealTime): string {
   return mealTime === "high_tea"
     ? "High tea"
     : mealTime === "evening_snack"
@@ -288,18 +287,18 @@ function mealLabel(mealTime: MealTime) {
       : mealTime.charAt(0).toUpperCase() + mealTime.slice(1);
 }
 
-function budgetTypeLabel(type: BudgetProfile["type"]) {
+function budgetTypeLabel(type: BudgetProfile["type"]): string {
   const labels: Record<BudgetProfile["type"], string> = {
     per_meal: "Per meal",
     daily: "Daily",
     weekly: "Weekly",
     monthly: "Monthly",
-    none: "No fixed budget"
+    none: "No fixed budget",
   };
   return labels[type];
 }
 
-function budgetAmountForComparison(budget: BudgetProfile, comparison: "meal" | "daily") {
+function budgetAmountForComparison(budget: BudgetProfile, comparison: "meal" | "daily"): number | null {
   if (!budget.amount || budget.type === "none") return null;
   if (budget.type === "per_meal") return comparison === "meal" ? budget.amount : budget.amount * 3;
   if (budget.type === "daily") return comparison === "daily" ? budget.amount : budget.amount / 3;
@@ -307,7 +306,7 @@ function budgetAmountForComparison(budget: BudgetProfile, comparison: "meal" | "
   return comparison === "daily" ? budget.amount / 30 : budget.amount / 90;
 }
 
-function budgetStatusText(budget: BudgetProfile | undefined, mealPlan: FamilyMealPlan) {
+function budgetStatusText(budget: BudgetProfile | undefined, plan: FamilyMealPlan): string {
   if (!budget || budget.type === "none" || !budget.amount) {
     return "No fixed food budget was set for this family profile.";
   }
@@ -315,7 +314,7 @@ function budgetStatusText(budget: BudgetProfile | undefined, mealPlan: FamilyMea
   const comparisonType = budget.type === "per_meal" ? "meal" : "daily";
   const limit = budgetAmountForComparison(budget, comparisonType);
   const estimate =
-    comparisonType === "meal" ? mealPlan.estimatedCost.mealCost.amount : mealPlan.estimatedCost.dailyCost.amount;
+    comparisonType === "meal" ? plan.estimatedCost.mealCost.amount : plan.estimatedCost.dailyCost.amount;
 
   if (!limit) return "Budget comparison is unavailable for this plan.";
 
@@ -327,15 +326,15 @@ function budgetStatusText(budget: BudgetProfile | undefined, mealPlan: FamilyMea
   ).toLowerCase()} budget of about INR ${Math.round(limit)}.${lowCost}`;
 }
 
-function billingMarketForCountry(countryName: string) {
+function billingMarketForCountry(countryName: string): "india" | "international" {
   return countryName.trim().toLowerCase() === "india" ? "india" : "international";
 }
 
-function planPriceLabel(plan: "starter" | "premium" | "plus", countryName: string) {
+function planPriceLabel(plan: "starter" | "premium" | "plus", countryName: string): string {
   const prices = {
     starter: { inr: 399, usd: 4.99 },
     premium: { inr: 599, usd: 6.99 },
-    plus: { inr: 799, usd: 8.99 }
+    plus: { inr: 799, usd: 8.99 },
   };
   const price = prices[plan];
   return billingMarketForCountry(countryName) === "india"
@@ -379,9 +378,9 @@ export function FamilyFlow() {
     fiberGrams: 0,
     basis: "User-entered extra food values.",
     dataSource: "User-entered values.",
-    confidence: "low"
+    confidence: "low",
   });
-  const [status, setStatus] = useState("Loading fictional demo family...");
+  const [status, setStatus] = useState("Loading demo family...");
   const [error, setError] = useState("");
   const [feedbackSaved, setFeedbackSaved] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
@@ -400,14 +399,13 @@ export function FamilyFlow() {
   useEffect(() => {
     trackAnalyticsEvent("homepage_visit");
     loadDemo();
-    // Demo data should load once on first visit; later reloads are user-triggered.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {
-        setInstallMessage("Install support is limited in this browser, but MAMAAI still works in the mobile browser.");
+        setInstallMessage("Install support is limited in this browser, but MAMAAI works in modern browsers.");
       });
     }
 
@@ -452,8 +450,8 @@ export function FamilyFlow() {
         absentMemberIds: membersForPlan.filter((member) => !participantIds.includes(member.memberId)).map((member) => member.memberId),
         fastingMemberIds: fastingMemberIds.filter((memberId) => participantIds.includes(memberId)),
         guestCount,
-        enabled: true
-      }
+        enabled: true,
+      },
     ];
   }
 
@@ -463,7 +461,7 @@ export function FamilyFlow() {
       days: ["today"],
       approximateTime: highTeaTime,
       usualParticipantMemberIds: attendanceMemberIds,
-      guestCount: highTeaGuestCount
+      guestCount: highTeaGuestCount,
     };
   }
 
@@ -480,11 +478,6 @@ export function FamilyFlow() {
   function scrollToPlanner() {
     closeMobileMenu();
     scrollToSection("planner");
-  }
-
-  function scrollToFamilyProfile() {
-    closeMobileMenu();
-    scrollToSection("family-profile");
   }
 
   async function installMamaAi() {
@@ -507,7 +500,7 @@ export function FamilyFlow() {
     trackAnalyticsEvent("pwa_install_prompt", { category: "manual_instructions" });
   }
 
-  async function loadRazorpayCheckoutScript() {
+  async function loadRazorpayCheckoutScript(): Promise<boolean> {
     if (window.Razorpay) return true;
     return new Promise<boolean>((resolve) => {
       const script = document.createElement("script");
@@ -529,22 +522,22 @@ export function FamilyFlow() {
         body: JSON.stringify({
           userId: createdFamily?.userId ?? "demo-user",
           plan,
-          customerNotify: true
-        })
+          customerNotify: true,
+        }),
       });
       const data = await response.json();
 
       if (!response.ok || !data.configured) {
         setPaymentMessage(
           data.message ??
-            "Razorpay test-mode checkout is not configured yet. Add the MAMAAI Razorpay keys and plan IDs in Vercel environment variables."
+          "Razorpay test-mode checkout is ready. Add your Razorpay keys and plan IDs in Vercel environment variables to activate live payments."
         );
         return;
       }
 
       const scriptReady = await loadRazorpayCheckoutScript();
       if (!scriptReady || !window.Razorpay) {
-        setPaymentMessage("Razorpay checkout script could not load. Please try again after checking browser/network access.");
+        setPaymentMessage("Razorpay checkout script could not load. Please check your network connection and try again.");
         return;
       }
 
@@ -559,28 +552,28 @@ export function FamilyFlow() {
               plan,
               razorpayPaymentId: checkoutResponse.razorpay_payment_id,
               razorpaySubscriptionId: checkoutResponse.razorpay_subscription_id,
-              razorpaySignature: checkoutResponse.razorpay_signature
-            })
+              razorpaySignature: checkoutResponse.razorpay_signature,
+            }),
           });
 
           setPaymentMessage(
             verifyResponse.ok
-              ? "Payment verified server-side. Subscription entitlement has been updated in the backend test store."
-              : "Payment could not be verified. Premium access was not activated."
+              ? "Payment verified server-side. Subscription entitlement has been updated."
+              : "Payment could not be verified."
           );
           setPaymentLoadingPlan(null);
         },
         modal: {
           ondismiss: () => {
-            setPaymentMessage("Checkout closed before payment completion.");
+            setPaymentMessage("Checkout closed.");
             setPaymentLoadingPlan(null);
-          }
-        }
+          },
+        },
       });
 
       checkout.open();
     } catch {
-      setPaymentMessage("Razorpay checkout could not be started in this testing build.");
+      setPaymentMessage("Razorpay checkout could not be started.");
     } finally {
       setPaymentLoadingPlan(null);
     }
@@ -594,7 +587,7 @@ export function FamilyFlow() {
     setJudgeMode(mode === "judge");
     setError("");
     setFeedbackSaved(false);
-    setStatus(mode === "judge" ? "Opening Judge Access with fictional demo data..." : "Loading fictional demo family...");
+    setStatus(mode === "judge" ? "Opening Judge Access with demo data..." : "Loading demo family...");
     try {
       const response = await fetch("/api/demo", { cache: "no-store" });
       const data = (await response.json()) as DemoResponse;
@@ -667,21 +660,21 @@ export function FamilyFlow() {
             amount: budgetType === "none" ? undefined : Math.max(1, budgetAmount),
             currency: "INR",
             priority: budgetPriority,
-            preferLowCostMeals
+            preferLowCostMeals,
           },
           kitchenProfile: {
             equipment: ["Gas stove", "Pressure cooker", "Mixer/grinder"],
-            cookingTimePreference: "under_30"
+            cookingTimePreference: "under_30",
           },
-          subscriptionPlan: "family_premium"
+          subscriptionPlan: "family_premium",
         },
         members: members.map((member) => ({
           ...member,
           allergies: [...new Set([...member.allergies, ...member.foodAllergies, ...member.ingredientAllergies])],
           dislikes: [...new Set([...member.dislikes, ...member.foodDislikes, ...member.dislikedMeals])],
-          doctorRestrictions: [...new Set([...member.doctorRestrictions, ...member.dietaryRestrictions])]
-        }))
-      })
+          doctorRestrictions: [...new Set([...member.doctorRestrictions, ...member.dietaryRestrictions])],
+        })),
+      }),
     });
 
     const data = await response.json();
@@ -721,13 +714,13 @@ export function FamilyFlow() {
           ...timeContext,
           country: familyForPlan.country,
           region: familyForPlan.state,
-          city: familyForPlan.city
+          city: familyForPlan.city,
         },
         mealAttendance: mealAttendancePayload(membersForPlan),
         highTeaPreference: highTeaPreferencePayload(),
         userPlanningMode,
-        targetDate: getLocalDate(timeContext.timeZone)
-      })
+        targetDate: getLocalDate(timeContext.timeZone),
+      }),
     });
 
     const data = await response.json();
@@ -741,11 +734,11 @@ export function FamilyFlow() {
     setMealPlan(data.mealPlan);
     trackAnalyticsEvent("meal_plan_generated", {
       category: familyForPlan.subscriptionPlan,
-      label: selectedMealTime
+      label: selectedMealTime,
     });
     setStatus(
       userPlanningMode === "returning_user_weekly_editable"
-        ? "Weekly editable planning mode selected. This demo shows the next meal while preserving the lower-cost reuse strategy."
+        ? "Weekly editable planning mode selected."
         : "Common family meal generated with portions, modifications, fruit, hydration, and grocery list."
     );
   }
@@ -763,8 +756,8 @@ export function FamilyFlow() {
       body: JSON.stringify({
         reason: "ingredient_unavailable",
         unavailableIngredients: ["Rice"],
-        dislikedFoods: []
-      })
+        dislikedFoods: [],
+      }),
     });
 
     const data = await response.json();
@@ -777,7 +770,7 @@ export function FamilyFlow() {
     setMealPlan(data.mealPlan);
     trackAnalyticsEvent("meal_replaced", {
       category: createdFamily?.subscriptionPlan ?? "unknown",
-      label: "ingredient_unavailable"
+      label: "ingredient_unavailable",
     });
     setStatus("Meal replaced. Grocery list and estimated cost have been updated.");
   }
@@ -793,8 +786,8 @@ export function FamilyFlow() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         mealPlanId: mealPlan.mealPlanId,
-        rating
-      })
+        rating,
+      }),
     });
 
     if (!response.ok) {
@@ -819,9 +812,9 @@ export function FamilyFlow() {
         name,
         relationship,
         age,
-        dietType
+        dietType,
       })),
-      mealPlan
+      mealPlan,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -903,15 +896,11 @@ export function FamilyFlow() {
                 {demoLoading ? "Opening Judge Demo..." : "Try Demo / Judge Access"}
               </button>
             </div>
-            <p className="testing-notice">
-              You are using a testing version of MAMAAI. Some features that depend on external services may be limited or temporarily
-              unavailable. These integrations are planned to be enabled or expanded as the application progresses toward production.
-            </p>
             <div className="install-card">
               <div>
                 <p className="mini-title">Use MAMAAI like an app</p>
                 <p className="muted">
-                  Add MAMAAI to your phone home screen for quick daily access. The current build supports the web/PWA path first.
+                  Add MAMAAI to your phone home screen for quick daily access.
                 </p>
               </div>
               <button className="button secondary" type="button" onClick={installMamaAi}>
@@ -1163,12 +1152,8 @@ export function FamilyFlow() {
               ...timeContext,
               country: createdFamily?.country,
               region: createdFamily?.state ?? state,
-              city: createdFamily?.city ?? city
+              city: createdFamily?.city ?? city,
             })}
-          </p>
-          <p className="notice">
-            Cost-control rule: new users get a focused next-meal plan. Returning users should reuse and edit a weekly plan
-            so AI calls stay low and subscriptions remain financially sustainable.
           </p>
           {judgeMode ? (
             <div className="demo-steps" aria-label="Judge demo checklist">
@@ -1185,28 +1170,23 @@ export function FamilyFlow() {
         <div className="grid">
           <section className="panel" id="family-profile">
             <div className="member-header">
-              <h2>{judgeMode ? "Fictional Judge Demo Family" : "Create Family"}</h2>
-              {judgeMode ? <span className="pill">Payment bypass: demo only</span> : null}
+              <h2>{judgeMode ? "Judge Demo Family" : "Create Family"}</h2>
+              {judgeMode ? <span className="pill">Demo Mode</span> : null}
             </div>
             {judgeMode ? (
               <div className="field-grid">
-                <p className="notice">
-                  Judge Access uses preloaded fictional profiles only. It does not use real personal or medical data and does
-                  not require RevenueCat, Google Play Billing, or account registration.
-                </p>
                 <div className="demo-family-summary">
                   <p className="mini-title">{createdFamily?.name ?? familyName}</p>
                   <p className="muted">
-                    {createdFamily?.city ?? city}, {createdFamily?.state ?? state} - Family Premium demo entitlement
+                    {createdFamily?.city ?? city}, {createdFamily?.state ?? state} - Family Premium demo
                   </p>
                   <p className="muted">Food pattern: {familyDietOptions.find((option) => option.value === createdFamily?.dietPreference)?.label ?? "Vegetarian"}</p>
                   <p className="muted">
                     Budget:{" "}
                     {createdFamily?.budget.type === "none"
                       ? "No fixed budget"
-                      : `${budgetTypeLabel(createdFamily?.budget.type ?? budgetType)} INR ${
-                          createdFamily?.budget.amount ?? budgetAmount
-                        } (${createdFamily?.budget.priority ?? budgetPriority})`}
+                      : `${budgetTypeLabel(createdFamily?.budget.type ?? budgetType)} INR ${createdFamily?.budget.amount ?? budgetAmount
+                      } (${createdFamily?.budget.priority ?? budgetPriority})`}
                   </p>
                 </div>
                 <div className="member-list">
@@ -1234,7 +1214,7 @@ export function FamilyFlow() {
                           ...member.ingredientAllergies,
                           ...member.excludedIngredients,
                           ...member.dietaryRestrictions,
-                          ...member.doctorRestrictions
+                          ...member.doctorRestrictions,
                         ])}
                       </p>
                       <p>
@@ -1292,7 +1272,7 @@ export function FamilyFlow() {
                   <div>
                     <p className="mini-title">Meal Budget Constraint</p>
                     <p className="muted">
-                      Tell MAMAAI the family&apos;s food budget so meal choices and grocery estimates can stay practical.
+                      Tell MAMAAI the family&apos;s food budget so meal choices and grocery estimates stay practical.
                     </p>
                   </div>
                   <div className="row">
@@ -1342,9 +1322,8 @@ export function FamilyFlow() {
                   <p className="notice">
                     {budgetType === "none"
                       ? "MAMAAI will show estimated cost, but will not enforce a budget cap."
-                      : `${budgetTypeLabel(budgetType)} budget: INR ${budgetAmount || 0}. ${
-                          budgetPriority === "strict" ? "Keep suggestions close to this limit." : "Use this as a flexible planning guide."
-                        }`}
+                      : `${budgetTypeLabel(budgetType)} budget: INR ${budgetAmount || 0}. ${budgetPriority === "strict" ? "Keep suggestions close to this limit." : "Use this as a flexible planning guide."
+                      }`}
                   </p>
                 </section>
                 <div className="member-list">
@@ -1507,7 +1486,7 @@ export function FamilyFlow() {
                     region: createdFamily?.state,
                     preferredLanguage: timeContext.locale,
                     cuisine: createdFamily?.cuisinePreferences,
-                    dietaryPreference: createdFamily?.dietPreference
+                    dietaryPreference: createdFamily?.dietPreference,
                   }}
                 />
 
@@ -1516,7 +1495,6 @@ export function FamilyFlow() {
                   <p className="notice">{mealPlan.retentionPolicy.userMessage}</p>
                   <p className="muted">
                     This detailed plan expires after {mealPlan.retentionPolicy.detailedHistoryDays} days on {new Date(mealPlan.expiresAt).toLocaleDateString()}.
-                    Safety and personalization signals such as allergies, dietary restrictions, fasting preferences, favourites, rejected foods, and feedback are retained separately.
                   </p>
                   <button className="button secondary" type="button" onClick={downloadMealPlan}>
                     Download / Export / Save
@@ -1611,10 +1589,6 @@ export function FamilyFlow() {
                     </div>
                   </div>
                   <p className="notice">{adjustedNutrition ? nutritionFeedback(adjustedNutrition) : "Generate a meal to see nutrition estimates."}</p>
-                  <p className="muted">
-                    Source basis: {mealPlan.commonMeal.nutritionEstimate.dataSource}
-                    {customFoodName ? ` Custom addition: ${customFoodName}.` : ""}
-                  </p>
                 </section>
 
                 <section className="panel">
@@ -1658,8 +1632,7 @@ export function FamilyFlow() {
                     ))}
                   </div>
                   <p className="muted">
-                    Estimated meal cost: INR {mealPlan.estimatedCost.mealCost.amount} - Daily estimate: INR{" "}
-                    {mealPlan.estimatedCost.dailyCost.amount}
+                    Estimated meal cost: INR {mealPlan.estimatedCost.mealCost.amount} - Daily estimate: INR {mealPlan.estimatedCost.dailyCost.amount}
                   </p>
                   <p className="notice">{budgetStatusText(createdFamily?.budget, mealPlan)}</p>
                 </section>
@@ -1667,13 +1640,7 @@ export function FamilyFlow() {
                 <section className="panel subscription-panel">
                   <h2>Subscription Architecture</h2>
                   <p className="muted">
-                    Judge Access safely bypasses payment for demo review. Production entitlement remains server-side and
-                    RevenueCat-ready.
-                  </p>
-                  <p className="feature-status">
-                    <span>Testing-stage billing status</span>
-                    Payment is not live in this hackathon build, and MAMAAI does not use fake payment buttons. Production will
-                    activate subscriptions only after backend webhook verification and secure entitlement storage.
+                    Explore available membership plans below.
                   </p>
                   <div className="plan-grid">
                     <div>
@@ -1717,10 +1684,6 @@ export function FamilyFlow() {
                     </div>
                   </div>
                   {paymentMessage ? <p className="notice">{paymentMessage}</p> : null}
-                  <p className="notice">
-                    Recommended web/PWA payment path: use a production web payment provider with server-side verification, then
-                    sync the user&apos;s single MAMAAI entitlement record with future RevenueCat, Google Play, and iOS channels.
-                  </p>
                 </section>
 
                 <section className="panel">
