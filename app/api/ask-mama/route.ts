@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { store } from "@/lib/repositories/in-memory-store";
+import { NextResponse } from 'next/server';
+import { GoogleGenerativeAI, Content } from '@google/generative-ai';
+import { store } from '@/lib/repositories/in-memory-store';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 const SYSTEM_INSTRUCTION = `
 You are "MAMA", the culinary AI assistant and product expert for MAMAAI (mamaai.in).
@@ -16,14 +16,21 @@ CORE ROLES:
 Keep responses warm, concise, structured, and easy to read.
 `;
 
+interface RequestPayload {
+  message?: string;
+  userId?: string;
+  familyId?: string;
+  history?: Array<{ role: 'user' | 'model'; parts: string }>;
+}
+
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body: RequestPayload = await request.json();
     const { message, userId, familyId, history = [] } = body;
 
-    if (!message || typeof message !== "string" || !message.trim()) {
+    if (!message || typeof message !== 'string' || !message.trim()) {
       return NextResponse.json(
-        { error: { code: "INVALID_PROMPT", message: "Please provide a valid question." } },
+        { error: { code: 'INVALID_PROMPT', message: 'Please provide a valid question.' } },
         { status: 400 }
       );
     }
@@ -32,7 +39,7 @@ export async function POST(request: Request) {
     if (!apiKey) {
       return NextResponse.json({
         success: true,
-        role: "model",
+        role: 'model',
         response: getIntelligentFallback(message),
       });
     }
@@ -51,20 +58,22 @@ export async function POST(request: Request) {
       contextualPrompt += `\n\n--- HOUSEHOLD CONTEXT ---\n`;
       contextualPrompt += `Family: ${userFamily.name} | Diet: ${userFamily.dietPreference}\n`;
       familyMembers.forEach((m) => {
-        contextualPrompt += `- ${m.name} (${m.relationship}): Allergies: [${m.allergies.join(", ") || "None"}], Dislikes: [${m.dislikes.join(", ") || "None"}]\n`;
+        const allergies = m.allergies?.join(', ') || 'None';
+        const dislikes = m.dislikes?.join(', ') || 'None';
+        contextualPrompt += `- ${m.name} (${m.relationship}): Allergies: [${allergies}], Dislikes: [${dislikes}]\n`;
       });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: 'gemini-2.5-flash',
       systemInstruction: contextualPrompt,
     });
 
-    const formattedHistory = Array.isArray(history)
-      ? history.map((h: { role: string; parts: string }) => ({
-          role: h.role === "user" ? "user" : "model",
-          parts: [{ text: typeof h.parts === "string" ? h.parts : "" }],
+    const formattedHistory: Content[] = Array.isArray(history)
+      ? history.map((h) => ({
+          role: h.role === 'user' ? 'user' : 'model',
+          parts: [{ text: typeof h.parts === 'string' ? h.parts : '' }],
         }))
       : [];
 
@@ -77,16 +86,16 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      role: "model",
+      role: 'model',
       response: responseText,
     });
   } catch (error) {
-    console.error("[Ask MAMA API Error]:", error);
+    console.error('[Ask MAMA API Error]:', error);
     return NextResponse.json(
       {
         error: {
-          code: "INFERENCE_ERROR",
-          message: error instanceof Error ? error.message : "Ask MAMA could not process this request.",
+          code: 'INFERENCE_ERROR',
+          message: error instanceof Error ? error.message : 'Ask MAMA could not process this request.',
         },
       },
       { status: 500 }
@@ -96,17 +105,17 @@ export async function POST(request: Request) {
 
 function getIntelligentFallback(query: string): string {
   const q = query.toLowerCase();
-  if (q.includes("how does mamaai work") || q.includes("how it works")) {
-    return "MAMAAI plans **One Common Family Dish** with customized individual modifications (spices, portions, allergen removals) rather than cooking separate meals, paired with automated grocery lists.";
+  if (q.includes('how does mamaai work') || q.includes('how it works')) {
+    return 'MAMAAI plans **One Common Family Dish** with customized individual modifications (spices, portions, allergen removals) rather than cooking separate meals, paired with automated grocery lists.';
   }
-  if (q.includes("allerg") || q.includes("restriction")) {
-    return "MAMAAI uses a two-tier safety engine: **Hard Constraints** (Medical Allergies & Doctor Advice) are strictly excluded from plates. **Soft Constraints** (Taste Dislikes) are addressed with smart ingredient swaps.";
+  if (q.includes('allerg') || q.includes('restriction')) {
+    return 'MAMAAI uses a two-tier safety engine: **Hard Constraints** (Medical Allergies & Doctor Advice) are strictly excluded from plates. **Soft Constraints** (Taste Dislikes) are addressed with smart ingredient swaps.';
   }
-  if (q.includes("subscription") || q.includes("plan") || q.includes("pricing")) {
-    return "MAMAAI offers Starter (up to 4 members), Premium (up to 6 members with doctor restriction tracking), and Family Plus (up to 10 members with priority AI support).";
+  if (q.includes('subscription') || q.includes('plan') || q.includes('pricing')) {
+    return 'MAMAAI offers Starter (up to 4 members), Premium (up to 6 members with doctor restriction tracking), and Family Plus (up to 10 members with priority AI support).';
   }
-  if (q.includes("plan meals") || q.includes("cook")) {
-    return "To start planning meals, visit the **Family Profile** page (`/profile/family`) to configure your household members and generate a customized meal plan instantly!";
+  if (q.includes('plan meals') || q.includes('cook')) {
+    return 'To start planning meals, visit the **Family Profile** page (`/profile/family`) to configure your household members and generate a customized meal plan instantly!';
   }
-  return "Namaste! I am MAMA. How can I assist you with your family's meal planning, recipes, or dietary preferences today?";
+  return 'Namaste! I am MAMA. How can I assist you with your family\'s meal planning, recipes, or dietary preferences today?';
 }
