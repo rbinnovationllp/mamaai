@@ -2,21 +2,19 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 
-// Defining types for implicit 'any' errors
-interface ChatMessage {
+export interface ChatMessage {
   id: string;
   sender: 'user' | 'mama';
   text: string;
   timestamp: string;
 }
 
-// Definition matching how it is called in FamilyFlow.tsx
 export interface AskMamaWidgetProps {
   onStartFamily?: () => void;
   onTryDemo?: () => Promise<void> | void;
 }
 
-const SUGGESTED_QUESTIONS = [
+const SUGGESTED_QUESTIONS: string[] = [
   'How does MAMAAI work?',
   'Plan meals for my family',
   'How are allergies handled?',
@@ -33,11 +31,11 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [inputMessage, setInputMessage] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = (): void => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -45,11 +43,10 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
     scrollToBottom();
   }, [messages, isLoading]);
 
-  const handleSendMessage = async (textToSend?: string) => {
+  const handleSendMessage = async (textToSend?: string): Promise<void> => {
     const query = (textToSend || inputMessage).trim();
     if (!query || isLoading) return;
 
-    // Type the 'prev' parameter for state setter
     const userMsg: ChatMessage = {
       id: `u_${Date.now()}`,
       sender: 'user',
@@ -62,11 +59,10 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
     setIsLoading(true);
 
     try {
-      // Typing parameter 'm' for messages filter/map
       const history = messages
         .filter((m: ChatMessage) => m.id !== 'welcome')
         .map((m: ChatMessage) => ({
-          role: (m.sender === 'user' ? 'user' : 'model') as 'user' | 'model',
+          role: m.sender === 'user' ? 'user' : 'model',
           parts: m.text,
         }));
 
@@ -94,7 +90,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
       };
 
       setMessages((prev: ChatMessage[]) => [...prev, mamaMsg]);
-    } catch (err) {
+    } catch (err: unknown) {
       const errorMsg: ChatMessage = {
         id: `err_${Date.now()}`,
         sender: 'mama',
@@ -123,6 +119,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
         <div className="flex items-center gap-2">
           {onTryDemo && (
             <button
+              type="button"
               onClick={() => onTryDemo()}
               className="text-xs font-semibold px-2.5 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg transition"
             >
@@ -130,7 +127,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
             </button>
           )}
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/80 backdrop-blur-sm text-white border border-emerald-400">
-            <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
             Live Assistant
           </span>
         </div>
@@ -167,12 +164,13 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
 
       {/* Suggested Quick Prompts */}
       <div className="px-4 py-2.5 bg-gray-50/80 border-t border-gray-100 flex gap-2 overflow-x-auto no-scrollbar">
-        {SUGGESTED_QUESTIONS.map((q, idx) => (
+        {SUGGESTED_QUESTIONS.map((q: string, idx: number) => (
           <button
             key={idx}
+            type="button"
             onClick={() => handleSendMessage(q)}
             disabled={isLoading}
-            className="text-xs whitespace-nowrap px-3.5 py-1.5 rounded-full border border-gray-200 bg-white hover:border-emerald-500 hover:text-emerald-700 text-gray-600 font-medium transition disabled:opacity-50 shadow-2xs cursor-pointer"
+            className="text-xs whitespace-nowrap px-3.5 py-1.5 rounded-full border border-gray-200 bg-white hover:border-emerald-500 hover:text-emerald-700 text-gray-600 font-medium transition disabled:opacity-50 shadow-sm cursor-pointer"
           >
             {q}
           </button>
@@ -181,7 +179,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
 
       {/* Input Form */}
       <form
-        onSubmit={(e: React.FormEvent) => {
+        onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
           e.preventDefault();
           handleSendMessage();
         }}
@@ -207,5 +205,4 @@ export function AskMamaWidget({ onStartFamily, onTryDemo }: AskMamaWidgetProps =
   );
 }
 
-// Default export included for backward compatibility
 export default AskMamaWidget;
