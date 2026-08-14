@@ -17,7 +17,7 @@ const SUGGESTED_QUESTIONS = [
   'What should I cook tonight with pantry staples?',
 ];
 
-export default function AskMamaWidget() {
+export function AskMamaWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -54,7 +54,6 @@ export default function AskMamaWidget() {
     setIsLoading(true);
 
     try {
-      // Build conversation history for multi-turn context
       const history = messages
         .filter((m) => m.id !== 'welcome')
         .map((m) => ({
@@ -190,3 +189,6 @@ export default function AskMamaWidget() {
     </div>
   );
 }
+
+// Default export included for backward compatibility
+export default AskMamaWidget;
