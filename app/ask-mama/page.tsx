@@ -2,6 +2,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useLanguage } from '@/components/LanguageProvider';
+import { VoiceTextInput } from '@/components/VoiceTextInput';
 
 interface ChatMessage {
   id: string;
@@ -19,6 +21,7 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 export default function HomePage() {
+  const { language } = useLanguage();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -70,6 +73,7 @@ export default function HomePage() {
           message: query,
           history,
           isJudgeMode: true,
+          language,
         }),
       });
 
@@ -200,13 +204,14 @@ export default function HomePage() {
           }}
           className="p-3 sm:p-4 border-t border-gray-100 bg-white flex gap-2"
         >
-          <input
+          <VoiceTextInput
             type="text"
             value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
+            onValueChange={setInputMessage}
             placeholder="Ask about app features, dinner ideas, recipes, or dietary swaps..."
             disabled={isLoading}
-            className="flex-1 px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition disabled:bg-gray-50"
+            className="flex-1"
+            inputClassName="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition disabled:bg-gray-50"
           />
           <button
             type="submit"

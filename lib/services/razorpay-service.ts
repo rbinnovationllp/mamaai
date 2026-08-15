@@ -22,6 +22,7 @@ type RazorpaySubscriptionEvent =
 export interface CreateRazorpaySubscriptionInput {
   userId: string;
   plan: SubscriptionPlan;
+  billingMarket?: "IN" | "INT";
   customerNotify?: boolean;
 }
 
@@ -45,6 +46,13 @@ function configuredRazorpayKey() {
     keySecret: process.env.RAZORPAY_KEY_SECRET,
     webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET,
   };
+}
+
+function normalizeRazorpayPlanId(value?: string) {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  const match = trimmed.match(/plan_[A-Za-z0-9]+/);
+  return match?.[0] ?? trimmed;
 }
 
 function mapSubscriptionStatus(
@@ -73,7 +81,14 @@ function mapPaymentStatus(eventType: RazorpaySubscriptionEvent): PaymentStatus {
 
 function findPlanByRazorpayPlanId(planId?: string): SubscriptionPlan | undefined {
   if (!planId) return undefined;
-  const plan = new SubscriptionService().getPlans().find((item) => item.razorpayPlanId === planId);
+  const usdPlanEnvByPlan: Partial<Record<SubscriptionPlan, string | undefined>> = {
+    starter: normalizeRazorpayPlanId(process.env.RAZORPAY_PLAN_STARTER_USD),
+    premium: normalizeRazorpayPlanId(process.env.RAZORPAY_PLAN_PREMIUM_USD),
+    family_plus: normalizeRazorpayPlanId(process.env.RAZORPAY_PLAN_PLUS_USD),
+  };
+  const plan = new SubscriptionService()
+    .getPlans()
+    .find((item) => item.razorpayPlanId === planId || usdPlanEnvByPlan[item.plan] === planId);
   return plan?.plan;
 }
 
@@ -87,13 +102,29 @@ export class RazorpayService {
   async createSubscription(input: CreateRazorpaySubscriptionInput) {
     const keys = configuredRazorpayKey();
     const planDefinition = new SubscriptionService().getPlan(input.plan);
+    const isInternational = input.billingMarket === "INT";
+    const rawSelectedPlanId = isInternational
+      ? input.plan === "starter"
+        ? process.env.RAZORPAY_PLAN_STARTER_USD
+        : input.plan === "premium"
+        ? process.env.RAZORPAY_PLAN_PREMIUM_USD
+        : process.env.RAZORPAY_PLAN_PLUS_USD
+      : planDefinition.razorpayPlanId;
+    const selectedPlanId = normalizeRazorpayPlanId(rawSelectedPlanId);
+    const selectedPlanIdEnv = isInternational
+      ? input.plan === "starter"
+        ? "RAZORPAY_PLAN_STARTER_USD"
+        : input.plan === "premium"
+        ? "RAZORPAY_PLAN_PREMIUM_USD"
+        : "RAZORPAY_PLAN_PLUS_USD"
+      : planDefinition.razorpayPlanIdEnv;
 
-    if (!keys.keyId || !keys.keySecret || !planDefinition.razorpayPlanId) {
+    if (!keys.keyId || !keys.keySecret || !selectedPlanId) {
       return {
         configured: false,
         message:
           "Razorpay test-mode subscription creation is not configured yet. Add RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, and the MAMAAI-specific Razorpay plan ID environment variables.",
-        requiredEnvironment: ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", planDefinition.razorpayPlanIdEnv],
+        requiredEnvironment: ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", selectedPlanIdEnv],
       };
     }
 
@@ -105,7 +136,7 @@ export class RazorpayService {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        plan_id: planDefinition.razorpayPlanId,
+        plan_id: selectedPlanId,
         total_count: 120,
         quantity: 1,
         customer_notify: input.customerNotify ? 1 : 0,
@@ -113,7 +144,7 @@ export class RazorpayService {
           project: "mamaai",
           userId: input.userId,
           plan: input.plan,
-          billingMarket: "india",
+          billingMarket: isInternational ? "international" : "india",
         },
       }),
     });
@@ -130,7 +161,7 @@ export class RazorpayService {
       userId: input.userId,
       plan: input.plan,
       razorpaySubscriptionId: data.id,
-      razorpayPlanId: data.plan_id ?? planDefinition.razorpayPlanId,
+      razorpayPlanId: data.plan_id ?? selectedPlanId,
       providerStatus: data.status ?? "created",
       eventType: "subscription.pending",
       startsAt: toIsoFromSeconds(data.current_start),
@@ -142,6 +173,7 @@ export class RazorpayService {
       subscriptionId: data.id,
       shortUrl: data.short_url,
       keyId: keys.keyId,
+      billingMarket: input.billingMarket ?? "IN",
       plan: planDefinition,
       subscriptionRecord,
     };

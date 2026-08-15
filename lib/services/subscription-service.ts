@@ -5,7 +5,7 @@ import type {
 } from "@/lib/shared/contracts";
 
 export const subscriptionLimits: Record<SubscriptionPlan, number> = {
-  // Standardized Tiers
+  // Canonical tiers
   starter: 4,
   premium: 6,
   family_plus: 10,
@@ -18,7 +18,7 @@ export const subscriptionLimits: Record<SubscriptionPlan, number> = {
 export const subscriptionPlans: SubscriptionPlanDefinition[] = [
   {
     plan: "starter",
-    displayName: "Family Standard",
+    displayName: "Family Starter",
     priceMonthlyInr: 399,
     priceMonthlyUsd: 4.99,
     memberLimit: 4,
@@ -132,7 +132,7 @@ export class SubscriptionService {
       default:
         return [
           "Up to 4 family profiles",
-          "Standard daily meal planning",
+          "Starter daily meal planning",
           "Basic dietary preferences & allergy filters",
           "Single-day grocery summary",
         ];

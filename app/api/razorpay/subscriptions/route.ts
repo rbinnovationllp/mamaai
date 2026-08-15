@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     const result = await new RazorpayService().createSubscription({
       userId: parsed.data.userId,
       plan: normalizedPlan,
+      billingMarket: parsed.data.billingMarket,
       customerNotify: parsed.data.customerNotify,
     });
 
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       configured: true,
       provider: "razorpay",
-      billingMarket: "india",
+      billingMarket: result.billingMarket === "INT" ? "international" : "india",
       subscriptionId: result.subscriptionId,
       shortUrl: result.shortUrl,
       checkout: {

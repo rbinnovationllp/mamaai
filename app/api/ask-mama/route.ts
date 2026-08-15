@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { answerAskMama } from "@/lib/ask-mama/knowledge-base";
+import { type AppLanguage, isAppLanguage } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
 interface RequestPayload {
   message?: string;
   isJudgeMode?: boolean;
+  language?: AppLanguage;
 }
 
 export async function POST(request: Request) {
@@ -20,7 +22,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const answer = answerAskMama(message, Boolean(body.isJudgeMode));
+    const answer = answerAskMama(message, Boolean(body.isJudgeMode), isAppLanguage(body.language) ? body.language : "en");
 
     return NextResponse.json({
       success: true,

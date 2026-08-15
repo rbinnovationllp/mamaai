@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AskMamaWidget } from "./AskMamaWidget";
 import { MamaFamilyTable } from "./MamaFamilyTable";
+import { VoiceTextInput } from "@/components/VoiceTextInput";
 import { trackAnalyticsEvent } from "@/lib/shared/client-analytics";
 import type {
   BudgetProfile,
@@ -579,7 +580,7 @@ export function FamilyFlow() {
     }
   }
 
-  async function loadDemo(mode: "judge" | "standard" = "standard") {
+  async function loadDemo(mode: "judge" | "regular" = "regular") {
     if (mode === "judge") {
       trackAnalyticsEvent("try_demo_click");
     }
@@ -1090,7 +1091,7 @@ export function FamilyFlow() {
             <button className="button" type="button" onClick={() => generateMeal()} disabled={!canGenerate}>
               Plan Today
             </button>
-            <button className="button secondary" type="button" onClick={() => loadDemo("standard")} disabled={demoLoading}>
+            <button className="button secondary" type="button" onClick={() => loadDemo("regular")} disabled={demoLoading}>
               {demoLoading ? "Loading Demo..." : "Load Demo Family"}
             </button>
             <button className="button secondary" type="button" onClick={replaceMeal} disabled={!mealPlan}>
@@ -1233,29 +1234,30 @@ export function FamilyFlow() {
                 <div className="row">
                   <label>
                     Family name
-                    <input value={familyName} onChange={(event) => setFamilyName(event.target.value)} />
+                    <VoiceTextInput value={familyName} onValueChange={setFamilyName} />
                   </label>
                   <label>
                     Country of residence
-                    <input value={country} onChange={(event) => setCountry(event.target.value)} placeholder="United Kingdom" />
+                    <VoiceTextInput value={country} onValueChange={setCountry} placeholder="United Kingdom" />
                   </label>
                 </div>
                 <div className="row">
                   <label>
                     City
-                    <input value={city} onChange={(event) => setCity(event.target.value)} />
+                    <VoiceTextInput value={city} onValueChange={setCity} />
                   </label>
                 </div>
                 <label>
                   State
-                  <input value={state} onChange={(event) => setState(event.target.value)} />
+                  <VoiceTextInput value={state} onValueChange={setState} />
                 </label>
                 <label>
                   Preferred food culture / cuisine
-                  <input
+                  <VoiceTextInput
                     value={cuisineText}
-                    onChange={(event) => setCuisineText(event.target.value)}
+                    onValueChange={setCuisineText}
                     placeholder="Indian 70%, British/European 20%, Mediterranean 10%"
+                    mode="append"
                   />
                 </label>
                 <label>
@@ -1351,11 +1353,11 @@ export function FamilyFlow() {
                         <div className="row">
                           <label>
                             Name
-                            <input value={member.name} onChange={(event) => updateMember(index, { name: event.target.value })} />
+                            <VoiceTextInput value={member.name} onValueChange={(value) => updateMember(index, { name: value })} />
                           </label>
                           <label>
                             Relationship
-                            <input value={member.relationship} onChange={(event) => updateMember(index, { relationship: event.target.value })} />
+                            <VoiceTextInput value={member.relationship} onValueChange={(value) => updateMember(index, { relationship: value })} />
                           </label>
                         </div>
                         <div className="row">
@@ -1401,66 +1403,74 @@ export function FamilyFlow() {
                         </div>
                         <label>
                           Health context
-                          <input
+                          <VoiceTextInput
                             value={joinList(member.healthConditions)}
-                            onChange={(event) => updateMember(index, { healthConditions: splitList(event.target.value) })}
+                            onValueChange={(value) => updateMember(index, { healthConditions: splitList(value) })}
                             placeholder="Diabetes, hypertension"
+                            mode="append"
                           />
                         </label>
                         <label>
                           Food allergies
-                          <input
+                          <VoiceTextInput
                             value={joinList(member.foodAllergies)}
-                            onChange={(event) => updateMember(index, { foodAllergies: splitList(event.target.value) })}
+                            onValueChange={(value) => updateMember(index, { foodAllergies: splitList(value) })}
                             placeholder="Peanut, shellfish, milk"
+                            mode="append"
                           />
                         </label>
                         <label>
                           Ingredient allergies
-                          <input
+                          <VoiceTextInput
                             value={joinList(member.ingredientAllergies)}
-                            onChange={(event) => updateMember(index, { ingredientAllergies: splitList(event.target.value) })}
+                            onValueChange={(value) => updateMember(index, { ingredientAllergies: splitList(value) })}
                             placeholder="Peanut oil, sesame, egg"
+                            mode="append"
                           />
                         </label>
                         <label>
                           Food dislikes
-                          <input
+                          <VoiceTextInput
                             value={joinList(member.foodDislikes)}
-                            onChange={(event) => updateMember(index, { foodDislikes: splitList(event.target.value) })}
+                            onValueChange={(value) => updateMember(index, { foodDislikes: splitList(value) })}
                             placeholder="Very spicy food, bitter food"
+                            mode="append"
                           />
                         </label>
                         <label>
                           Meals or dishes not liked
-                          <input
+                          <VoiceTextInput
                             value={joinList(member.dislikedMeals)}
-                            onChange={(event) => updateMember(index, { dislikedMeals: splitList(event.target.value) })}
+                            onValueChange={(value) => updateMember(index, { dislikedMeals: splitList(value) })}
                             placeholder="Khichdi, poha"
+                            mode="append"
                           />
                         </label>
                         <label>
                           Ingredients never include
-                          <input
+                          <VoiceTextInput
                             value={joinList(member.excludedIngredients)}
-                            onChange={(event) => updateMember(index, { excludedIngredients: splitList(event.target.value) })}
+                            onValueChange={(value) => updateMember(index, { excludedIngredients: splitList(value) })}
                             placeholder="Mushroom, bitter gourd"
+                            mode="append"
                           />
                         </label>
                         <label>
                           Dietary restrictions
-                          <input
+                          <VoiceTextInput
                             value={joinList(member.dietaryRestrictions)}
-                            onChange={(event) => updateMember(index, { dietaryRestrictions: splitList(event.target.value) })}
+                            onValueChange={(value) => updateMember(index, { dietaryRestrictions: splitList(value) })}
                             placeholder="Low sugar, low salt, no fried food"
+                            mode="append"
                           />
                         </label>
                         <label>
                           Doctor restrictions
-                          <input
+                          <VoiceTextInput
                             value={joinList(member.doctorRestrictions)}
-                            onChange={(event) => updateMember(index, { doctorRestrictions: splitList(event.target.value) })}
+                            onValueChange={(value) => updateMember(index, { doctorRestrictions: splitList(value) })}
                             placeholder="Avoid sugary beverages"
+                            mode="append"
                           />
                         </label>
                       </div>
@@ -1540,7 +1550,7 @@ export function FamilyFlow() {
                     <div className="row">
                       <label>
                         Other food name
-                        <input value={customFoodName} onChange={(event) => setCustomFoodName(event.target.value)} placeholder="Example: extra roti" />
+                        <VoiceTextInput value={customFoodName} onValueChange={setCustomFoodName} placeholder="Example: extra roti" />
                       </label>
                       <label>
                         Calories
@@ -1644,7 +1654,7 @@ export function FamilyFlow() {
                   </p>
                   <div className="plan-grid">
                     <div>
-                      <p className="mini-title">Family Standard</p>
+                      <p className="mini-title">Family Starter</p>
                       <p className="muted">{planPriceLabel("starter", createdFamily?.country ?? country)} - 4 members</p>
                       <p className="muted">Other markets: US$4.99/month</p>
                       <button

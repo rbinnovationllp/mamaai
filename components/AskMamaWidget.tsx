@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useLanguage } from '@/components/LanguageProvider';
+import { VoiceTextInput } from '@/components/VoiceTextInput';
+import { askMamaCopy } from '@/lib/i18n';
 
 export interface ChatMessage {
   id: string;
@@ -15,20 +18,14 @@ export interface AskMamaWidgetProps {
   compact?: boolean;
 }
 
-const SUGGESTED_QUESTIONS: string[] = [
-  'How does MAMAAI work?',
-  'Plan meals for my family',
-  'How are allergies handled?',
-  'Show subscription plans',
-  'What can I cook tonight with pantry staples?',
-];
-
 export function AskMamaWidget({ onStartFamily, onTryDemo, compact = false }: AskMamaWidgetProps = {}) {
+  const { language } = useLanguage();
+  const t = askMamaCopy[language];
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
       sender: 'mama',
-      text: "Namaste! I am MAMA, your kitchen companion and MAMAAI support assistant. How can I help you plan, cook, or balance your family's meals today?",
+      text: t.welcome,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
@@ -43,6 +40,14 @@ export function AskMamaWidget({ onStartFamily, onTryDemo, compact = false }: Ask
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    setMessages((current) =>
+      current[0]?.id === "welcome"
+        ? [{ ...current[0], text: t.welcome }, ...current.slice(1)]
+        : current
+    );
+  }, [t.welcome]);
 
   const handleSendMessage = async (textToSend?: string): Promise<void> => {
     const query = (textToSend || inputMessage).trim();
@@ -74,6 +79,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo, compact = false }: Ask
           message: query,
           history,
           isJudgeMode: true,
+          language,
         }),
       });
 
@@ -114,7 +120,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo, compact = false }: Ask
           </div>
           <div>
             <h2 className="text-base font-bold leading-tight">Ask MAMA</h2>
-            <p className="text-xs text-emerald-100">Live AI Support & Personal Kitchen Companion</p>
+            <p className="text-xs text-emerald-100">{t.subtitle}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -124,12 +130,12 @@ export function AskMamaWidget({ onStartFamily, onTryDemo, compact = false }: Ask
               onClick={() => onTryDemo()}
               className="text-xs font-semibold px-2.5 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg transition"
             >
-              Demo Mode
+              {t.demo}
             </button>
           )}
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/80 backdrop-blur-sm text-white border border-emerald-400">
             <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-            Live Assistant
+            {t.live}
           </span>
         </div>
       </div>
@@ -157,7 +163,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo, compact = false }: Ask
         {isLoading && (
           <div className="flex items-center gap-2 text-xs text-gray-500 italic bg-gray-50 px-3 py-2 rounded-xl w-fit border border-gray-100">
             <span className="inline-block animate-spin text-emerald-600 font-bold">🌀</span>
-            MAMA is formulating your answer...
+            {t.loading}
           </div>
         )}
         <div ref={messagesEndRef} />
@@ -165,7 +171,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo, compact = false }: Ask
 
       {/* Suggested Quick Prompts */}
       <div className="px-4 py-2.5 bg-gray-50/80 border-t border-gray-100 flex gap-2 overflow-x-auto no-scrollbar">
-        {SUGGESTED_QUESTIONS.map((q: string, idx: number) => (
+        {t.suggestions.map((q: string, idx: number) => (
           <button
             key={idx}
             type="button"
@@ -186,20 +192,21 @@ export function AskMamaWidget({ onStartFamily, onTryDemo, compact = false }: Ask
         }}
         className="p-3 sm:p-4 border-t border-gray-100 bg-white flex gap-2"
       >
-        <input
+        <VoiceTextInput
           type="text"
           value={inputMessage}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputMessage(e.target.value)}
-          placeholder="Ask about app features, dinner ideas, recipes, or dietary swaps..."
+          onValueChange={setInputMessage}
+          placeholder={t.placeholder}
           disabled={isLoading}
-          className="flex-1 px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition disabled:bg-gray-50"
+          className="flex-1"
+          inputClassName="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition disabled:bg-gray-50"
         />
         <button
           type="submit"
           disabled={isLoading || !inputMessage.trim()}
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl text-sm font-bold transition disabled:opacity-50 shadow-sm cursor-pointer"
         >
-          Send
+          {t.send}
         </button>
       </form>
     </div>
