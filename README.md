@@ -6,6 +6,26 @@ Meal & Aahaar Management Assistant.
 
 **One Family. Different Needs. One Intelligent Meal Plan.**
 
+## Current Hackathon Launch Status - August 14, 2026
+
+MAMAAI is being prepared for Gemini XPRIZE Hackathon judging and controlled real-customer payment testing.
+
+Current status:
+
+- Public web app and local production build are working.
+- Main consumer home page, subscription page, pantry page, family profile page, culture profile page, Ask MAMA, and key install/voice guidance support English, Hindi, and Kannada through the in-app language selector.
+- Voice-to-text input is available on supported browsers through browser/device speech recognition; no paid speech API is used.
+- PWA install foundation is present with manifest, icons, service worker, and Ask MAMA installation guidance.
+- Admin dashboard and `/api/admin/*` endpoints are protected by the root `proxy.ts` guard and require `ADMIN_SECRET_KEY` authorization/session setup.
+- Razorpay web subscription checkout now creates a server-side Razorpay subscription before opening Checkout.
+- Razorpay checkout still requires real Razorpay credentials, valid 19-character Razorpay subscription plan ids, webhook secret, and end-to-end payment verification in the target environment before inviting paying testers.
+- Families, meal plans, subscriptions, payments, and most analytics still use MVP in-memory persistence except for selected DynamoDB-specific endpoints. Production durability requires DynamoDB repository completion.
+
+Launch recommendation:
+
+- Safe for hackathon demo and controlled colleague testing after verifying Razorpay in the deployed Vercel environment.
+- Do not treat it as fully durable production until DynamoDB-backed repositories and authenticated user identity are connected for all critical user/payment records.
+
 MAMA AI is an AI-powered Family Food Operating System for household meal planning. It is designed around a practical family reality: most homes do not want to cook five separate meals, but different family members often need different portions, adjustments, fruits, hydration, and health-aware guidance.
 
 ## Core Idea
@@ -119,8 +139,8 @@ MAMA AI is RevenueCat-ready but does not require live billing for the hackathon 
 Plans:
 
 - Family Starter: India INR 399/month; international US$4.99/month; up to 4 family members.
-- Family Premium: India INR 599/month; international US$6.99/month; up to 6 family members.
-- Family Plus: India INR 799/month; international US$8.99/month; up to 10 family members.
+- Family Premium: India INR 599/month; international US$7.99/month; up to 6 family members.
+- Family Plus: India INR 999/month; international US$12.99/month; up to 10 family members, including extended four-paw member meal planning.
 
 India and international prices are configured regional tiers, not live currency conversions. Production checkout must match the configured prices in RevenueCat, Google Play, and the selected web payment provider before billing is enabled.
 
@@ -152,6 +172,14 @@ For Indian web/PWA subscriptions, MAMAAI is Razorpay-ready:
 - `POST /api/razorpay/webhook` verifies Razorpay webhook signatures and records subscription/payment status changes.
 - `/api/subscriptions/status` reads server-side subscription records before returning entitlement.
 - Admin dashboard shows recent subscription status and payment history.
+- The subscription UI opens Razorpay Checkout with the returned Razorpay subscription id, not a raw plan id.
+- INR and USD Razorpay plan ids are selected from separate MAMAAI environment variables.
+
+Latest local payment smoke result:
+
+- The endpoint creates Razorpay subscription objects for India and international plan selections when valid MAMAAI plan values are configured.
+- Pasted Razorpay plan URLs/values are normalized to the required `plan_...` id before being sent to Razorpay.
+- Before colleague payment testing, verify `RAZORPAY_PLAN_STARTER_MONTHLY`, `RAZORPAY_PLAN_PREMIUM_MONTHLY`, `RAZORPAY_PLAN_PLUS_MONTHLY`, and the USD plan variables are real MAMAAI Razorpay subscription plan ids for the intended live/test mode.
 
 The same Razorpay business account can be used for another project such as Syllabus Synk, but MAMAAI must use separate Razorpay plan IDs, webhook URL, webhook secret, metadata, environment variables, and backend entitlement records.
 
@@ -168,6 +196,21 @@ Implemented:
 - Basic service worker.
 - Mobile hamburger navigation.
 - Install guidance for Android/iPhone browser limitations.
+
+## Multilingual and Voice Input
+
+MAMAAI currently supports English, Hindi, and Kannada for the main consumer surfaces:
+
+- Home page
+- Subscription/payment page
+- Pantry page
+- Family profile page
+- Culture profile page
+- Ask MAMA widget and `/ask-mama`
+- Ask MAMA knowledge-base answers for product help, install guidance, safety, and subscriptions
+- Voice-input status messages
+
+Voice input uses the browser Web Speech API where available. Users must tap the microphone before listening starts, recognized text is placed into the selected field, and the user must review/edit it before submitting. MAMAAI does not store raw audio and does not use a paid speech-to-text API for this feature.
 
 ## Safety Notes
 
@@ -260,14 +303,14 @@ The MVP analytics store anonymous visitor/session ids only and does not store ra
 
 ## Current Limitations
 
-- The MVP uses in-memory demo persistence.
-- Production DynamoDB repositories are documented but not connected yet.
+- The MVP still uses in-memory persistence for several critical records.
+- Production DynamoDB repositories are documented but not fully connected yet.
 - Live OpenAI API integration is architecture-ready but not required for Judge Access.
 - RevenueCat and Google Play Billing are integration-ready but not production-complete.
 - PWA install support depends on browser behavior; iPhone users may need Safari's Share -> Add to Home Screen option.
 - Optional external-service features are labeled as fully functional, demo/test-only, temporarily disabled, or planned.
 - Website analytics are in-memory for the hackathon demo; production should persist analytics events in DynamoDB or a managed privacy-friendly analytics service.
-- Admin/CRM, pantry, production video discovery, analytics, production PDF/CSV exports, and multilingual rollout are post-hackathon priorities.
+- Admin/CRM persistence, production video discovery, analytics persistence, production PDF/CSV exports, full user authentication, and durable DynamoDB repositories remain high-priority production hardening tasks.
 
 ## Repository
 

@@ -674,7 +674,7 @@ export class AIService {
     return {
       memberId: member.memberId,
       memberName: member.name,
-      modification: replacement ? "Standard family serving with balanced sambar and curd." : "Standard balanced portion with vegetables and curd.",
+      modification: replacement ? "Regular family serving with balanced sambar and curd." : "Regular balanced portion with vegetables and curd.",
       portionGuidance: replacement ? "2 dosas, 1.5 cups sambar, and 0.5 cup curd." : "1.5 bowls khichdi with 0.5 cup curd.",
       safetyNotes
     };

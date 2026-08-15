@@ -1,5 +1,39 @@
 ﻿# MAMA AI Project Status
 
+## Current Launch Snapshot - August 14, 2026
+
+Overall status: controlled hackathon launch and colleague payment testing candidate, pending final deployed Razorpay verification.
+
+Production-readiness status:
+
+- Public Next.js app builds successfully with `npm run build`.
+- TypeScript validation passes with `tsc --noEmit`.
+- Admin UI and `/api/admin/*` are protected by the root `proxy.ts` matcher and require `ADMIN_SECRET_KEY` authorization/session setup.
+- Razorpay checkout now uses the correct real flow: create a server-side Razorpay subscription through `/api/razorpay/subscriptions`, then open Checkout with the returned Razorpay subscription id.
+- Razorpay pricing is aligned as Family Starter INR 399 / US$4.99, Family Premium INR 599 / US$7.99, and Family Plus INR 999 / US$12.99.
+- Local Razorpay smoke tests create Razorpay subscription objects for India and international plan selections after normalizing pasted plan values to the required `plan_...` id format. Final real payment acceptance still needs manual Checkout completion and webhook verification on the deployed Vercel environment.
+- Family Plus includes extended four-paw member meal planning with separate pet-appropriate guidance.
+- Main consumer surfaces support English, Hindi, and Kannada through the language provider: home, subscription, pantry, family profile, culture profile, Ask MAMA UI, Ask MAMA knowledge-base answers, PWA install guidance, and voice-input status messages.
+- Browser voice-to-text input is implemented for safe text fields without paid speech API usage. Users must review/edit recognized text before submitting.
+- PWA foundation is present: manifest, icons, service worker, install button/guidance, and Ask MAMA installation instructions.
+
+Latest completed production-readiness work:
+
+- Added root `proxy.ts` protection for both `/admin/*` and `/api/admin/*`.
+- Corrected Razorpay checkout flow so the subscription page creates a provider subscription before opening Checkout.
+- Added INR/USD Razorpay plan selection from separate MAMAAI environment variables.
+- Added English, Hindi, and Kannada language support to the standalone subscription, pantry, family profile, and culture profile pages.
+- Added browser-based voice-to-text input on safe text fields without introducing paid speech API usage.
+- Updated `README.md` and `PROJECT_STATUS.md` for judge review and future handover.
+
+Critical caveats before broad public paid production:
+
+- Families, meal plans, most subscription records, payment records, and most analytics still rely on the MVP in-memory store unless a specific endpoint writes to DynamoDB.
+- Full authenticated user identity is not connected yet; current payment test flow uses a demo user id unless a future auth layer supplies the real user id.
+- Razorpay must be verified end-to-end on the deployed Vercel environment with live/test keys, 19-character MAMAAI subscription plan ids, webhook URL, and webhook secret before inviting paying testers.
+- `npm audit --omit=dev` currently reports high-severity advisories in the Next/PostCSS/sharp dependency chain; assess available safe updates before broad production exposure.
+- Some deep planner microcopy remains English-first inside the large FamilyFlow experience, though core public pages and assistant flows now support the three target languages.
+
 ## Completed
 
 - Read `PRD.md` and `AGENTS.md` completely.
@@ -87,7 +121,8 @@ pm run lint, and
 pm run build.
 - Added Ask MAMA floating product-help assistant with controlled MAMAAI knowledge-base answers, quick questions, short guidance, Judge Demo/Add Family/Support actions, safety refusals, and prompt-injection/secret-disclosure protection.
 - Added /api/ask-mama route and anonymous Ask MAMA analytics events for opens, questions, unresolved topics, and common categories.
-- Added support contact support@mamaai.in and owner contact binnovationllp@gmail.com.
+- Added support contact support@mamaai.in and owner contact 
+binnovationllp@gmail.com.
 
 ## In Progress
 
@@ -96,7 +131,7 @@ pm run build.
 - Replacing MVP in-memory persistence with production DynamoDB repositories when infrastructure is available.
 - Implementing production DynamoDB/S3/Cognito integration after the hackathon demo remains stable.
 - Moving MVP in-memory analytics events to production DynamoDB or a managed privacy-friendly analytics backend.
-- Expanding Ask MAMA from controlled product help to multilingual, authenticated, OpenAI-assisted guidance after production privacy and safety controls are ready.
+- Expanding Ask MAMA from controlled product help to authenticated, OpenAI-assisted guidance after production privacy, safety, and cost controls are ready.
 
 ## Not Started
 
@@ -105,11 +140,11 @@ pm run build.
 - Production authentication provider integration.
 - RevenueCat and Google Play Billing production integration.
 - Admin/CRM screens beyond contract foundation.
-- Pantry, leftover, production analytics persistence, PDF/export, and multilingual production rollout.
+- Pantry persistence, leftover planning, production analytics persistence, PDF/export, full authentication, durable DynamoDB repositories, and remaining deep planner microcopy translation.
 
 ## Known Bugs
 
-- `npm audit` reports a moderate PostCSS advisory inherited through `next@16.2.10`. npm suggests `npm audit fix --force`, but that would downgrade Next to `9.3.3`, which is not an acceptable fix. Track upstream Next/PostCSS patch availability.
+- `npm audit --omit=dev` reports high-severity advisories in the current Next/PostCSS/sharp dependency chain. Track upstream fixes and assess safe dependency updates before broad public production exposure.
 - Runtime browser click-through is pending.
 - Dev server logs warn about a non-standard `NODE_ENV` value from the surrounding environment.
 - RevenueCat webhook currently validates and acknowledges events but does not persist entitlement changes until the production subscription repository is connected.
@@ -135,7 +170,7 @@ pm run build.
 - Soft dislikes must stay separate from allergy/medical safety handling; allergies and medical restrictions always remain hard constraints.
 - Meal-wise quantities should be calculated deterministically from selected family attendance, fasting members, guest count, and adult-equivalent portion factors. This keeps recurring subscription cost lower by avoiding unnecessary AI calls for simple grocery math.
 - High tea is treated as a real meal slot for families that use it, especially in late afternoon local time. Dinner remains the default from 6:00 PM onward.
-- Subscription pricing updated for AI/API sustainability: Family Starter is India INR 399/month or international US$4.99/month, Family Premium is India INR 599/month or international US$6.99/month, and Family Plus is India INR 799/month or international US$8.99/month. Meal attendance, high tea, fasting, and quantity calculation remain deterministic low-cost features; expensive AI operations need fair-use controls and usage tracking.
+- Subscription pricing updated for AI/API sustainability: Family Starter is India INR 399/month or international US$4.99/month, Family Premium is India INR 599/month or international US$7.99/month, and Family Plus is India INR 999/month or international US$12.99/month. Meal attendance, high tea, fasting, voice input, and quantity calculation remain deterministic or browser-native low-cost features; expensive AI operations need fair-use controls and usage tracking.
 - Supabase is not used. Production persistence should use AWS with DynamoDB for structured application records and S3 only for objects/files.
 - MAMAAI can share the same AWS account as education projects only with separate tables/buckets or prefixes, least-privilege IAM, separate environment variables, tags, logs, and alarms.
 - Detailed meal plans should expire after 15 days using DynamoDB TTL in production; safety and personalization signals remain in long-term records until the user deletes or changes them.
@@ -171,6 +206,16 @@ pm run build.
 - `YOUTUBE_API_KEY`
 - `MAMA_AI_DEMO_MODE`
 - `MAMA_AI_JUDGE_ACCESS_ENABLED`
+- `NEXT_PUBLIC_RAZORPAY_KEY_ID`
+- `RAZORPAY_KEY_ID`
+- `RAZORPAY_KEY_SECRET`
+- `RAZORPAY_WEBHOOK_SECRET`
+- `RAZORPAY_PLAN_STARTER_MONTHLY`
+- `RAZORPAY_PLAN_PREMIUM_MONTHLY`
+- `RAZORPAY_PLAN_PLUS_MONTHLY`
+- `RAZORPAY_PLAN_STARTER_USD`
+- `RAZORPAY_PLAN_PREMIUM_USD`
+- `RAZORPAY_PLAN_PLUS_USD`
 
 ## Demo/Judge Access Instructions
 
@@ -196,9 +241,8 @@ pm run build.
 - Added mobile hamburger navigation, explicit app-style install guidance, PWA manifest, service worker, and branded app icons for the web/PWA launch path.
 - Added `/api/subscriptions/status` as a server-side testing-stage entitlement endpoint with plan, status, payment channel, payment status, member limit, and feature access fields.
 - Clarified monetization in UI and docs: no fake payment buttons, Judge Access bypass is fictional-data-only, web payments are planned with backend webhook verification, and RevenueCat/Google Play remain integration-ready.
-- Replaced previous subscription prices with regional configured tiers: India INR 399/599/799 and international US$4.99/6.99/8.99; added plan fair-use limits and admin AI/API usage tracking for cost-sensitive operations.
+- Replaced previous subscription prices with regional configured tiers: India INR 399/599/999 and international US$4.99/7.99/12.99; added plan fair-use limits and admin AI/API usage tracking for cost-sensitive operations.
 - Audited payment readiness: Razorpay was not previously integrated; only subscription contracts, testing entitlement, and RevenueCat webhook contract existed.
 - Added Razorpay India web/PWA readiness: server-side subscription creation, Checkout signature verification, signed webhook handling, subscription/payment records, status endpoint integration, admin visibility, and UI subscription CTAs that show a safe testing-stage message when Razorpay env is not configured.
 - Documented that the same Razorpay account can be used for MAMAAI and Syllabus Synk only with separate MAMAAI plan IDs, webhook URL, webhook secret, metadata, env variables, and entitlement records.
-
 

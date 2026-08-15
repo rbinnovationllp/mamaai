@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
 
+function normalizeRazorpayPlanId(value?: string) {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  const match = trimmed.match(/plan_[A-Za-z0-9]+/);
+  return match?.[0] ?? trimmed;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -30,18 +37,18 @@ export async function POST(request: Request) {
     // 4. Map Plan IDs & Price Displays
     const planMap: Record<string, { inr: string | undefined; usd: string | undefined; priceDisplay: string }> = {
       starter: {
-        inr: process.env.RAZORPAY_PLAN_STARTER_MONTHLY, // ₹399
-        usd: process.env.RAZORPAY_PLAN_STARTER_USD,     // $4.99
+        inr: normalizeRazorpayPlanId(process.env.RAZORPAY_PLAN_STARTER_MONTHLY), // ₹399
+        usd: normalizeRazorpayPlanId(process.env.RAZORPAY_PLAN_STARTER_USD),     // $4.99
         priceDisplay: isInternational ? "$4.99/mo" : "₹399/mo",
       },
       premium: {
-        inr: process.env.RAZORPAY_PLAN_PREMIUM_MONTHLY, // ₹599
-        usd: process.env.RAZORPAY_PLAN_PREMIUM_USD,     // $7.99
+        inr: normalizeRazorpayPlanId(process.env.RAZORPAY_PLAN_PREMIUM_MONTHLY), // ₹599
+        usd: normalizeRazorpayPlanId(process.env.RAZORPAY_PLAN_PREMIUM_USD),     // $7.99
         priceDisplay: isInternational ? "$7.99/mo" : "₹599/mo",
       },
       family_plus: {
-        inr: process.env.RAZORPAY_PLAN_PLUS_MONTHLY,    // ₹999
-        usd: process.env.RAZORPAY_PLAN_PLUS_USD,        // $12.99
+        inr: normalizeRazorpayPlanId(process.env.RAZORPAY_PLAN_PLUS_MONTHLY),    // ₹999
+        usd: normalizeRazorpayPlanId(process.env.RAZORPAY_PLAN_PLUS_USD),        // $12.99
         priceDisplay: isInternational ? "$12.99/mo" : "₹999/mo",
       },
     };

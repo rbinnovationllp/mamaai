@@ -31,7 +31,7 @@ export const mealTimeSchema = z.enum([
   "high_tea",
 ]);
 
-// Standardized Subscription Tier Schema
+// Canonical subscription tier schema
 export const planTierSchema = z.enum(["starter", "premium", "family_plus"]);
 
 // Legacy/Compatibility Subscription Enum
@@ -46,7 +46,7 @@ export const legacyPlanTierSchema = z.enum([
 // Union for backward compatibility
 export const anyPlanTierSchema = z.union([planTierSchema, legacyPlanTierSchema]);
 
-// Helper function to normalize plan names to standard keys
+// Helper function to normalize plan names to canonical keys
 export function normalizePlanTier(plan: string): "starter" | "premium" | "family_plus" {
   if (plan === "family_starter") return "starter";
   if (plan === "family_premium") return "premium";
@@ -440,6 +440,7 @@ export const subscriptionPlanRequestSchema = z.object({
 export const createRazorpaySubscriptionSchema = z.object({
   userId: z.string().min(1).default("demo-user"),
   plan: anyPlanTierSchema,
+  billingMarket: z.enum(["IN", "INT"]).default("IN"),
   customerNotify: z.boolean().optional(),
 });
 
