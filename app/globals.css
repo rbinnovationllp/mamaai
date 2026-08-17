@@ -1051,6 +1051,45 @@ textarea {
   background: linear-gradient(90deg, var(--leaf), var(--mango));
 }
 
+.crm-controls,
+.crm-note-box {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(150px, 0.5fr) auto auto;
+  gap: 10px;
+  align-items: end;
+  margin-top: 14px;
+}
+
+.crm-note-box {
+  grid-template-columns: 1fr auto;
+}
+
+.crm-table {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  overflow-x: auto;
+}
+
+.crm-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) repeat(4, minmax(110px, 0.7fr));
+  gap: 8px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px;
+  color: var(--ink);
+  background: #fffdf9;
+  text-align: left;
+}
+
+.crm-head {
+  background: #f5fff9;
+  color: var(--leaf);
+  font-weight: 900;
+}
+
 .ask-mama {
   position: fixed;
   right: 22px;

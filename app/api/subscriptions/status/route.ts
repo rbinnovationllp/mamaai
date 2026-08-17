@@ -1,20 +1,25 @@
 import { NextResponse } from "next/server";
-import { store } from "@/lib/repositories/in-memory-store";
 import { SubscriptionService } from "@/lib/services/subscription-service";
+import { SubscriptionRepository } from "@/lib/repositories/subscription-repository";
+import { authErrorResponse, requireUser } from "@/lib/server/auth";
 
 export async function GET(request: Request) {
-  const service = new SubscriptionService();
-  const url = new URL(request.url);
-  const userId = request.headers.get("x-demo-user-id") ?? url.searchParams.get("userId") ?? "demo-user";
-  const judgeMode = url.searchParams.get("mode") === "judge";
+  try {
+    const service = new SubscriptionService();
+    const repository = new SubscriptionRepository();
+    const url = new URL(request.url);
+    const fallbackUserId = request.headers.get("x-demo-user-id") ?? url.searchParams.get("userId") ?? "demo-user";
+    const user = requireUser(request, fallbackUserId);
+    const userId = user.userId;
+    const judgeMode = url.searchParams.get("mode") === "judge";
 
-  const latestSubscriptionRecord = [...store.subscriptionRecords]
-    .filter((record) => record.userId === userId)
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
+    const latestSubscriptionRecord = judgeMode
+      ? undefined
+      : await repository.getLatestSubscriptionForUser(userId);
 
   const entitlement = judgeMode
     ? service.getJudgeDemoEntitlement(userId)
-    : latestSubscriptionRecord
+      : latestSubscriptionRecord
       ? {
           userId,
           plan: latestSubscriptionRecord.plan,
@@ -33,26 +38,29 @@ export async function GET(request: Request) {
           features: service.getPlanFeatures(latestSubscriptionRecord.plan),
           checkedAt: new Date().toISOString()
         }
-      : service.resolveLocalEntitlement(userId);
+        : service.resolveLocalEntitlement(userId);
 
-  return NextResponse.json({
-    entitlement,
-    subscriptionRecord: judgeMode ? undefined : latestSubscriptionRecord,
-    paymentHistory: judgeMode
-      ? []
-      : store.paymentTransactions
-          .filter((transaction) => transaction.userId === userId)
-          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-          .slice(0, 20),
-    sourceOfTruth: "server",
-    productionStatus:
-      "Testing-stage entitlement endpoint. Production will persist and verify subscription records in DynamoDB from Razorpay, web payment, and RevenueCat webhook events.",
-    billingAvailability: {
-      razorpayIndia: "test_mode_ready_when_env_configured",
-      webPayment: "razorpay_for_india_planned_or_test_ready",
-      revenueCat: "contract_ready",
-      googlePlayBilling: "planned_for_mobile_app",
-      fakePaymentsEnabled: false
-    }
-  });
+    return NextResponse.json({
+      entitlement,
+      subscriptionRecord: judgeMode ? undefined : latestSubscriptionRecord,
+      paymentHistory: judgeMode ? [] : await repository.listPaymentHistoryForUser(userId, 20),
+      sourceOfTruth: judgeMode ? "demo_judge_access" : "dynamodb",
+      productionStatus:
+        "Razorpay subscription, payment, and entitlement records are read from DynamoDB. Full app data migration and production authentication are still required before broad launch.",
+      billingAvailability: {
+        razorpayIndia: "production_endpoint_ready_when_env_configured",
+        webPayment: "razorpay_subscription_checkout",
+        revenueCat: "contract_ready",
+        googlePlayBilling: "planned_for_mobile_app",
+        fakePaymentsEnabled: false
+      }
+    });
+  } catch (error) {
+    const authResponse = authErrorResponse(error);
+    if (authResponse) return authResponse;
+    return NextResponse.json(
+      { error: { code: "SUBSCRIPTION_STATUS_FAILED", message: "Unable to read subscription status." } },
+      { status: 500 }
+    );
+  }
 }

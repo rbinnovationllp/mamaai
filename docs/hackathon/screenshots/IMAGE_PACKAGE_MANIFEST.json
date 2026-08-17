@@ -1,0 +1,210 @@
+[
+  {
+    "number": 1,
+    "file": "01_mamaai_home.png",
+    "title": "MAMAAI",
+    "status": "LIVE",
+    "evidence": "Real production homepage screenshot + branded cover",
+    "type": "Real production screenshot embedded"
+  },
+  {
+    "number": 2,
+    "file": "02_family_profiles.png",
+    "title": "One Family. Different Needs.",
+    "status": "LIVE / DEMO",
+    "evidence": "Fictional demo family profiles, no private health data",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 3,
+    "file": "03_intelligent_family_meal.png",
+    "title": "One Intelligent Family Meal Plan",
+    "status": "LIVE / DEMO",
+    "evidence": "Generated plan structure is supported by current planner",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 4,
+    "file": "04_gemini_family_reasoning.png",
+    "title": "Powered by Google Gemini",
+    "status": "LIVE + DIAGRAM",
+    "evidence": "Exact Ask MAMA model verified in code: gemini-2.5-flash",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 5,
+    "file": "05_ask_mama_ai.png",
+    "title": "Ask MAMA — Your AI Kitchen Companion",
+    "status": "LIVE",
+    "evidence": "Real production Ask MAMA screenshot",
+    "type": "Real production screenshot embedded"
+  },
+  {
+    "number": 6,
+    "file": "06_smart_pantry.png",
+    "title": "Your Pantry. Smarter Meal Decisions.",
+    "status": "BETA",
+    "evidence": "Real production pantry screenshot",
+    "type": "Real production screenshot embedded"
+  },
+  {
+    "number": 7,
+    "file": "07_grocery_planning.png",
+    "title": "From Meal Plan to Grocery List",
+    "status": "LIVE / DEMO",
+    "evidence": "Feature graphic based on implemented quantity/pantry logic",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 8,
+    "file": "08_single_dish_replacement.png",
+    "title": "Plans Changed? Change One Dish.",
+    "status": "LIVE / DEMO",
+    "evidence": "Feature graphic based on implemented replacement route",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 9,
+    "file": "09_recipes_cooking_support.png",
+    "title": "From Recommendation to Cooking",
+    "status": "BETA",
+    "evidence": "Recipe support works; video discovery is optional/test-stage",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 10,
+    "file": "10_multilingual_interface.png",
+    "title": "Food Planning in Your Language",
+    "status": "LIVE",
+    "evidence": "Production homepage screenshot + verified language code paths",
+    "type": "Real production screenshot embedded"
+  },
+  {
+    "number": 11,
+    "file": "11_voice_input.png",
+    "title": "Speak Instead of Typing",
+    "status": "BETA",
+    "evidence": "VoiceTextInput component verified in forms and Ask MAMA",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 12,
+    "file": "12_global_food_culture.png",
+    "title": "Different Places. Different Food Cultures.",
+    "status": "LIVE / DEMO",
+    "evidence": "Feature graphic based on family/culture profile fields",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 13,
+    "file": "13_fasting_family_preferences.png",
+    "title": "Built Around Real Family Life",
+    "status": "LIVE / DEMO",
+    "evidence": "Feature graphic based on actual planner fields",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 14,
+    "file": "14_four_paw_family.png",
+    "title": "Everyone You Call Family 🐾",
+    "status": "FAMILY PLUS / BETA",
+    "evidence": "Separate pet-appropriate guidance; not same meal as human plan",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 15,
+    "file": "15_subscription_plans.png",
+    "title": "Start with MAMAAI",
+    "status": "LIVE CHECKOUT / VERIFY PAYMENT",
+    "evidence": "Real production subscription screenshot",
+    "type": "Real production screenshot embedded"
+  },
+  {
+    "number": 16,
+    "file": "16_razorpay_subscription.png",
+    "title": "Simple Subscription. Verified Access.",
+    "status": "TEST MODE / CONTROLLED PILOT",
+    "evidence": "No payment identifiers or personal payment data shown",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 17,
+    "file": "17_mobile_pwa.png",
+    "title": "MAMAAI Goes Wherever the Family Goes",
+    "status": "PWA READY / BROWSER DEPENDENT",
+    "evidence": "Production screenshot framed as mobile/web",
+    "type": "Real production screenshot embedded"
+  },
+  {
+    "number": 18,
+    "file": "18_family_learning.png",
+    "title": "MAMAAI Learns What Your Family Actually Likes",
+    "status": "PROTOTYPE",
+    "evidence": "Clearly labeled because full durable learning is not complete",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 19,
+    "file": "19_business_crm.png",
+    "title": "From Visitors to Paying Families",
+    "status": "BETA / NO FAKE DATA",
+    "evidence": "Real CRM capabilities summarized; no invented customers/revenue",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 20,
+    "file": "20_subscription_adoption.png",
+    "title": "Understand What Families Actually Choose",
+    "status": "PROTOTYPE / DATA PENDING",
+    "evidence": "Business intelligence graphic with data-pending label",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 21,
+    "file": "21_privacy_trust.png",
+    "title": "Family Information Deserves Protection",
+    "status": "BETA",
+    "evidence": "No compliance certification claimed",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 22,
+    "file": "22_food_health_responsibility.png",
+    "title": "AI Food Planning — Not Medical Advice",
+    "status": "LIVE SAFETY MESSAGE",
+    "evidence": "Responsibility graphic based on safety posture",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 23,
+    "file": "23_hybrid_ai_architecture.png",
+    "title": "AI Where It Matters",
+    "status": "ARCHITECTURE DIAGRAM",
+    "evidence": "Based only on technologies present in repo",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 24,
+    "file": "24_technology_stack.png",
+    "title": "Built with Gemini",
+    "status": "STACK DIAGRAM",
+    "evidence": "Only technologies found in repo/docs are shown",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 25,
+    "file": "25_complete_mamaai_journey.png",
+    "title": "From “What Should We Cook?” to Dinner",
+    "status": "JOURNEY DIAGRAM",
+    "evidence": "Truthful end-to-end journey graphic",
+    "type": "Diagram / feature graphic"
+  },
+  {
+    "number": 26,
+    "file": "26_company_investor_closing.png",
+    "title": "Built by Rashi Bhartiya Innovation LLP",
+    "status": "CLOSING",
+    "evidence": "Company/investor closing image",
+    "type": "Diagram / feature graphic"
+  }
+]

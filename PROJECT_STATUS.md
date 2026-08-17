@@ -10,6 +10,8 @@ Production-readiness status:
 - TypeScript validation passes with `tsc --noEmit`.
 - Admin UI and `/api/admin/*` are protected by the root `proxy.ts` matcher and require `ADMIN_SECRET_KEY` authorization/session setup.
 - Razorpay checkout now uses the correct real flow: create a server-side Razorpay subscription through `/api/razorpay/subscriptions`, then open Checkout with the returned Razorpay subscription id.
+- Razorpay subscription records, payment transactions, current entitlement records, and webhook idempotency records now use DynamoDB instead of the MVP in-memory store.
+- Admin CRM now has DynamoDB-backed customer listing by entitlement status, support notes, minimized customer export, and audit logging endpoints under protected `/api/admin/*` routes.
 - Razorpay pricing is aligned as Family Starter INR 399 / US$4.99, Family Premium INR 599 / US$7.99, and Family Plus INR 999 / US$12.99.
 - Local Razorpay smoke tests create Razorpay subscription objects for India and international plan selections after normalizing pasted plan values to the required `plan_...` id format. Final real payment acceptance still needs manual Checkout completion and webhook verification on the deployed Vercel environment.
 - Family Plus includes extended four-paw member meal planning with separate pet-appropriate guidance.
@@ -28,8 +30,8 @@ Latest completed production-readiness work:
 
 Critical caveats before broad public paid production:
 
-- Families, meal plans, most subscription records, payment records, and most analytics still rely on the MVP in-memory store unless a specific endpoint writes to DynamoDB.
-- Full authenticated user identity is not connected yet; current payment test flow uses a demo user id unless a future auth layer supplies the real user id.
+- Families, meal plans, pantry state, most analytics, and some admin dashboard summaries still rely on MVP in-memory services or partial DynamoDB endpoints.
+- Full production authentication is still not connected. Payment routes now support a signed server-side user header and demo-compatibility mode, but a real auth provider must be connected before broad public launch.
 - Razorpay must be verified end-to-end on the deployed Vercel environment with live/test keys, 19-character MAMAAI subscription plan ids, webhook URL, and webhook secret before inviting paying testers.
 - `npm audit --omit=dev` currently reports high-severity advisories in the Next/PostCSS/sharp dependency chain; assess available safe updates before broad production exposure.
 - Some deep planner microcopy remains English-first inside the large FamilyFlow experience, though core public pages and assistant flows now support the three target languages.
@@ -135,11 +137,11 @@ binnovationllp@gmail.com.
 
 ## Not Started
 
-- Production DynamoDB repository implementation.
+- Production DynamoDB repository implementation for family, meal plan, pantry, analytics, and broader CRM lifecycle records.
 - Production S3 export/report/upload implementation with signed URLs.
 - Production authentication provider integration.
 - RevenueCat and Google Play Billing production integration.
-- Admin/CRM screens beyond contract foundation.
+- Full CRM dashboards beyond paid-customer list/support-note/export basics.
 - Pantry persistence, leftover planning, production analytics persistence, PDF/export, full authentication, durable DynamoDB repositories, and remaining deep planner microcopy translation.
 
 ## Known Bugs
@@ -189,6 +191,8 @@ binnovationllp@gmail.com.
 - `MAMA_AI_TABLE_NAME`
 - `MAMA_AI_DYNAMODB_TABLE_NAME`
 - `MAMA_AI_DYNAMODB_TTL_ATTRIBUTE`
+- `MAMA_AI_DYNAMODB_GSI1_NAME`
+- `MAMA_AI_DYNAMODB_GSI2_NAME`
 - `MAMA_AI_S3_BUCKET`
 - `MAMA_AI_S3_PREFIX`
 - `MAMA_AI_EXPORTS_PREFIX`
@@ -206,6 +210,8 @@ binnovationllp@gmail.com.
 - `YOUTUBE_API_KEY`
 - `MAMA_AI_DEMO_MODE`
 - `MAMA_AI_JUDGE_ACCESS_ENABLED`
+- `MAMA_AI_ALLOW_DEMO_IDENTITY`
+- `MAMA_AI_ALLOWED_ORIGINS`
 - `NEXT_PUBLIC_RAZORPAY_KEY_ID`
 - `RAZORPAY_KEY_ID`
 - `RAZORPAY_KEY_SECRET`
@@ -246,3 +252,35 @@ binnovationllp@gmail.com.
 - Added Razorpay India web/PWA readiness: server-side subscription creation, Checkout signature verification, signed webhook handling, subscription/payment records, status endpoint integration, admin visibility, and UI subscription CTAs that show a safe testing-stage message when Razorpay env is not configured.
 - Documented that the same Razorpay account can be used for MAMAAI and Syllabus Synk only with separate MAMAAI plan IDs, webhook URL, webhook secret, metadata, env variables, and entitlement records.
 
+## Hackathon Screenshot & Feature-Image Package - August 16, 2026
+
+Output folders created:
+
+- `docs/hackathon/screenshots/raw`
+- `docs/hackathon/screenshots/redacted`
+- `docs/hackathon/screenshots/final`
+- `docs/hackathon/screenshots/contact-sheet`
+
+Package status:
+
+- Final branded images created: 26 / 26, all 1920 x 1080 PNG.
+- Redacted images created: 26 / 26, all 1920 x 1080 PNG.
+- Raw folder populated: 26 / 26. Genuine production raw screenshots were captured for homepage, Ask MAMA, pantry, subscription page, multilingual/homepage, and PWA/mobile/homepage; remaining raw items are labelled evidence cards for diagrams/feature graphics where a clean live screenshot was not captured.
+- Contact sheet created: `docs/hackathon/screenshots/contact-sheet/mamaai_hackathon_contact_sheet.png`.
+- Manifest created: `docs/hackathon/screenshots/IMAGE_PACKAGE_MANIFEST.json`.
+
+Features demonstrated truthfully:
+
+- Live/verified: homepage, subscription page/pricing, Ask MAMA surface, multilingual public surfaces, PWA foundation, Razorpay subscription-creation flow, admin-protected CRM endpoints, DynamoDB payment/CRM persistence slice, safety/responsibility messaging.
+- Gemini-powered features demonstrated: Ask MAMA uses `gemini-2.5-flash`; other Gemini helper paths remain present for proactive/meal reasoning with `gemini-1.5-flash` and `gemini-1.5-pro` code paths.
+- Test Mode / controlled pilot labels used: Razorpay verified-access/payment journey, subscription payment completion and webhook entitlement pending trusted real tester confirmation.
+- Beta labels used: pantry, recipe/cooking support, voice input, four-paw Family Plus support, privacy/trust controls, CRM slice.
+- Prototype/data-pending labels used: durable family learning, subscription adoption/business intelligence where real historical customer data is not yet available.
+- Four-paw feature image completed with separate pet-appropriate planning and veterinarian disclaimer.
+- CRM image completed without invented customers, revenue, or fake conversion data.
+- Razorpay image completed without secrets or payment details.
+- Privacy check completed: no API keys, AWS credentials, Razorpay secrets, auth tokens, real customer details, private medical information, unmasked phone numbers, addresses, card/bank information, or unsupported compliance claims are intentionally included.
+
+Remaining screenshot caveat:
+
+- Several final images are truthful diagrams/feature graphics, not raw live screenshots, because the current app does not expose every concept as a clean standalone public UI screen and because some capabilities remain beta/prototype/test-mode. These are labelled accordingly in the image status chips and manifest.
