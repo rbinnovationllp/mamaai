@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { RazorpayService } from "@/lib/services/razorpay-service";
 import { cancelRazorpaySubscriptionSchema } from "@/lib/shared/schemas";
+import { authErrorResponse, requireUser } from "@/lib/server/auth";
 
 interface RouteContext {
   params: Promise<{
@@ -21,8 +22,9 @@ export async function POST(request: Request, context: RouteContext) {
       );
     }
 
+    const user = requireUser(request, parsed.data.userId);
     const result = await new RazorpayService().cancelSubscription({
-      userId: parsed.data.userId,
+      userId: user.userId,
       razorpaySubscriptionId: subscriptionId,
       cancelAtCycleEnd: parsed.data.cancelAtCycleEnd
     });
@@ -44,6 +46,9 @@ export async function POST(request: Request, context: RouteContext) {
       subscriptionRecord: result.subscriptionRecord
     });
   } catch (error) {
+    const authResponse = authErrorResponse(error);
+    if (authResponse) return authResponse;
+
     return NextResponse.json(
       {
         error: {

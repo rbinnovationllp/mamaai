@@ -19,12 +19,12 @@ Current status:
 - Admin dashboard and `/api/admin/*` endpoints are protected by the root `proxy.ts` guard and require `ADMIN_SECRET_KEY` authorization/session setup.
 - Razorpay web subscription checkout now creates a server-side Razorpay subscription before opening Checkout.
 - Razorpay checkout still requires real Razorpay credentials, valid 19-character Razorpay subscription plan ids, webhook secret, and end-to-end payment verification in the target environment before inviting paying testers.
-- Families, meal plans, subscriptions, payments, and most analytics still use MVP in-memory persistence except for selected DynamoDB-specific endpoints. Production durability requires DynamoDB repository completion.
+- Razorpay subscription records, payment transactions, entitlement snapshots, webhook idempotency, paid-customer CRM listing, support notes, minimized exports, and CRM audit records now use DynamoDB. Families, meal plans, pantry state, and parts of analytics still require DynamoDB migration before broad public launch.
 
 Launch recommendation:
 
 - Safe for hackathon demo and controlled colleague testing after verifying Razorpay in the deployed Vercel environment.
-- Do not treat it as fully durable production until DynamoDB-backed repositories and authenticated user identity are connected for all critical user/payment records.
+- Do not treat it as fully durable production until DynamoDB-backed repositories and authenticated user identity are connected for all critical family, planner, CRM, and payment ownership flows.
 
 MAMA AI is an AI-powered Family Food Operating System for household meal planning. It is designed around a practical family reality: most homes do not want to cook five separate meals, but different family members often need different portions, adjustments, fruits, hydration, and health-aware guidance.
 
@@ -174,6 +174,8 @@ For Indian web/PWA subscriptions, MAMAAI is Razorpay-ready:
 - Admin dashboard shows recent subscription status and payment history.
 - The subscription UI opens Razorpay Checkout with the returned Razorpay subscription id, not a raw plan id.
 - INR and USD Razorpay plan ids are selected from separate MAMAAI environment variables.
+- Razorpay subscription/payment records and current entitlement snapshots are persisted in DynamoDB under the configured `MAMA_AI_DYNAMODB_TABLE_NAME`.
+- Razorpay webhooks are verified with the raw body signature and processed idempotently using an event id or body hash.
 
 Latest local payment smoke result:
 
@@ -182,6 +184,36 @@ Latest local payment smoke result:
 - Before colleague payment testing, verify `RAZORPAY_PLAN_STARTER_MONTHLY`, `RAZORPAY_PLAN_PREMIUM_MONTHLY`, `RAZORPAY_PLAN_PLUS_MONTHLY`, and the USD plan variables are real MAMAAI Razorpay subscription plan ids for the intended live/test mode.
 
 The same Razorpay business account can be used for another project such as Syllabus Synk, but MAMAAI must use separate Razorpay plan IDs, webhook URL, webhook secret, metadata, environment variables, and backend entitlement records.
+
+### DynamoDB Payment Schema
+
+Current payment records use the existing MAMAAI DynamoDB table with these item patterns:
+
+- `PK=USER#<userId>`, `SK=SUBSCRIPTION#RAZORPAY#<subscriptionId>` for subscription records.
+- `PK=USER#<userId>`, `SK=PAYMENT#<createdAt>#<transactionId>` for payment transactions.
+- `PK=USER#<userId>`, `SK=ENTITLEMENT#CURRENT` for the latest entitlement snapshot.
+- `PK=WEBHOOK#RAZORPAY`, `SK=razorpay:<eventId-or-body-hash>` for webhook idempotency.
+- `GSI1PK=RAZORPAY_SUBSCRIPTION#<subscriptionId>` supports provider-to-user lookup.
+- `GSI1PK=RAZORPAY_PAYMENT#<paymentId>` supports payment lookup when a payment id is present.
+- `GSI2PK=PAYMENTS#<status>` and `GSI2PK=USER_SUBSCRIPTIONS#<userId>` support operational filtering.
+
+### DynamoDB Table Requirements
+
+Use the existing MAMAAI DynamoDB table. It must have:
+
+- Partition key: `PK` string.
+- Sort key: `SK` string.
+- GSI1: partition key `GSI1PK` string, sort key `GSI1SK` string.
+- GSI2: partition key `GSI2PK` string, sort key `GSI2SK` string.
+- Billing mode: on-demand is recommended for launch.
+- Encryption: AWS-owned/AWS-managed encryption at rest.
+- Point-in-time recovery: recommended before public ads.
+
+The admin CRM uses:
+
+- `GSI1PK=ENTITLEMENT_STATUS#<status>` for customer list/search by subscription state.
+- `CUSTOMER#<userId>` support-note records.
+- `ADMIN_AUDIT` immutable audit records for CRM list/export/note actions.
 
 Judge/Demo Mode remains independent of payment.
 

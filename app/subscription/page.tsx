@@ -1,8 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import Script from 'next/script';
 import { LanguageSelector, useLanguage } from '@/components/LanguageProvider';
+
+const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
+
+type HouseholdMember = {
+  id: string;
+  name: string;
+  relation: string;
+};
 
 const subscriptionCopy = {
   en: {
@@ -12,6 +21,11 @@ const subscriptionCopy = {
     judgeAccess: 'Judge / Evaluator Access',
     title: 'Choose Your Household Plan',
     subtitle: 'One Family. Different Needs. One Intelligent Meal Plan.',
+    householdTitle: 'Choosing for your saved household',
+    householdEmpty:
+      'No household members found yet. You can still subscribe, or create your family profile first.',
+    createProfile: 'Create family profile',
+    suggested: 'Suggested plan',
     starterSupport: 'Supports up to 4 human family members.',
     premiumSupport: 'Supports up to 6 human family members.',
     plusSupport: 'Family Plus adds extended four-paw member meal planning.',
@@ -20,11 +34,30 @@ const subscriptionCopy = {
     plusButton: 'Upgrade to Family Plus',
     processing: 'Processing...',
     popular: 'MOST POPULAR',
-    starterFeatures: ['Daily family meal planning', 'Allergy consideration and food likes/dislikes', 'Basic grocery list generation', 'Manual pantry tracking', 'Starter Ask MAMA access'],
-    premiumFeatures: ['Everything in Starter included', 'Proactive weekly planning and preference learning', 'Pantry intelligence and auto grocery deduction', 'Meal repetition memory', 'Advanced Ask MAMA AI features'],
-    plusFeatures: ['Everything in Premium Subscription', 'Extended four-paw member profiles', 'Separate pet-appropriate meal planning', 'Pet food shopping and feeding reminders', 'Combined household food budget'],
+    starterFeatures: [
+      'Daily family meal planning',
+      'Allergy consideration and food likes/dislikes',
+      'Basic grocery list generation',
+      'Manual pantry tracking',
+      'Starter Ask MAMA access',
+    ],
+    premiumFeatures: [
+      'Everything in Starter included',
+      'Proactive weekly planning and preference learning',
+      'Pantry intelligence and auto grocery deduction',
+      'Meal repetition memory',
+      'Advanced Ask MAMA AI features',
+    ],
+    plusFeatures: [
+      'Everything in Premium Subscription',
+      'Extended four-paw member profiles',
+      'Separate pet-appropriate meal planning',
+      'Pet food shopping and feeding reminders',
+      'Combined household food budget',
+    ],
     judgeTitle: 'Hackathon Evaluator / Judge Access',
-    judgeText: 'Enter the Judge Access Key to evaluate subscription-tier AI features without entering payment details.',
+    judgeText:
+      'Enter the Judge Access Key to evaluate subscription-tier AI features without entering payment details.',
     passkey: 'Passkey Secret',
     targetTier: 'Target Subscription Tier',
     unlock: 'Unlock Access',
@@ -37,6 +70,11 @@ const subscriptionCopy = {
     judgeAccess: 'Judge / Evaluator Access',
     title: 'अपना Household Plan चुनें',
     subtitle: 'एक परिवार. अलग जरूरतें. एक समझदार भोजन योजना.',
+    householdTitle: 'आपके saved household के लिए plan चुना जा रहा है',
+    householdEmpty:
+      'अभी household members नहीं मिले. आप subscribe कर सकते हैं, या पहले family profile बना सकते हैं.',
+    createProfile: 'Family profile बनाएं',
+    suggested: 'Suggested plan',
     starterSupport: '4 human family members तक support.',
     premiumSupport: '6 human family members तक support.',
     plusSupport: 'Family Plus में extended four-paw member meal planning शामिल है.',
@@ -45,11 +83,30 @@ const subscriptionCopy = {
     plusButton: 'Family Plus Upgrade करें',
     processing: 'Processing...',
     popular: 'MOST POPULAR',
-    starterFeatures: ['Daily family meal planning', 'Allergy और likes/dislikes consideration', 'Basic grocery list generation', 'Manual pantry tracking', 'Starter Ask MAMA access'],
-    premiumFeatures: ['Starter की सारी सुविधाएं', 'Weekly planning और preference learning', 'Pantry intelligence और grocery deduction', 'Meal repetition memory', 'Advanced Ask MAMA AI features'],
-    plusFeatures: ['Premium की सारी सुविधाएं', 'Extended four-paw member profiles', 'Separate pet-appropriate meal planning', 'Pet food shopping और feeding reminders', 'Combined household food budget'],
+    starterFeatures: [
+      'Daily family meal planning',
+      'Allergy और likes/dislikes consideration',
+      'Basic grocery list generation',
+      'Manual pantry tracking',
+      'Starter Ask MAMA access',
+    ],
+    premiumFeatures: [
+      'Starter की सारी सुविधाएं',
+      'Weekly planning और preference learning',
+      'Pantry intelligence और grocery deduction',
+      'Meal repetition memory',
+      'Advanced Ask MAMA AI features',
+    ],
+    plusFeatures: [
+      'Premium की सारी सुविधाएं',
+      'Extended four-paw member profiles',
+      'Separate pet-appropriate meal planning',
+      'Pet food shopping और feeding reminders',
+      'Combined household food budget',
+    ],
     judgeTitle: 'Hackathon Evaluator / Judge Access',
-    judgeText: 'Payment details डाले बिना subscription-tier AI features evaluate करने के लिए Judge Access Key डालें.',
+    judgeText:
+      'Payment details डाले बिना subscription-tier AI features evaluate करने के लिए Judge Access Key डालें.',
     passkey: 'Passkey Secret',
     targetTier: 'Target Subscription Tier',
     unlock: 'Access Unlock करें',
@@ -62,6 +119,11 @@ const subscriptionCopy = {
     judgeAccess: 'Judge / Evaluator Access',
     title: 'ನಿಮ್ಮ Household Plan ಆಯ್ಕೆ ಮಾಡಿ',
     subtitle: 'ಒಂದು ಕುಟುಂಬ. ವಿಭಿನ್ನ ಅಗತ್ಯಗಳು. ಒಂದು ಬುದ್ಧಿವಂತ ಊಟದ ಪ್ಲ್ಯಾನ್.',
+    householdTitle: 'ನಿಮ್ಮ saved household ಗೆ plan ಆಯ್ಕೆ ಮಾಡಲಾಗುತ್ತಿದೆ',
+    householdEmpty:
+      'Household members ಇನ್ನೂ ಸಿಗಲಿಲ್ಲ. ನೀವು subscribe ಮಾಡಬಹುದು, ಅಥವಾ ಮೊದಲು family profile ರಚಿಸಬಹುದು.',
+    createProfile: 'Family profile ರಚಿಸಿ',
+    suggested: 'Suggested plan',
     starterSupport: '4 human family members ವರೆಗೆ support.',
     premiumSupport: '6 human family members ವರೆಗೆ support.',
     plusSupport: 'Family Plus ನಲ್ಲಿ extended four-paw member meal planning ಸೇರಿದೆ.',
@@ -70,11 +132,30 @@ const subscriptionCopy = {
     plusButton: 'Family Plus Upgrade ಮಾಡಿ',
     processing: 'Processing...',
     popular: 'MOST POPULAR',
-    starterFeatures: ['Daily family meal planning', 'Allergy ಮತ್ತು likes/dislikes consideration', 'Basic grocery list generation', 'Manual pantry tracking', 'Starter Ask MAMA access'],
-    premiumFeatures: ['Starter ನಲ್ಲಿರುವ ಎಲ್ಲವೂ', 'Weekly planning ಮತ್ತು preference learning', 'Pantry intelligence ಮತ್ತು grocery deduction', 'Meal repetition memory', 'Advanced Ask MAMA AI features'],
-    plusFeatures: ['Premium ನಲ್ಲಿರುವ ಎಲ್ಲವೂ', 'Extended four-paw member profiles', 'Separate pet-appropriate meal planning', 'Pet food shopping ಮತ್ತು feeding reminders', 'Combined household food budget'],
+    starterFeatures: [
+      'Daily family meal planning',
+      'Allergy ಮತ್ತು likes/dislikes consideration',
+      'Basic grocery list generation',
+      'Manual pantry tracking',
+      'Starter Ask MAMA access',
+    ],
+    premiumFeatures: [
+      'Starter ನಲ್ಲಿರುವ ಎಲ್ಲವೂ',
+      'Weekly planning ಮತ್ತು preference learning',
+      'Pantry intelligence ಮತ್ತು grocery deduction',
+      'Meal repetition memory',
+      'Advanced Ask MAMA AI features',
+    ],
+    plusFeatures: [
+      'Premium ನಲ್ಲಿರುವ ಎಲ್ಲವೂ',
+      'Extended four-paw member profiles',
+      'Separate pet-appropriate meal planning',
+      'Pet food shopping ಮತ್ತು feeding reminders',
+      'Combined household food budget',
+    ],
     judgeTitle: 'Hackathon Evaluator / Judge Access',
-    judgeText: 'Payment details ಇಲ್ಲದೆ subscription-tier AI features evaluate ಮಾಡಲು Judge Access Key ನಮೂದಿಸಿ.',
+    judgeText:
+      'Payment details ಇಲ್ಲದೆ subscription-tier AI features evaluate ಮಾಡಲು Judge Access Key ನಮೂದಿಸಿ.',
     passkey: 'Passkey Secret',
     targetTier: 'Target Subscription Tier',
     unlock: 'Access Unlock ಮಾಡಿ',
@@ -82,23 +163,57 @@ const subscriptionCopy = {
   },
 };
 
+function getSuggestedPlan(memberCount: number): string {
+  if (memberCount >= 7) return 'Family Plus';
+  if (memberCount >= 5) return 'Family Premium';
+  return 'Family Starter';
+}
+
 export default function SubscriptionPage() {
   const { language } = useLanguage();
-  const t = subscriptionCopy[language];
+  const t = subscriptionCopy[language] ?? subscriptionCopy.en;
   const [billingMarket, setBillingMarket] = useState<'IN' | 'INT'>('IN');
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [showJudgeModal, setShowJudgeModal] = useState(false);
   const [judgeKeyInput, setJudgeKeyInput] = useState('');
   const [judgePlanSelection, setJudgePlanSelection] = useState('family_plus');
   const [judgeStatusMsg, setJudgeStatusMsg] = useState('');
+  const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([]);
 
-  // Loads Razorpay SDK dynamically
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(HOUSEHOLD_STORAGE_KEY);
+      if (!saved) return;
+
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        setHouseholdMembers(
+          parsed
+            .filter((member) => member?.name)
+            .map((member) => ({
+              id: String(member.id ?? member.name),
+              name: String(member.name),
+              relation: String(member.relation ?? ''),
+            }))
+        );
+      }
+    } catch {
+      setHouseholdMembers([]);
+    }
+  }, []);
+
+  const suggestedPlan = useMemo(
+    () => getSuggestedPlan(householdMembers.length),
+    [householdMembers.length]
+  );
+
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
       if ((window as any).Razorpay) {
         resolve(true);
         return;
       }
+
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.onload = () => resolve(true);
@@ -107,12 +222,10 @@ export default function SubscriptionPage() {
     });
   };
 
-  // Handles real Razorpay payment checkout
   const handleSubscribe = async (planTier: 'starter' | 'premium' | 'family_plus') => {
     try {
       setLoadingPlan(planTier);
 
-      // 1. Create a real Razorpay subscription server-side.
       const res = await fetch('/api/razorpay/subscriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -121,6 +234,7 @@ export default function SubscriptionPage() {
           plan: planTier,
           billingMarket,
           customerNotify: false,
+          householdMembers,
         }),
       });
 
@@ -132,7 +246,6 @@ export default function SubscriptionPage() {
         return;
       }
 
-      // 2. Load Razorpay script
       const isLoaded = await loadRazorpayScript();
       if (!isLoaded) {
         alert('Razorpay SDK failed to load. Please check your network connection.');
@@ -140,7 +253,6 @@ export default function SubscriptionPage() {
         return;
       }
 
-      // 3. Configure Razorpay Options
       const options = {
         key: data.checkout.key,
         subscription_id: data.subscriptionId,
@@ -168,9 +280,13 @@ export default function SubscriptionPage() {
           }
         },
         prefill: {
-          name: '',
+          name: householdMembers[0]?.name ?? '',
           email: '',
           contact: '',
+        },
+        notes: {
+          householdMemberCount: String(householdMembers.length),
+          suggestedPlan,
         },
         theme: {
           color: '#059669',
@@ -187,7 +303,6 @@ export default function SubscriptionPage() {
     }
   };
 
-  // Handles Judge / Evaluator Test Bypass
   const handleJudgeBypass = async () => {
     try {
       setJudgeStatusMsg('Verifying bypass key...');
@@ -212,192 +327,154 @@ export default function SubscriptionPage() {
       } else {
         setJudgeStatusMsg('Invalid Judge Access Key.');
       }
-    } catch (err) {
+    } catch {
       setJudgeStatusMsg('Server error verifying key.');
     }
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8 font-sans">
+    <main className="min-h-screen bg-gray-50 px-4 py-10 font-sans sm:px-6 lg:px-8">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
 
-      <div className="max-w-6xl mx-auto">
-        {/* Top Controls */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-8 flex flex-col items-center justify-between gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:flex-row">
           <div className="flex items-center gap-2">
-            <span className="bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full">
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
               {t.trial}
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <LanguageSelector />
-            {/* Currency Switcher */}
-            <div className="inline-flex rounded-xl p-1 bg-gray-100 text-xs font-semibold">
+
+            <div className="inline-flex rounded-xl bg-gray-100 p-1 text-xs font-semibold">
               <button
+                type="button"
                 onClick={() => setBillingMarket('IN')}
-                className={`px-3 py-1.5 rounded-lg transition ${billingMarket === 'IN' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+                className={`rounded-lg px-3 py-1.5 transition ${billingMarket === 'IN'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-900'
                   }`}
               >
                 {t.india}
               </button>
               <button
+                type="button"
                 onClick={() => setBillingMarket('INT')}
-                className={`px-3 py-1.5 rounded-lg transition ${billingMarket === 'INT' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+                className={`rounded-lg px-3 py-1.5 transition ${billingMarket === 'INT'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-900'
                   }`}
               >
                 {t.international}
               </button>
             </div>
 
-            {/* Judge Mode Button */}
             <button
+              type="button"
               onClick={() => setShowJudgeModal(true)}
-              className="text-xs text-slate-500 hover:text-emerald-600 underline font-medium px-2 py-1"
+              className="px-2 py-1 text-xs font-medium text-slate-500 underline hover:text-emerald-600"
             >
               {t.judgeAccess}
             </button>
           </div>
         </div>
 
-        {/* Header */}
-        <div className="text-center mb-10">
+        <div className="mb-8 text-center">
           <h1 className="text-3xl font-extrabold text-gray-900">{t.title}</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            {t.subtitle}
-          </p>
+          <p className="mt-2 text-sm text-gray-600">{t.subtitle}</p>
         </div>
 
-        {/* 3 Subscription Tiers */}
-        <div className="grid md:grid-cols-3 gap-6 items-stretch">
-          {/* 1. Starter Subscription (₹399 / $4.99) */}
-          <div className="bg-white rounded-2xl border p-6 flex flex-col justify-between shadow-sm hover:shadow transition">
+        <section className="mb-8 rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Family Starter</h2>
-              <div className="mt-3">
-                <span className="text-3xl font-extrabold text-gray-900">
-                  {billingMarket === 'IN' ? 'Rs. 399' : '$4.99'}
-                </span>
-                <span className="text-xs text-gray-500">
-                  /mo ({billingMarket === 'IN' ? 'India' : 'International'})
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">{t.starterSupport}</p>
-
-              <ul className="mt-5 space-y-2 text-xs text-gray-700">
-                {t.starterFeatures.map((feature) => (
-                  <li className="flex items-center gap-1.5" key={feature}>
-                    <span className="text-emerald-500 font-bold">✓</span> {feature}
-                  </li>
-                ))}
-              </ul>
+              <p className="text-sm font-bold text-emerald-800">{t.householdTitle}</p>
+              {householdMembers.length > 0 ? (
+                <>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {householdMembers.length} member{householdMembers.length > 1 ? 's' : ''}:{' '}
+                    {householdMembers.map((member) => member.name).join(', ')}
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900">
+                    {t.suggested}: {suggestedPlan}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-1 text-sm text-slate-600">{t.householdEmpty}</p>
+              )}
             </div>
 
-            <button
-              onClick={() => handleSubscribe('starter')}
-              disabled={loadingPlan === 'starter'}
-              className="mt-6 w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition shadow"
+            <Link
+              href="/profile/family"
+              className="rounded-xl border border-emerald-200 px-4 py-2 text-center text-sm font-bold text-emerald-800 transition hover:bg-emerald-50"
             >
-              {loadingPlan === 'starter' ? t.processing : t.starterButton}
-            </button>
+              {t.createProfile}
+            </Link>
           </div>
+        </section>
 
-          {/* 2. Premium Subscription (₹599 / $7.99) */}
-          <div className="bg-white rounded-2xl border-2 border-emerald-500 p-6 flex flex-col justify-between shadow-md relative">
-            <span className="bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-full absolute -top-3 right-4">
-              {t.popular}
-            </span>
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">Family Premium</h2>
-              <div className="mt-3">
-                <span className="text-3xl font-extrabold text-gray-900">
-                  {billingMarket === 'IN' ? 'Rs. 599' : '$7.99'}
-                </span>
-                <span className="text-xs text-gray-500">
-                  /mo ({billingMarket === 'IN' ? 'India' : 'International'})
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">{t.premiumSupport}</p>
+        <div className="grid items-stretch gap-6 md:grid-cols-3">
+          <PlanCard
+            title="Family Starter"
+            price={billingMarket === 'IN' ? 'Rs. 399' : '$4.99'}
+            market={billingMarket === 'IN' ? 'India' : 'International'}
+            support={t.starterSupport}
+            features={t.starterFeatures}
+            buttonText={loadingPlan === 'starter' ? t.processing : t.starterButton}
+            disabled={loadingPlan === 'starter'}
+            onClick={() => handleSubscribe('starter')}
+          />
 
-              <ul className="mt-5 space-y-2 text-xs text-gray-700">
-                {t.premiumFeatures.map((feature) => (
-                  <li className="flex items-center gap-1.5" key={feature}>
-                    <span className="text-emerald-500 font-bold">✓</span> {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <PlanCard
+            title="Family Premium"
+            price={billingMarket === 'IN' ? 'Rs. 599' : '$7.99'}
+            market={billingMarket === 'IN' ? 'India' : 'International'}
+            support={t.premiumSupport}
+            features={t.premiumFeatures}
+            buttonText={loadingPlan === 'premium' ? t.processing : t.premiumButton}
+            disabled={loadingPlan === 'premium'}
+            onClick={() => handleSubscribe('premium')}
+            highlighted
+            badge={t.popular}
+          />
 
-            <button
-              onClick={() => handleSubscribe('premium')}
-              disabled={loadingPlan === 'premium'}
-              className="mt-6 w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition shadow"
-            >
-              {loadingPlan === 'premium' ? t.processing : t.premiumButton}
-            </button>
-          </div>
-
-          {/* 3. Plus Subscription (₹999 / $12.99) */}
-          <div className="bg-white rounded-2xl border p-6 flex flex-col justify-between shadow-sm hover:shadow transition">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">Family Plus</h2>
-              <div className="mt-3">
-                <span className="text-3xl font-extrabold text-gray-900">
-                  {billingMarket === 'IN' ? 'Rs. 999' : '$12.99'}
-                </span>
-                <span className="text-xs text-gray-500">
-                  /mo ({billingMarket === 'IN' ? 'India' : 'International'})
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">{t.plusSupport}</p>
-
-              <ul className="mt-5 space-y-2 text-xs text-gray-700">
-                {t.plusFeatures.map((feature) => (
-                  <li className="flex items-center gap-1.5" key={feature}>
-                    <span className="text-emerald-500 font-bold">✓</span> {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <button
-              onClick={() => handleSubscribe('family_plus')}
-              disabled={loadingPlan === 'family_plus'}
-              className="mt-6 w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition shadow"
-            >
-              {loadingPlan === 'family_plus' ? t.processing : t.plusButton}
-            </button>
-          </div>
+          <PlanCard
+            title="Family Plus"
+            price={billingMarket === 'IN' ? 'Rs. 999' : '$12.99'}
+            market={billingMarket === 'IN' ? 'India' : 'International'}
+            support={t.plusSupport}
+            features={t.plusFeatures}
+            buttonText={loadingPlan === 'family_plus' ? t.processing : t.plusButton}
+            disabled={loadingPlan === 'family_plus'}
+            onClick={() => handleSubscribe('family_plus')}
+          />
         </div>
       </div>
 
-      {/* Judge Bypass Modal */}
       {showJudgeModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">{t.judgeTitle}</h3>
-            <p className="text-xs text-gray-600 mb-4">
-              {t.judgeText}
-            </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-2xl">
+            <h3 className="mb-2 text-lg font-bold text-gray-900">{t.judgeTitle}</h3>
+            <p className="mb-4 text-xs text-gray-600">{t.judgeText}</p>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">{t.passkey}</label>
+                <label className="mb-1 block text-xs font-semibold text-gray-700">{t.passkey}</label>
                 <input
                   type="password"
                   placeholder="Enter JUDGE_TEST_KEY"
                   value={judgeKeyInput}
-                  onChange={(e) => setJudgeKeyInput(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                  onChange={(event) => setJudgeKeyInput(event.target.value)}
+                  className="w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">{t.targetTier}</label>
+                <label className="mb-1 block text-xs font-semibold text-gray-700">{t.targetTier}</label>
                 <select
                   value={judgePlanSelection}
-                  onChange={(e) => setJudgePlanSelection(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                  onChange={(event) => setJudgePlanSelection(event.target.value)}
+                  className="w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="starter">Family Starter (Rs. 399 / $4.99)</option>
                   <option value="premium">Family Premium (Rs. 599 / $7.99)</option>
@@ -409,14 +486,16 @@ export default function SubscriptionPage() {
 
               <div className="flex gap-2 pt-2">
                 <button
+                  type="button"
                   onClick={handleJudgeBypass}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 rounded-xl transition"
+                  className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-700"
                 >
                   {t.unlock}
                 </button>
                 <button
+                  type="button"
                   onClick={() => setShowJudgeModal(false)}
-                  className="px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold py-2.5 rounded-xl transition"
+                  className="rounded-xl bg-gray-100 px-4 py-2.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-200"
                 >
                   {t.close}
                 </button>
@@ -426,5 +505,68 @@ export default function SubscriptionPage() {
         </div>
       )}
     </main>
+  );
+}
+
+function PlanCard({
+  title,
+  price,
+  market,
+  support,
+  features,
+  buttonText,
+  disabled,
+  onClick,
+  highlighted = false,
+  badge,
+}: {
+  title: string;
+  price: string;
+  market: string;
+  support: string;
+  features: string[];
+  buttonText: string;
+  disabled: boolean;
+  onClick: () => void;
+  highlighted?: boolean;
+  badge?: string;
+}) {
+  return (
+    <div
+      className={`relative flex flex-col justify-between rounded-2xl bg-white p-6 shadow-sm transition hover:shadow ${highlighted ? 'border-2 border-emerald-500 shadow-md' : 'border'
+        }`}
+    >
+      {badge ? (
+        <span className="absolute -top-3 right-4 rounded-full bg-emerald-600 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+          {badge}
+        </span>
+      ) : null}
+
+      <div>
+        <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+        <div className="mt-3">
+          <span className="text-3xl font-extrabold text-gray-900">{price}</span>
+          <span className="text-xs text-gray-500">/mo ({market})</span>
+        </div>
+        <p className="mt-2 text-xs text-gray-500">{support}</p>
+
+        <ul className="mt-5 space-y-2 text-xs text-gray-700">
+          {features.map((feature) => (
+            <li className="flex items-center gap-1.5" key={feature}>
+              <span className="font-bold text-emerald-500">✓</span> {feature}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className="mt-6 w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-emerald-700 disabled:opacity-50"
+      >
+        {buttonText}
+      </button>
+    </div>
   );
 }

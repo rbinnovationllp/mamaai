@@ -1,11 +1,13 @@
 import crypto from "crypto";
 import type {
   PaymentStatus,
+  PaymentTransaction,
   SubscriptionPlan,
   SubscriptionRecord,
   SubscriptionStatus,
 } from "@/lib/shared/contracts";
-import { createId, nowIso, store } from "@/lib/repositories/in-memory-store";
+import { createId, nowIso } from "@/lib/repositories/in-memory-store";
+import { SubscriptionRepository } from "@/lib/repositories/subscription-repository";
 import { SubscriptionService, subscriptionLimits } from "./subscription-service";
 
 type RazorpaySubscriptionEvent =
@@ -93,6 +95,8 @@ function findPlanByRazorpayPlanId(planId?: string): SubscriptionPlan | undefined
 }
 
 export class RazorpayService {
+  private subscriptionRepository = new SubscriptionRepository();
+
   isConfiguredForSubscriptions(plan: SubscriptionPlan) {
     const keys = configuredRazorpayKey();
     const planDefinition = new SubscriptionService().getPlan(plan);
@@ -157,7 +161,7 @@ export class RazorpayService {
       throw new Error(data.error?.description ?? "Razorpay subscription creation failed.");
     }
 
-    const subscriptionRecord = this.upsertSubscriptionFromProvider({
+    const subscriptionRecord = await this.upsertSubscriptionFromProvider({
       userId: input.userId,
       plan: input.plan,
       razorpaySubscriptionId: data.id,
@@ -214,7 +218,7 @@ export class RazorpayService {
       throw new Error(data.error?.description ?? "Razorpay subscription cancellation failed.");
     }
 
-    const record = this.upsertSubscriptionFromProvider({
+    const record = await this.upsertSubscriptionFromProvider({
       userId: input.userId,
       razorpaySubscriptionId: input.razorpaySubscriptionId,
       razorpayPlanId: data.plan_id,
@@ -259,7 +263,7 @@ export class RazorpayService {
     );
   }
 
-  upsertSubscriptionFromProvider(input: {
+  async upsertSubscriptionFromProvider(input: {
     userId: string;
     plan?: SubscriptionPlan;
     razorpaySubscriptionId: string;
@@ -267,15 +271,17 @@ export class RazorpayService {
     razorpayPlanId?: string;
     providerStatus?: string;
     eventType: RazorpaySubscriptionEvent;
+    amount?: number;
+    currency?: "INR" | "USD";
+    providerInvoiceId?: string;
     startsAt?: string;
     renewsAt?: string;
     cancelledAt?: string;
   }) {
     const plan = input.plan ?? findPlanByRazorpayPlanId(input.razorpayPlanId) ?? "starter";
-    const existing = store.subscriptionRecords.find(
-      (record) =>
-        record.paymentChannel === "razorpay" &&
-        record.razorpaySubscriptionId === input.razorpaySubscriptionId
+    const existing = await this.subscriptionRepository.getSubscriptionForUserByRazorpaySubscriptionId(
+      input.userId,
+      input.razorpaySubscriptionId
     );
     const timestamp = nowIso();
     const status = mapSubscriptionStatus(input.eventType, input.providerStatus);
@@ -303,27 +309,26 @@ export class RazorpayService {
       updatedAt: timestamp,
     };
 
-    if (existing) {
-      Object.assign(existing, record);
-    } else {
-      store.subscriptionRecords.push(record);
-    }
-
-    store.paymentTransactions.push({
+    const payment: PaymentTransaction = {
       transactionId: createId("txn"),
       userId: input.userId,
       plan,
       subscriptionRecordId: record.subscriptionRecordId,
       paymentChannel: "razorpay",
       paymentStatus,
-      currency: "INR",
+      amount: input.amount,
+      currency: input.currency,
       providerPaymentId: input.razorpayPaymentId,
       providerSubscriptionId: input.razorpaySubscriptionId,
+      providerInvoiceId: input.providerInvoiceId,
       providerEvent: input.eventType,
       rawStatus: input.providerStatus,
       createdAt: timestamp,
-    });
+    };
 
-    return record;
+    return this.subscriptionRepository.saveSubscriptionAndPayment({
+      subscription: record,
+      payment,
+    });
   }
 }

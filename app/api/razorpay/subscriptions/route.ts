@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { RazorpayService } from "@/lib/services/razorpay-service";
 import { createRazorpaySubscriptionSchema, normalizePlanTier } from "@/lib/shared/schemas";
 import type { SubscriptionPlan } from "@/lib/shared/contracts";
+import { authErrorResponse, requireUser } from "@/lib/server/auth";
 
 export async function POST(request: Request) {
   try {
@@ -17,9 +18,10 @@ export async function POST(request: Request) {
 
     // Convert legacy aliases to canonical plan types
     const normalizedPlan = normalizePlanTier(parsed.data.plan) as SubscriptionPlan;
+    const user = requireUser(request, parsed.data.userId);
 
     const result = await new RazorpayService().createSubscription({
-      userId: parsed.data.userId,
+      userId: user.userId,
       plan: normalizedPlan,
       billingMarket: parsed.data.billingMarket,
       customerNotify: parsed.data.customerNotify,
@@ -51,13 +53,16 @@ export async function POST(request: Request) {
         description: `${result.plan?.displayName ?? "MAMAAI"} monthly subscription`,
         notes: {
           project: "mamaai",
-          userId: parsed.data.userId,
+          userId: user.userId,
           plan: normalizedPlan,
         },
       },
       subscriptionRecord: result.subscriptionRecord,
     });
   } catch (error) {
+    const authResponse = authErrorResponse(error);
+    if (authResponse) return authResponse;
+
     return NextResponse.json(
       {
         error: {
