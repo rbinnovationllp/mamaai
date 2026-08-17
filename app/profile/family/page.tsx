@@ -130,6 +130,7 @@ export default function FamilyProfilePage() {
   const [allergyInput, setAllergyInput] = useState('');
   const [doctorInput, setDoctorInput] = useState('');
   const [dislikeInput, setDislikeInput] = useState('');
+  const [formError, setFormError] = useState('');
   const [mealStrategy, setMealStrategy] =
     useState<FamilyMemberProfile['mealStrategyPreference']>('common');
 
@@ -163,7 +164,12 @@ export default function FamilyProfilePage() {
     const cleanName = name.trim();
     const cleanRelation = relation.trim();
 
-    if (!cleanName || !cleanRelation) return;
+    if (!cleanName || !cleanRelation) {
+      setFormError('Please enter member name and relation before adding.');
+      return;
+    }
+
+    setFormError('');
 
     const newMember: FamilyMemberProfile = {
       id: `m_${Date.now()}`,
@@ -225,6 +231,7 @@ export default function FamilyProfilePage() {
                 onValueChange={setName}
                 placeholder="Example: Rajesh"
                 inputClassName={inputClassName}
+                required
               />
             </label>
 
@@ -235,6 +242,7 @@ export default function FamilyProfilePage() {
                 onValueChange={setRelation}
                 placeholder="Example: Self / Parent / Child"
                 inputClassName={inputClassName}
+                required
               />
             </label>
 
@@ -281,6 +289,12 @@ export default function FamilyProfilePage() {
                 <option value="allow_separate">{t.separateMeal}</option>
               </select>
             </label>
+
+            {formError ? (
+              <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {formError}
+              </p>
+            ) : null}
 
             <button
               type="submit"
