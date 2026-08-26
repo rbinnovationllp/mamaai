@@ -8,6 +8,14 @@ export type DietType = "vegetarian" | "non_vegetarian" | "eggitarian" | "vegan" 
 
 export type FamilyDietPreference = "vegetarian" | "non_vegetarian" | "semi_vegetarian" | "eggetarian" | "vegan" | "mixed";
 
+export type NonVegetarianFrequency =
+  | "occasionally"
+  | "1_2_days_per_week"
+  | "3_4_days_per_week"
+  | "4_5_days_per_week"
+  | "most_days"
+  | "custom";
+
 export type PlanType = "daily" | "weekly" | "monthly";
 
 export type MealTime = "breakfast" | "lunch" | "dinner" | "snack" | "evening_snack" | "high_tea";
@@ -205,6 +213,9 @@ export interface FamilyMember {
   activityLevel: ActivityLevel;
   goals: string[];
   dietType: DietType;
+  nonVegFrequency?: NonVegetarianFrequency;
+  nonVegAvoidDays?: string[];
+  nonVegCustomRule?: string;
   likes: string[];
   dislikes: string[];
   allergies: string[];
@@ -303,7 +314,12 @@ export interface RecipeVideoResult {
   channelTitle: string;
   url: string;
   thumbnailUrl?: string;
-  source: "youtube" | "fallback_search";
+  source: "approved" | "sponsored" | "youtube" | "fallback_search";
+  language?: string;
+  sponsorName?: string;
+  sponsored?: boolean;
+  approved?: boolean;
+  matchQuality?: "exact" | "close" | "fallback";
   thirdPartyDisclaimer: string;
 }
 

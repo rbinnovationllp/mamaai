@@ -11,9 +11,18 @@ const memberSchema = z.object({
   id: z.string().min(1),
   name: z.string().trim().min(1),
   relation: z.string().trim().min(1),
+  age: z.number().int().min(0).max(120).optional(),
+  activityLevel: z
+    .enum(["sedentary", "light", "moderate", "heavy", "athlete"])
+    .default("moderate"),
   foodPreference: z
     .enum(["vegetarian", "eggetarian", "non_vegetarian", "semi_vegetarian", "vegan", "other"])
     .default("vegetarian"),
+  nonVegFrequency: z
+    .enum(["occasionally", "1_2_days_per_week", "3_4_days_per_week", "4_5_days_per_week", "most_days", "custom"])
+    .optional(),
+  nonVegAvoidDays: z.array(z.string()).default([]),
+  nonVegCustomRule: z.string().trim().optional().or(z.literal("")),
   allergies: z.array(z.string()).default([]),
   doctorAdvisedRestrictions: z.array(z.string()).default([]),
   dislikes: z.array(z.string()).default([]),
@@ -79,7 +88,12 @@ export async function POST(request: Request) {
       id: member.id,
       name: member.name,
       relation: member.relation,
+      age: member.age,
+      activityLevel: member.activityLevel ?? "moderate",
       foodPreference: member.foodPreference ?? "vegetarian",
+      nonVegFrequency: member.nonVegFrequency,
+      nonVegAvoidDays: member.nonVegAvoidDays ?? [],
+      nonVegCustomRule: member.nonVegCustomRule || undefined,
       allergies: member.allergies ?? [],
       doctorAdvisedRestrictions: member.doctorAdvisedRestrictions ?? [],
       dislikes: member.dislikes ?? [],

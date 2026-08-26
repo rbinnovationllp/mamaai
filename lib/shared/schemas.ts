@@ -112,6 +112,18 @@ export const createFamilyMemberInputSchema = z.object({
     "satvik",
     "other",
   ]),
+  nonVegFrequency: z
+    .enum([
+      "occasionally",
+      "1_2_days_per_week",
+      "3_4_days_per_week",
+      "4_5_days_per_week",
+      "most_days",
+      "custom",
+    ])
+    .optional(),
+  nonVegAvoidDays: z.array(z.string()).optional(),
+  nonVegCustomRule: z.string().optional(),
   likes: z.array(z.string()),
   dislikes: z.array(z.string()),
   allergies: z.array(z.string()),

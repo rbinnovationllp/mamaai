@@ -110,6 +110,19 @@ export default function AdminPage() {
           <p className="muted">Tracked events: {analytics.aiUsage.totalTrackedAiApiEvents}</p>
           <BarList items={analytics.aiUsage.expensiveOperationMix} />
         </article>
+        <article className="panel">
+          <h2>Recipe Video Marketplace</h2>
+          <p className="muted">
+            Future-ready controls are planned for approved recipe-video links, sponsored labels, campaign windows,
+            language/region targeting, dietary tags, enable/disable review, impressions and clicks. Paid placements
+            must remain visibly labelled as Sponsored Recipe Video / Paid Promotion.
+          </p>
+          <div className="event-metrics">
+            <p>Status: Future admin workflow</p>
+            <p>Current behavior: approved mappings first, YouTube fallback only when needed</p>
+            <p>Analytics available: recipe video requests</p>
+          </div>
+        </article>
       </section>
 
       <section className="notice">
