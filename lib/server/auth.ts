@@ -1,9 +1,10 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
+import { CUSTOMER_SESSION_COOKIE, parseCustomerSession } from "./customer-session";
 
 export interface AuthenticatedUser {
   userId: string;
-  source: "signed_header" | "demo_compatibility";
+  source: "signed_header" | "customer_session" | "demo_compatibility";
 }
 
 export class AuthError extends Error {
@@ -37,9 +38,25 @@ function verifySignedUserHeader(request: Request) {
   return { userId, source: "signed_header" as const };
 }
 
+function verifyCustomerSessionCookie(request: Request) {
+  const cookieHeader = request.headers.get("cookie") ?? "";
+  const cookieValue = cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${CUSTOMER_SESSION_COOKIE}=`))
+    ?.slice(CUSTOMER_SESSION_COOKIE.length + 1);
+
+  const session = parseCustomerSession(cookieValue);
+  if (!session) return undefined;
+  return { userId: session.userId, source: "customer_session" as const };
+}
+
 export function requireUser(request: Request, fallbackUserId?: string): AuthenticatedUser {
   const signedUser = verifySignedUserHeader(request);
   if (signedUser) return signedUser;
+
+  const customerSession = verifyCustomerSessionCookie(request);
+  if (customerSession) return customerSession;
 
   if (isDemoAllowed() && fallbackUserId) {
     return { userId: fallbackUserId, source: "demo_compatibility" };
@@ -60,4 +77,3 @@ export function authErrorResponse(error: unknown) {
   }
   return undefined;
 }
-

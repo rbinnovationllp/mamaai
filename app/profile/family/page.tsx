@@ -16,6 +16,7 @@ export interface FamilyMemberProfile {
 }
 
 const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
+const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
 
 const copy = {
   en: {
@@ -34,6 +35,14 @@ const copy = {
     commonMeal: 'Prefer One Common Family Meal',
     separateMeal: 'Allow Separate / Alternative Meal',
     add: 'Add Member Profile',
+    accountTitle: 'Your account details',
+    accountText: 'Used to save this family profile and connect it with your subscription.',
+    customerName: 'Your name',
+    customerMobile: 'Mobile number',
+    customerEmail: 'Email address',
+    saveContinue: 'Save Family & Continue',
+    saving: 'Saving...',
+    saved: 'Family profile saved. Opening subscription options...',
     configured: 'Configured Household Members',
     empty: 'No family members added yet. Add your first member to continue.',
     remove: 'Remove',
@@ -62,6 +71,14 @@ const copy = {
     commonMeal: 'Prefer One Common Family Meal',
     separateMeal: 'Allow Separate / Alternative Meal',
     add: 'Add Member Profile',
+    accountTitle: 'Your account details',
+    accountText: 'इससे आपका family profile और subscription एक ही account से जुड़ेंगे.',
+    customerName: 'Your name',
+    customerMobile: 'Mobile number',
+    customerEmail: 'Email address',
+    saveContinue: 'Save Family & Continue',
+    saving: 'Saving...',
+    saved: 'Family profile saved. Subscription options खुल रहे हैं...',
     configured: 'Configured Household Members',
     empty: 'अभी कोई family member add नहीं है. Continue करने के लिए पहला member add करें.',
     remove: 'Remove',
@@ -90,6 +107,14 @@ const copy = {
     commonMeal: 'Prefer One Common Family Meal',
     separateMeal: 'Allow Separate / Alternative Meal',
     add: 'Add Member Profile',
+    accountTitle: 'Your account details',
+    accountText: 'ಇದರಿಂದ family profile ಮತ್ತು subscription ಒಂದೇ account ಗೆ ಜೋಡಿಸಲಾಗುತ್ತದೆ.',
+    customerName: 'Your name',
+    customerMobile: 'Mobile number',
+    customerEmail: 'Email address',
+    saveContinue: 'Save Family & Continue',
+    saving: 'Saving...',
+    saved: 'Family profile saved. Subscription options ತೆರೆಯುತ್ತಿದೆ...',
     configured: 'Configured Household Members',
     empty: 'ಇನ್ನೂ family member add ಮಾಡಿಲ್ಲ. Continue ಮಾಡಲು ಮೊದಲ member add ಮಾಡಿ.',
     remove: 'Remove',
@@ -131,17 +156,30 @@ export default function FamilyProfilePage() {
   const [doctorInput, setDoctorInput] = useState('');
   const [dislikeInput, setDislikeInput] = useState('');
   const [formError, setFormError] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerMobile, setCustomerMobile] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [saveStatus, setSaveStatus] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
   const [mealStrategy, setMealStrategy] =
     useState<FamilyMemberProfile['mealStrategyPreference']>('common');
 
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(HOUSEHOLD_STORAGE_KEY);
-      if (!saved) return;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setMembers(parsed);
+        }
+      }
 
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) {
-        setMembers(parsed);
+      const savedCustomer = window.localStorage.getItem(CUSTOMER_STORAGE_KEY);
+      if (savedCustomer) {
+        const parsedCustomer = JSON.parse(savedCustomer);
+        setCustomerName(String(parsedCustomer.name ?? ''));
+        setCustomerMobile(String(parsedCustomer.mobile ?? ''));
+        setCustomerEmail(String(parsedCustomer.email ?? ''));
       }
     } catch {
       setMembers([]);
@@ -170,6 +208,9 @@ export default function FamilyProfilePage() {
     }
 
     setFormError('');
+    if (!customerName.trim()) {
+      setCustomerName(cleanName);
+    }
 
     const newMember: FamilyMemberProfile = {
       id: `m_${Date.now()}`,
@@ -201,6 +242,56 @@ export default function FamilyProfilePage() {
       window.localStorage.removeItem(HOUSEHOLD_STORAGE_KEY);
     } catch {
       // Ignore storage cleanup failures.
+    }
+  };
+
+  const handleSaveFamily = async () => {
+    const cleanCustomerName = customerName.trim() || members[0]?.name?.trim();
+    const cleanMobile = customerMobile.trim();
+    const cleanEmail = customerEmail.trim();
+
+    if (!members.length) {
+      setFormError('Please add at least one family member before continuing.');
+      return;
+    }
+
+    if (!cleanCustomerName || (!cleanMobile && !cleanEmail)) {
+      setFormError('Please enter your name and either mobile number or email before continuing.');
+      return;
+    }
+
+    setFormError('');
+    setSaveStatus('');
+    setSavingProfile(true);
+
+    try {
+      const customer = {
+        name: cleanCustomerName,
+        mobile: cleanMobile,
+        email: cleanEmail,
+        preferredLanguage: language,
+      };
+      const response = await fetch('/api/customer/family-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer, members }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.saved) {
+        throw new Error(data.error?.message || data.message || 'Unable to save family profile.');
+      }
+
+      window.localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify({ ...customer, userId: data.userId }));
+      window.localStorage.setItem(HOUSEHOLD_STORAGE_KEY, JSON.stringify(members));
+      setSaveStatus(t.saved);
+      window.setTimeout(() => {
+        window.location.href = '/subscription';
+      }, 500);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Unable to save family profile.');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -370,7 +461,68 @@ export default function FamilyProfilePage() {
         </section>
 
         {members.length > 0 && (
-          <section className="rounded-3xl bg-emerald-700 p-6 text-white shadow-sm">
+          <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-emerald-100">
+            <div className="mb-5">
+              <h2 className="text-2xl font-bold text-slate-950">{t.accountTitle}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{t.accountText}</p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold text-slate-700">{t.customerName}</span>
+                <VoiceTextInput
+                  value={customerName}
+                  onValueChange={setCustomerName}
+                  placeholder="Example: Rajesh"
+                  inputClassName={inputClassName}
+                  required
+                />
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold text-slate-700">{t.customerMobile}</span>
+                <VoiceTextInput
+                  value={customerMobile}
+                  onValueChange={setCustomerMobile}
+                  placeholder="Example: 9876543210"
+                  inputClassName={inputClassName}
+                />
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold text-slate-700">{t.customerEmail}</span>
+                <VoiceTextInput
+                  value={customerEmail}
+                  onValueChange={setCustomerEmail}
+                  placeholder="Example: name@email.com"
+                  inputClassName={inputClassName}
+                />
+              </label>
+            </div>
+
+            {formError ? (
+              <p className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {formError}
+              </p>
+            ) : null}
+
+            {saveStatus ? (
+              <p className="mt-5 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+                {saveStatus}
+              </p>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={handleSaveFamily}
+              disabled={savingProfile}
+              className="mt-6 w-full rounded-2xl bg-emerald-700 px-5 py-4 text-base font-bold text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-60"
+            >
+              {savingProfile ? t.saving : t.saveContinue}
+            </button>
+          </section>
+        )}
+
+        {members.length > 0 && (
+          <section className="mt-6 rounded-3xl bg-emerald-700 p-6 text-white shadow-sm">
             <p className="text-sm font-semibold uppercase tracking-wide text-emerald-100">
               {members.length} household member{members.length > 1 ? 's' : ''} added
             </p>
@@ -384,12 +536,14 @@ export default function FamilyProfilePage() {
             </div>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <Link
-                href="/subscription"
+              <button
+                type="button"
+                onClick={handleSaveFamily}
+                disabled={savingProfile}
                 className="rounded-2xl bg-white px-5 py-4 text-center text-base font-bold text-emerald-800 shadow-sm transition hover:bg-emerald-50"
               >
-                {t.continue}
-              </Link>
+                {savingProfile ? t.saving : t.saveContinue}
+              </button>
 
               <Link
                 href="/#planner"
