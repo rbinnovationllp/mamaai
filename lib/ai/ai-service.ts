@@ -802,6 +802,59 @@ function translateMealName(name: string, language: OutputLanguage) {
   return mealNameTranslations[language][name] ?? name;
 }
 
+function translateQuantity(value: string | undefined, language: OutputLanguage) {
+  if (!value || language === "en") return value;
+  const replacements: Array<[RegExp, string]> =
+    language === "hi"
+      ? [
+          [/\bcups\b/gi, "कप"],
+          [/\bcup\b/gi, "कप"],
+          [/\bbowls\b/gi, "कटोरी"],
+          [/\bbowl\b/gi, "कटोरी"],
+          [/\btbsp\b/gi, "बड़ा चम्मच"],
+          [/\btablespoons?\b/gi, "बड़ा चम्मच"],
+          [/\btsp\b/gi, "छोटा चम्मच"],
+          [/\bteaspoons?\b/gi, "छोटा चम्मच"],
+          [/\bgrams\b/gi, "ग्राम"],
+          [/\bg\b/g, "ग्राम"],
+          [/\bpieces\b/gi, "नग"],
+          [/\bpiece\b/gi, "नग"],
+          [/\beggs\b/gi, "अंडे"],
+          [/\begg\b/gi, "अंडा"],
+          [/\bchicken\b/gi, "चिकन"],
+          [/\bsmall bunch\b/gi, "छोटा गुच्छा"],
+          [/\bspices\b/gi, "मसाले"],
+          [/\blemons\b/gi, "नींबू"],
+          [/\bor\b/gi, "या"],
+          [/\band\b/gi, "और"],
+          [/\+/g, "+"],
+        ]
+      : [
+          [/\bcups\b/gi, "ಕಪ್"],
+          [/\bcup\b/gi, "ಕಪ್"],
+          [/\bbowls\b/gi, "ಬೌಲ್"],
+          [/\bbowl\b/gi, "ಬೌಲ್"],
+          [/\btbsp\b/gi, "ದೊಡ್ಡ ಚಮಚ"],
+          [/\btablespoons?\b/gi, "ದೊಡ್ಡ ಚಮಚ"],
+          [/\btsp\b/gi, "ಚಿಕ್ಕ ಚಮಚ"],
+          [/\bteaspoons?\b/gi, "ಚಿಕ್ಕ ಚಮಚ"],
+          [/\bgrams\b/gi, "ಗ್ರಾಂ"],
+          [/\bg\b/g, "ಗ್ರಾಂ"],
+          [/\bpieces\b/gi, "ನಗ"],
+          [/\bpiece\b/gi, "ನಗ"],
+          [/\beggs\b/gi, "ಮೊಟ್ಟೆಗಳು"],
+          [/\begg\b/gi, "ಮೊಟ್ಟೆ"],
+          [/\bchicken\b/gi, "ಚಿಕನ್"],
+          [/\bsmall bunch\b/gi, "ಚಿಕ್ಕ ಗುಚ್ಛ"],
+          [/\bspices\b/gi, "ಮಸಾಲೆಗಳು"],
+          [/\blemons\b/gi, "ನಿಂಬೆ"],
+          [/\bor\b/gi, "ಅಥವಾ"],
+          [/\band\b/gi, "ಮತ್ತು"],
+          [/\+/g, "+"],
+        ];
+  return replacements.reduce((result, [pattern, replacement]) => result.replace(pattern, replacement), value);
+}
+
 function translateText(text: string | undefined, language: OutputLanguage): string | undefined {
   if (!text || language === "en") return text;
 
@@ -919,6 +972,20 @@ function translateCommonText(text: string, language: Exclude<OutputLanguage, "en
           [/Curd can be skipped or replaced with a tolerated side when dairy is unsuitable\./g, "यदि डेयरी उपयुक्त नहीं है, तो दही छोड़ा जा सकता है या सहन होने वाली साइड डिश से बदला जा सकता है।"],
           [/Search YouTube for /g, "YouTube पर खोजें: "],
           [/YouTube integration is planned; for now, use this as a safe search recommendation and verify ingredients against family restrictions\./g, "YouTube integration planned है; अभी इसे सुरक्षित search suggestion की तरह use करें और ingredients को family restrictions से मिलाकर जांचें।"],
+          [/1 small soft bowl with curd if tolerated;/g, "यदि दही उपयुक्त हो तो 1 छोटी कटोरी नरम खिचड़ी दें;"],
+          [/1 medium bowl khichdi, 1 cup vegetables, and 0\.5 cup curd;/g, "1 मध्यम कटोरी खिचड़ी, 1 कप सब्जियां और 0.5 कप दही दें;"],
+          [/Child-size serving of the common meal with curd if suitable;/g, "यदि दही उपयुक्त हो तो बच्चे के लिए साझा भोजन का छोटा हिस्सा दें;"],
+          [/Standard serving of the common meal with curd or suitable side;/g, "दही या उपयुक्त साइड के साथ साझा भोजन का सामान्य हिस्सा दें;"],
+          [/Larger serving of the common meal with extra dal or suitable protein side;/g, "अतिरिक्त दाल या उपयुक्त प्रोटीन साइड के साथ साझा भोजन का बड़ा हिस्सा दें;"],
+          [/senior-friendly portion, adjusted for appetite, chewing comfort and digestion rather than age alone/g, "वरिष्ठ सदस्य के लिए भूख, चबाने की सुविधा और पाचन के अनुसार समायोजित हिस्सा"],
+          [/small preschool-child portion, about one-third of a standard adult serving/g, "छोटे बच्चे के लिए वयस्क हिस्से का लगभग एक-तिहाई नरम हिस्सा"],
+          [/child portion, about half of a standard adult serving/g, "बच्चे के लिए वयस्क हिस्से का लगभग आधा हिस्सा"],
+          [/standard adult portion/g, "सामान्य वयस्क हिस्सा"],
+          [/higher-activity adult portion, about one-quarter more than a standard adult serving/g, "अधिक सक्रिय वयस्क के लिए सामान्य हिस्से से लगभग एक-चौथाई अधिक"],
+          [/lighter adult portion, adjusted for lower activity/g, "कम गतिविधि के अनुसार हल्का वयस्क हिस्सा"],
+          [/Cook khichdi softer with mild spices and extra moisture\./g, "खिचड़ी को हल्के मसालों और थोड़ी ज्यादा नमी के साथ अधिक नरम पकाएं।"],
+          [/Serve mild khichdi with curd and colorful vegetables\./g, "हल्की खिचड़ी दही और रंगीन सब्जियों के साथ परोसें।"],
+          [/Regular balanced portion with vegetables and curd\./g, "सब्जियों और दही के साथ नियमित संतुलित हिस्सा।"],
           [/Regular balanced portion with vegetables and curd\./g, "सब्जियों और दही के साथ नियमित संतुलित हिस्सा।"],
           [/1\.5 bowls khichdi with 0\.5 cup curd\./g, "1.5 कटोरी खिचड़ी और 0.5 कप दही।"],
           [/Sip water steadily across the day\./g, "दिन भर नियमित अंतराल पर पानी पिएं।"],
@@ -949,6 +1016,20 @@ function translateCommonText(text: string, language: Exclude<OutputLanguage, "en
           [/Curd can be skipped or replaced with a tolerated side when dairy is unsuitable\./g, "ಡೈರಿ ಸೂಕ್ತವಲ್ಲದಿದ್ದರೆ ಮೊಸರನ್ನು ಬಿಡಬಹುದು ಅಥವಾ ಸಹಿಸುವ ಸೈಡ್ ಡಿಶ್‌ನಿಂದ ಬದಲಾಯಿಸಬಹುದು."],
           [/Search YouTube for /g, "YouTube ನಲ್ಲಿ ಹುಡುಕಿ: "],
           [/YouTube integration is planned; for now, use this as a safe search recommendation and verify ingredients against family restrictions\./g, "YouTube integration planned ಇದೆ; ಈಗ ಇದನ್ನು safe search suggestion ಆಗಿ ಬಳಸಿ ಮತ್ತು ingredients ಅನ್ನು family restrictions ಜೊತೆ ಪರಿಶೀಲಿಸಿ."],
+          [/1 small soft bowl with curd if tolerated;/g, "ಮೊಸರು ಸೂಕ್ತವಾಗಿದ್ದರೆ 1 ಚಿಕ್ಕ ಮೃದುವಾದ ಬೌಲ್ ಖಿಚಡಿ ನೀಡಿ;"],
+          [/1 medium bowl khichdi, 1 cup vegetables, and 0\.5 cup curd;/g, "1 ಮಧ್ಯಮ ಬೌಲ್ ಖಿಚಡಿ, 1 ಕಪ್ ತರಕಾರಿಗಳು ಮತ್ತು 0.5 ಕಪ್ ಮೊಸರು ನೀಡಿ;"],
+          [/Child-size serving of the common meal with curd if suitable;/g, "ಮೊಸರು ಸೂಕ್ತವಾಗಿದ್ದರೆ ಮಗುವಿಗೆ ಸಾಮಾನ್ಯ ಊಟದ ಚಿಕ್ಕ ಭಾಗ ನೀಡಿ;"],
+          [/Standard serving of the common meal with curd or suitable side;/g, "ಮೊಸರು ಅಥವಾ ಸೂಕ್ತ ಸೈಡ್ ಜೊತೆ ಸಾಮಾನ್ಯ ಊಟದ ನಿಯಮಿತ ಭಾಗ ನೀಡಿ;"],
+          [/Larger serving of the common meal with extra dal or suitable protein side;/g, "ಹೆಚ್ಚುವರಿ ದಾಲ್ ಅಥವಾ ಸೂಕ್ತ ಪ್ರೋಟೀನ್ ಸೈಡ್ ಜೊತೆ ದೊಡ್ಡ ಭಾಗ ನೀಡಿ;"],
+          [/senior-friendly portion, adjusted for appetite, chewing comfort and digestion rather than age alone/g, "ಹಿರಿಯ ಸದಸ್ಯರಿಗೆ ವಯಸ್ಸಿಗಿಂತ ಹೆಚ್ಚು ಹಸಿವು, ಚವೆಯುವ ಸುಲಭತೆ ಮತ್ತು ಜೀರ್ಣಕ್ಕೆ ಹೊಂದಿಸಿದ ಭಾಗ"],
+          [/small preschool-child portion, about one-third of a standard adult serving/g, "ಚಿಕ್ಕ ಮಗುವಿಗೆ ಸಾಮಾನ್ಯ ವಯಸ್ಕ ಭಾಗದ ಸುಮಾರು ಮೂರನೇ ಒಂದು ಭಾಗ"],
+          [/child portion, about half of a standard adult serving/g, "ಮಗುವಿಗೆ ಸಾಮಾನ್ಯ ವಯಸ್ಕ ಭಾಗದ ಸುಮಾರು ಅರ್ಧ ಭಾಗ"],
+          [/standard adult portion/g, "ಸಾಮಾನ್ಯ ವಯಸ್ಕ ಭಾಗ"],
+          [/higher-activity adult portion, about one-quarter more than a standard adult serving/g, "ಹೆಚ್ಚು ಚಟುವಟಿಕೆಯ ವಯಸ್ಕರಿಗೆ ಸಾಮಾನ್ಯ ಭಾಗಕ್ಕಿಂತ ಸುಮಾರು ಕಾಲುಭಾಗ ಹೆಚ್ಚು"],
+          [/lighter adult portion, adjusted for lower activity/g, "ಕಡಿಮೆ ಚಟುವಟಿಕೆಗೆ ಹೊಂದಿಸಿದ ಹಗುರ ವಯಸ್ಕ ಭಾಗ"],
+          [/Cook khichdi softer with mild spices and extra moisture\./g, "ಖಿಚಡಿಯನ್ನು ಸೌಮ್ಯ ಮಸಾಲೆ ಮತ್ತು ಸ್ವಲ್ಪ ಹೆಚ್ಚು ತೇವದೊಂದಿಗೆ ಮೃದುವಾಗಿ ಬೇಯಿಸಿ."],
+          [/Serve mild khichdi with curd and colorful vegetables\./g, "ಮೃದುವಾದ ಖಿಚಡಿಯನ್ನು ಮೊಸರು ಮತ್ತು ಬಣ್ಣಬಣ್ಣದ ತರಕಾರಿಗಳೊಂದಿಗೆ ನೀಡಿ."],
+          [/Regular balanced portion with vegetables and curd\./g, "ತರಕಾರಿ ಮತ್ತು ಮೊಸರಿನೊಂದಿಗೆ ನಿಯಮಿತ ಸಮತೋಲನ ಭಾಗ."],
           [/Regular balanced portion with vegetables and curd\./g, "ತರಕಾರಿ ಮತ್ತು ಮೊಸರಿನೊಂದಿಗೆ ನಿಯಮಿತ ಸಮತೋಲನ ಭಾಗ."],
           [/1\.5 bowls khichdi with 0\.5 cup curd\./g, "1.5 ಬೌಲ್ ಖಿಚಡಿ ಮತ್ತು 0.5 ಕಪ್ ಮೊಸರು."],
           [/Sip water steadily across the day\./g, "ದಿನಪೂರ್ತಿ ನಿಯಮಿತವಾಗಿ ನೀರು ಕುಡಿಯಿರಿ."],
@@ -971,7 +1052,11 @@ function translateCommonText(text: string, language: Exclude<OutputLanguage, "en
 
 function localizeIngredient(ingredient: Ingredient, language: OutputLanguage): Ingredient {
   if (language === "en") return ingredient;
-  return { ...ingredient, name: translateIngredientName(ingredient.name, language) };
+  return {
+    ...ingredient,
+    name: translateIngredientName(ingredient.name, language),
+    quantity: translateQuantity(ingredient.quantity, language) ?? ingredient.quantity
+  };
 }
 
 export class AIService {
@@ -1036,16 +1121,24 @@ export class AIService {
       })),
       groceryItems: plan.groceryItems.map((item) => ({
         ...item,
-        name: translateIngredientName(item.name, language)
+        name: translateIngredientName(item.name, language),
+        quantity: translateQuantity(item.quantity, language) ?? item.quantity,
+        quantityToPurchase: translateQuantity(item.quantityToPurchase, language) ?? item.quantityToPurchase
       })),
       mealIngredientRequirements: plan.mealIngredientRequirements.map((item) => ({
         ...item,
         name: translateIngredientName(item.name, language),
+        baseQuantity: translateQuantity(item.baseQuantity, language) ?? item.baseQuantity,
+        adjustedQuantity: translateQuantity(item.adjustedQuantity, language) ?? item.adjustedQuantity,
+        quantityToPurchase: translateQuantity(item.quantityToPurchase, language) ?? item.quantityToPurchase,
         notes: item.notes.map((note) => translateText(note, language) ?? note)
       })),
       dailyGroceryRequirements: plan.dailyGroceryRequirements.map((item) => ({
         ...item,
         name: translateIngredientName(item.name, language),
+        baseQuantity: translateQuantity(item.baseQuantity, language) ?? item.baseQuantity,
+        adjustedQuantity: translateQuantity(item.adjustedQuantity, language) ?? item.adjustedQuantity,
+        quantityToPurchase: translateQuantity(item.quantityToPurchase, language) ?? item.quantityToPurchase,
         notes: item.notes.map((note) => translateText(note, language) ?? note)
       })),
       fastingMealRequirements: plan.fastingMealRequirements.map((item) => ({

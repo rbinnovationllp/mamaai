@@ -77,6 +77,16 @@ const plannerCopy = {
     watchVideo: 'Watch How to Cook',
     videoLoading: 'Searching suitable cooking videos...',
     videoEmpty: "We couldn't find a suitable cooking video for this dish right now. Please use the written recipe.",
+    sponsoredVideo: 'Sponsored Recipe Video / Paid Promotion',
+    videoMatch: {
+      exact: 'exact',
+      close: 'close',
+      fallback: 'fallback',
+      approved: 'approved',
+      sponsored: 'sponsored',
+      youtube: 'YouTube',
+      fallback_search: 'fallback search',
+    },
     prep: 'Prep',
     difficulty: 'Difficulty',
     cost: 'Cost',
@@ -123,6 +133,16 @@ const plannerCopy = {
     watchVideo: 'कैसे बनाएं वीडियो देखें',
     videoLoading: 'Suitable cooking video खोज रहे हैं...',
     videoEmpty: 'इस dish के लिए अभी suitable cooking video नहीं मिला। कृपया written recipe इस्तेमाल करें।',
+    sponsoredVideo: 'Sponsored Recipe Video / Paid Promotion',
+    videoMatch: {
+      exact: 'सटीक',
+      close: 'निकट',
+      fallback: 'वैकल्पिक खोज',
+      approved: 'approved',
+      sponsored: 'sponsored',
+      youtube: 'YouTube',
+      fallback_search: 'वैकल्पिक खोज',
+    },
     prep: 'तैयारी',
     difficulty: 'कठिनाई',
     cost: 'लागत',
@@ -169,6 +189,16 @@ const plannerCopy = {
     watchVideo: 'ಹೇಗೆ ಅಡುಗೆ ಮಾಡುವುದು ನೋಡಿ',
     videoLoading: 'ಸೂಕ್ತ cooking video ಹುಡುಕಲಾಗುತ್ತಿದೆ...',
     videoEmpty: 'ಈ dish ಗೆ ಈಗ suitable cooking video ಸಿಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು written recipe ಬಳಸಿ.',
+    sponsoredVideo: 'Sponsored Recipe Video / Paid Promotion',
+    videoMatch: {
+      exact: 'ಸರಿಯಾಗಿ ಹೊಂದಿದೆ',
+      close: 'ಹತ್ತಿರದ ಹೊಂದಾಣಿಕೆ',
+      fallback: 'ಪರ್ಯಾಯ ಹುಡುಕಾಟ',
+      approved: 'approved',
+      sponsored: 'sponsored',
+      youtube: 'YouTube',
+      fallback_search: 'ಪರ್ಯಾಯ ಹುಡುಕಾಟ',
+    },
     prep: 'ತಯಾರಿ',
     difficulty: 'ಕಷ್ಟದ ಮಟ್ಟ',
     cost: 'ವೆಚ್ಚ',
@@ -635,10 +665,13 @@ export default function PlannerPage() {
                             rel="noreferrer"
                             className="rounded-xl bg-white p-3 text-sm font-semibold text-emerald-950 ring-1 ring-emerald-100"
                           >
-                            {video.sponsored ? <span className="mb-1 block text-xs uppercase text-amber-700">Sponsored Recipe Video / Paid Promotion</span> : null}
+                            {video.sponsored ? <span className="mb-1 block text-xs uppercase text-amber-700">{t.sponsoredVideo}</span> : null}
                             <span>{video.title}</span>
                             <small className="mt-1 block text-slate-600">
-                              {video.channelTitle} {video.language ? `| ${video.language}` : ''} | {video.matchQuality ?? video.source}
+                              {video.channelTitle} {video.language ? `| ${video.language}` : ''} |{' '}
+                              {t.videoMatch[(video.matchQuality ?? video.source) as keyof typeof t.videoMatch] ??
+                                video.matchQuality ??
+                                video.source}
                             </small>
                             <small className="mt-1 block text-slate-500">{video.thirdPartyDisclaimer}</small>
                           </a>
