@@ -5,12 +5,18 @@ import Link from 'next/link';
 import { AppPageNav } from '@/components/AppPageNav';
 import { LanguageSelector, useLanguage } from '@/components/LanguageProvider';
 import { VoiceTextInput } from '@/components/VoiceTextInput';
+import type { ActivityLevel } from '@/lib/shared/contracts';
 
 export interface FamilyMemberProfile {
   id: string;
   name: string;
   relation: string;
+  age?: number;
+  activityLevel?: ActivityLevel;
   foodPreference?: 'vegetarian' | 'eggetarian' | 'non_vegetarian' | 'semi_vegetarian' | 'vegan' | 'other';
+  nonVegFrequency?: 'occasionally' | '1_2_days_per_week' | '3_4_days_per_week' | '4_5_days_per_week' | 'most_days' | 'custom';
+  nonVegAvoidDays?: string[];
+  nonVegCustomRule?: string;
   allergies: string[];
   doctorAdvisedRestrictions: string[];
   dislikes: string[];
@@ -19,6 +25,7 @@ export interface FamilyMemberProfile {
 
 type HouseholdFoodPreference = 'vegetarian' | 'eggetarian' | 'non_vegetarian' | 'semi_vegetarian' | 'vegan' | 'mixed' | 'other';
 type CookingHabit = 'fresh_home_cooked' | 'ready_frozen' | 'fresh_ready_mix' | 'takeaway_prepared' | 'other';
+type NonVegFrequency = NonNullable<FamilyMemberProfile['nonVegFrequency']>;
 
 const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
 const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
@@ -31,6 +38,9 @@ const copy = {
       'Add each household member so MAMAAI can plan meals around allergies, health needs, dislikes and family preferences.',
     name: 'Member name',
     relation: 'Relation',
+    age: 'Age',
+    ageHint: 'Example: 33',
+    activity: 'Activity level',
     allergies: 'Medical allergies',
     allergiesHint: 'Example: peanuts, milk, gluten',
     doctor: 'Doctor restrictions',
@@ -41,6 +51,10 @@ const copy = {
     memberFood: 'Member food preference',
     householdFood: 'Household food preference',
     cookingHabit: 'How does your family usually prepare meals?',
+    nonVegFrequency: 'How often does this member prefer non-vegetarian food?',
+    nonVegAvoidDays: 'Days this member avoids non-vegetarian food',
+    nonVegCustomRule: 'Other non-veg rule',
+    noFixedRestriction: 'No fixed restriction',
     commonMeal: 'Prefer One Common Family Meal',
     separateMeal: 'Allow Separate / Alternative Meal',
     foodOptions: {
@@ -58,6 +72,30 @@ const copy = {
       fresh_ready_mix: 'Mix of fresh cooking and ready-made / frozen foods',
       takeaway_prepared: 'Mostly buy prepared meals / takeaway',
       other: 'Other',
+    },
+    activityOptions: {
+      sedentary: 'Sedentary',
+      light: 'Light',
+      moderate: 'Moderate',
+      heavy: 'Heavy',
+      athlete: 'Athlete',
+    },
+    nonVegFrequencyOptions: {
+      occasionally: 'Occasionally',
+      '1_2_days_per_week': '1-2 days per week',
+      '3_4_days_per_week': '3-4 days per week',
+      '4_5_days_per_week': '4-5 days per week',
+      most_days: 'Most days',
+      custom: 'Custom',
+    },
+    weekdays: {
+      monday: 'Monday',
+      tuesday: 'Tuesday',
+      wednesday: 'Wednesday',
+      thursday: 'Thursday',
+      friday: 'Friday',
+      saturday: 'Saturday',
+      sunday: 'Sunday',
     },
     add: 'Add Member Profile',
     accountTitle: 'Your account details',
@@ -86,6 +124,9 @@ const copy = {
       'हर household member को जोड़ें ताकि MAMAAI allergies, health needs, dislikes और preferences के अनुसार meal plan बना सके.',
     name: 'Member name',
     relation: 'Relation',
+    age: 'उम्र',
+    ageHint: 'उदाहरण: 33',
+    activity: 'गतिविधि स्तर',
     allergies: 'Medical allergies',
     allergiesHint: 'Example: peanuts, milk, gluten',
     doctor: 'Doctor restrictions',
@@ -96,6 +137,10 @@ const copy = {
     memberFood: 'Member food preference',
     householdFood: 'Household food preference',
     cookingHabit: 'आपका परिवार आम तौर पर meals कैसे prepare करता है?',
+    nonVegFrequency: 'यह member सामान्य रूप से non-veg कितनी बार पसंद करता है?',
+    nonVegAvoidDays: 'कौन से दिन यह member non-veg avoid करता है?',
+    nonVegCustomRule: 'अन्य non-veg rule',
+    noFixedRestriction: 'कोई fixed restriction नहीं',
     commonMeal: 'Prefer One Common Family Meal',
     separateMeal: 'Allow Separate / Alternative Meal',
     foodOptions: {
@@ -113,6 +158,30 @@ const copy = {
       fresh_ready_mix: 'Fresh cooking और ready-made / frozen foods का mix',
       takeaway_prepared: 'ज्यादातर prepared meals / takeaway',
       other: 'Other',
+    },
+    activityOptions: {
+      sedentary: 'कम सक्रिय',
+      light: 'हल्की activity',
+      moderate: 'मध्यम activity',
+      heavy: 'अधिक activity',
+      athlete: 'Athlete',
+    },
+    nonVegFrequencyOptions: {
+      occasionally: 'कभी-कभी',
+      '1_2_days_per_week': 'सप्ताह में 1-2 दिन',
+      '3_4_days_per_week': 'सप्ताह में 3-4 दिन',
+      '4_5_days_per_week': 'सप्ताह में 4-5 दिन',
+      most_days: 'अधिकतर दिन',
+      custom: 'Custom',
+    },
+    weekdays: {
+      monday: 'सोमवार',
+      tuesday: 'मंगलवार',
+      wednesday: 'बुधवार',
+      thursday: 'गुरुवार',
+      friday: 'शुक्रवार',
+      saturday: 'शनिवार',
+      sunday: 'रविवार',
     },
     add: 'Add Member Profile',
     accountTitle: 'Your account details',
@@ -141,6 +210,9 @@ const copy = {
       'Allergies, health needs, dislikes ಮತ್ತು preferences ಪ್ರಕಾರ MAMAAI meal plan ಮಾಡಲು household members ಸೇರಿಸಿ.',
     name: 'Member name',
     relation: 'Relation',
+    age: 'ವಯಸ್ಸು',
+    ageHint: 'ಉದಾಹರಣೆ: 33',
+    activity: 'ಚಟುವಟಿಕೆ ಮಟ್ಟ',
     allergies: 'Medical allergies',
     allergiesHint: 'Example: peanuts, milk, gluten',
     doctor: 'Doctor restrictions',
@@ -151,6 +223,10 @@ const copy = {
     memberFood: 'Member food preference',
     householdFood: 'Household food preference',
     cookingHabit: 'ನಿಮ್ಮ ಕುಟುಂಬ ಸಾಮಾನ್ಯವಾಗಿ meals ಹೇಗೆ prepare ಮಾಡುತ್ತದೆ?',
+    nonVegFrequency: 'ಈ member ಸಾಮಾನ್ಯವಾಗಿ non-veg ಎಷ್ಟು ಬಾರಿ ಇಷ್ಟಪಡುತ್ತಾರೆ?',
+    nonVegAvoidDays: 'ಈ member non-veg ತಪ್ಪಿಸುವ ದಿನಗಳು',
+    nonVegCustomRule: 'ಇತರೆ non-veg rule',
+    noFixedRestriction: 'ನಿಶ್ಚಿತ restriction ಇಲ್ಲ',
     commonMeal: 'Prefer One Common Family Meal',
     separateMeal: 'Allow Separate / Alternative Meal',
     foodOptions: {
@@ -168,6 +244,30 @@ const copy = {
       fresh_ready_mix: 'Fresh cooking ಮತ್ತು ready-made / frozen foods mix',
       takeaway_prepared: 'ಹೆಚ್ಚಾಗಿ prepared meals / takeaway',
       other: 'Other',
+    },
+    activityOptions: {
+      sedentary: 'ಕಡಿಮೆ ಚಟುವಟಿಕೆ',
+      light: 'ಹಗುರ ಚಟುವಟಿಕೆ',
+      moderate: 'ಮಧ್ಯಮ ಚಟುವಟಿಕೆ',
+      heavy: 'ಹೆಚ್ಚು ಚಟುವಟಿಕೆ',
+      athlete: 'Athlete',
+    },
+    nonVegFrequencyOptions: {
+      occasionally: 'ಕೆಲವೊಮ್ಮೆ',
+      '1_2_days_per_week': 'ವಾರಕ್ಕೆ 1-2 ದಿನ',
+      '3_4_days_per_week': 'ವಾರಕ್ಕೆ 3-4 ದಿನ',
+      '4_5_days_per_week': 'ವಾರಕ್ಕೆ 4-5 ದಿನ',
+      most_days: 'ಹೆಚ್ಚಿನ ದಿನಗಳು',
+      custom: 'Custom',
+    },
+    weekdays: {
+      monday: 'ಸೋಮವಾರ',
+      tuesday: 'ಮಂಗಳವಾರ',
+      wednesday: 'ಬುಧವಾರ',
+      thursday: 'ಗುರುವಾರ',
+      friday: 'ಶುಕ್ರವಾರ',
+      saturday: 'ಶನಿವಾರ',
+      sunday: 'ಭಾನುವಾರ',
     },
     add: 'Add Member Profile',
     accountTitle: 'Your account details',
@@ -205,6 +305,9 @@ function getSuggestedPlan(memberCount: number): string {
   return 'Family Starter - Rs. 399';
 }
 
+const weekdayOptions = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
+const nonVegFoodPreferences = new Set(['non_vegetarian', 'semi_vegetarian', 'eggetarian']);
+
 const inputClassName =
   'rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
 
@@ -215,6 +318,8 @@ export default function FamilyProfilePage() {
   const [members, setMembers] = useState<FamilyMemberProfile[]>([]);
   const [name, setName] = useState('');
   const [relation, setRelation] = useState('');
+  const [ageInput, setAgeInput] = useState('');
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel>('moderate');
   const [allergyInput, setAllergyInput] = useState('');
   const [doctorInput, setDoctorInput] = useState('');
   const [dislikeInput, setDislikeInput] = useState('');
@@ -223,6 +328,9 @@ export default function FamilyProfilePage() {
   const [householdFoodPreference, setHouseholdFoodPreference] =
     useState<HouseholdFoodPreference>('vegetarian');
   const [cookingHabit, setCookingHabit] = useState<CookingHabit>('fresh_home_cooked');
+  const [nonVegFrequency, setNonVegFrequency] = useState<NonVegFrequency>('occasionally');
+  const [nonVegAvoidDays, setNonVegAvoidDays] = useState<string[]>([]);
+  const [nonVegCustomRule, setNonVegCustomRule] = useState('');
   const [formError, setFormError] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerMobile, setCustomerMobile] = useState('');
@@ -255,12 +363,17 @@ export default function FamilyProfilePage() {
         const draft = JSON.parse(savedDraft);
         setName(String(draft.name ?? ''));
         setRelation(String(draft.relation ?? ''));
+        setAgeInput(String(draft.ageInput ?? ''));
+        setActivityLevel(draft.activityLevel ?? 'moderate');
         setAllergyInput(String(draft.allergyInput ?? ''));
         setDoctorInput(String(draft.doctorInput ?? ''));
         setDislikeInput(String(draft.dislikeInput ?? ''));
         setMemberFoodPreference(draft.memberFoodPreference ?? 'vegetarian');
         setHouseholdFoodPreference(draft.householdFoodPreference ?? 'vegetarian');
         setCookingHabit(draft.cookingHabit ?? 'fresh_home_cooked');
+        setNonVegFrequency(draft.nonVegFrequency ?? 'occasionally');
+        setNonVegAvoidDays(Array.isArray(draft.nonVegAvoidDays) ? draft.nonVegAvoidDays : []);
+        setNonVegCustomRule(String(draft.nonVegCustomRule ?? ''));
         setCustomerName((current) => current || String(draft.customerName ?? ''));
         setCustomerMobile((current) => current || String(draft.customerMobile ?? ''));
         setCustomerEmail((current) => current || String(draft.customerEmail ?? ''));
@@ -288,12 +401,17 @@ export default function FamilyProfilePage() {
         JSON.stringify({
           name,
           relation,
+          ageInput,
+          activityLevel,
           allergyInput,
           doctorInput,
           dislikeInput,
           memberFoodPreference,
           householdFoodPreference,
           cookingHabit,
+          nonVegFrequency,
+          nonVegAvoidDays,
+          nonVegCustomRule,
           customerName,
           customerMobile,
           customerEmail,
@@ -306,12 +424,17 @@ export default function FamilyProfilePage() {
   }, [
     name,
     relation,
+    ageInput,
+    activityLevel,
     allergyInput,
     doctorInput,
     dislikeInput,
     memberFoodPreference,
     householdFoodPreference,
     cookingHabit,
+    nonVegFrequency,
+    nonVegAvoidDays,
+    nonVegCustomRule,
     customerName,
     customerMobile,
     customerEmail,
@@ -325,9 +448,10 @@ export default function FamilyProfilePage() {
 
     const cleanName = name.trim();
     const cleanRelation = relation.trim();
+    const parsedAge = Number(ageInput);
 
-    if (!cleanName || !cleanRelation) {
-      setFormError('Please enter member name and relation before adding.');
+    if (!cleanName || !cleanRelation || !Number.isInteger(parsedAge) || parsedAge < 0 || parsedAge > 120) {
+      setFormError('Please enter member name, relation and valid age before adding.');
       return;
     }
 
@@ -340,7 +464,12 @@ export default function FamilyProfilePage() {
       id: `m_${Date.now()}`,
       name: cleanName,
       relation: cleanRelation,
+      age: parsedAge,
+      activityLevel,
       foodPreference: memberFoodPreference,
+      nonVegFrequency: nonVegFoodPreferences.has(memberFoodPreference) ? nonVegFrequency : undefined,
+      nonVegAvoidDays: nonVegFoodPreferences.has(memberFoodPreference) ? nonVegAvoidDays : [],
+      nonVegCustomRule: nonVegFoodPreferences.has(memberFoodPreference) ? nonVegCustomRule.trim() || undefined : undefined,
       allergies: splitCsv(allergyInput),
       doctorAdvisedRestrictions: splitCsv(doctorInput),
       dislikes: splitCsv(dislikeInput),
@@ -351,10 +480,15 @@ export default function FamilyProfilePage() {
 
     setName('');
     setRelation('');
+    setAgeInput('');
+    setActivityLevel('moderate');
     setAllergyInput('');
     setDoctorInput('');
     setDislikeInput('');
     setMemberFoodPreference(householdFoodPreference === 'mixed' ? 'vegetarian' : householdFoodPreference === 'other' ? 'other' : householdFoodPreference);
+    setNonVegFrequency('occasionally');
+    setNonVegAvoidDays([]);
+    setNonVegCustomRule('');
     setMealStrategy('common');
     try {
       window.localStorage.removeItem(FAMILY_PROFILE_DRAFT_KEY);
@@ -374,6 +508,12 @@ export default function FamilyProfilePage() {
     } catch {
       // Ignore storage cleanup failures.
     }
+  };
+
+  const toggleNonVegAvoidDay = (day: string) => {
+    setNonVegAvoidDays((current) =>
+      current.includes(day) ? current.filter((item) => item !== day) : [...current, day]
+    );
   };
 
   const handleSaveFamily = async () => {
@@ -506,6 +646,37 @@ export default function FamilyProfilePage() {
               />
             </label>
 
+            <div className="grid gap-5 sm:grid-cols-2">
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold text-slate-700">{t.age}</span>
+                <VoiceTextInput
+                  type="number"
+                  value={ageInput}
+                  onValueChange={setAgeInput}
+                  placeholder={t.ageHint}
+                  inputClassName={inputClassName}
+                  min={0}
+                  max={120}
+                  required
+                />
+              </label>
+
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold text-slate-700">{t.activity}</span>
+                <select
+                  value={activityLevel}
+                  onChange={(event) => setActivityLevel(event.target.value as ActivityLevel)}
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                >
+                  <option value="sedentary">{t.activityOptions.sedentary}</option>
+                  <option value="light">{t.activityOptions.light}</option>
+                  <option value="moderate">{t.activityOptions.moderate}</option>
+                  <option value="heavy">{t.activityOptions.heavy}</option>
+                  <option value="athlete">{t.activityOptions.athlete}</option>
+                </select>
+              </label>
+            </div>
+
             <label className="grid gap-2">
               <span className="text-sm font-semibold text-slate-700">{t.allergies}</span>
               <VoiceTextInput
@@ -568,6 +739,57 @@ export default function FamilyProfilePage() {
               </select>
             </label>
 
+            {nonVegFoodPreferences.has(memberFoodPreference) ? (
+              <section className="grid gap-4 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
+                <label className="grid gap-2">
+                  <span className="text-sm font-semibold text-amber-950">{t.nonVegFrequency}</span>
+                  <select
+                    value={nonVegFrequency}
+                    onChange={(event) => setNonVegFrequency(event.target.value as NonVegFrequency)}
+                    className="rounded-2xl border border-amber-200 bg-white px-4 py-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  >
+                    <option value="occasionally">{t.nonVegFrequencyOptions.occasionally}</option>
+                    <option value="1_2_days_per_week">{t.nonVegFrequencyOptions['1_2_days_per_week']}</option>
+                    <option value="3_4_days_per_week">{t.nonVegFrequencyOptions['3_4_days_per_week']}</option>
+                    <option value="4_5_days_per_week">{t.nonVegFrequencyOptions['4_5_days_per_week']}</option>
+                    <option value="most_days">{t.nonVegFrequencyOptions.most_days}</option>
+                    <option value="custom">{t.nonVegFrequencyOptions.custom}</option>
+                  </select>
+                </label>
+
+                <div className="grid gap-2">
+                  <span className="text-sm font-semibold text-amber-950">{t.nonVegAvoidDays}</span>
+                  <div className="flex flex-wrap gap-2">
+                    {weekdayOptions.map((day) => (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => toggleNonVegAvoidDay(day)}
+                        className={`rounded-full px-3 py-2 text-sm font-bold ${
+                          nonVegAvoidDays.includes(day)
+                            ? 'bg-emerald-700 text-white'
+                            : 'bg-white text-amber-950 ring-1 ring-amber-200'
+                        }`}
+                      >
+                        {t.weekdays[day]}
+                      </button>
+                    ))}
+                  </div>
+                  {!nonVegAvoidDays.length ? <p className="text-xs font-semibold text-amber-800">{t.noFixedRestriction}</p> : null}
+                </div>
+
+                <label className="grid gap-2">
+                  <span className="text-sm font-semibold text-amber-950">{t.nonVegCustomRule}</span>
+                  <VoiceTextInput
+                    value={nonVegCustomRule}
+                    onValueChange={setNonVegCustomRule}
+                    placeholder="Example: avoid on festivals or fasting days"
+                    inputClassName={inputClassName}
+                  />
+                </label>
+              </section>
+            ) : null}
+
             {formError ? (
               <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
                 {formError}
@@ -613,9 +835,20 @@ export default function FamilyProfilePage() {
                     <div>
                       <h3 className="text-2xl font-bold text-slate-950">{member.name}</h3>
                       <p className="mt-1 text-base font-semibold text-slate-500">{member.relation}</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-600">
+                        {t.age}: {member.age ?? '-'} | {t.activity}: {t.activityOptions[member.activityLevel ?? 'moderate']}
+                      </p>
                       <p className="mt-1 text-sm font-semibold text-emerald-700">
                         {t.memberFood}: {t.foodOptions[member.foodPreference ?? 'vegetarian']}
                       </p>
+                      {nonVegFoodPreferences.has(member.foodPreference ?? '') ? (
+                        <p className="mt-1 text-sm font-semibold text-amber-700">
+                          {t.nonVegFrequency}: {t.nonVegFrequencyOptions[member.nonVegFrequency ?? 'occasionally']}
+                          {member.nonVegAvoidDays?.length
+                            ? ` | ${t.nonVegAvoidDays}: ${member.nonVegAvoidDays.map((day) => t.weekdays[day as keyof typeof t.weekdays] ?? day).join(', ')}`
+                            : ` | ${t.noFixedRestriction}`}
+                        </p>
+                      ) : null}
                     </div>
 
                     <button

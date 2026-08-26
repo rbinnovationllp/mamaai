@@ -4,7 +4,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AppPageNav } from '@/components/AppPageNav';
 import { LanguageSelector, useLanguage } from '@/components/LanguageProvider';
-import type { DietType, FamilyDietPreference, FamilyMealPlan, MealTime } from '@/lib/shared/contracts';
+import type { DietType, FamilyDietPreference, FamilyMealPlan, MealTime, RecipeVideoSearchResponse } from '@/lib/shared/contracts';
+import { trackAnalyticsEvent } from '@/lib/shared/client-analytics';
 
 const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
 const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
@@ -14,7 +15,12 @@ type HouseholdMember = {
   id: string;
   name: string;
   relation: string;
+  age?: number;
+  activityLevel?: 'sedentary' | 'light' | 'moderate' | 'heavy' | 'athlete';
   foodPreference?: 'vegetarian' | 'eggetarian' | 'non_vegetarian' | 'semi_vegetarian' | 'vegan' | 'other';
+  nonVegFrequency?: 'occasionally' | '1_2_days_per_week' | '3_4_days_per_week' | '4_5_days_per_week' | 'most_days' | 'custom';
+  nonVegAvoidDays?: string[];
+  nonVegCustomRule?: string;
   allergies?: string[];
   doctorAdvisedRestrictions?: string[];
   dislikes?: string[];
@@ -38,6 +44,7 @@ const plannerCopy = {
     missingTitle: 'Complete your family profile first',
     missingText:
       'Add at least one family member with relation and any allergies, restrictions or dislikes. Then return here to generate the food plan.',
+    incompleteText: 'Please complete age for every family member before generating a portion-aware meal plan.',
     completeProfile: 'Complete Family Profile',
     subscription: 'Choose Subscription / Trial',
     meal: 'Meal to plan',
@@ -55,6 +62,9 @@ const plannerCopy = {
     suggestedPlan: 'Suggested plan',
     lastSelected: 'Last selected',
     recipe: 'Recipe',
+    watchVideo: 'Watch How to Cook',
+    videoLoading: 'Searching suitable cooking videos...',
+    videoEmpty: "We couldn't find a suitable cooking video for this dish right now. Please use the written recipe.",
     prep: 'Prep',
     difficulty: 'Difficulty',
     cost: 'Cost',
@@ -80,6 +90,7 @@ const plannerCopy = {
     missingTitle: 'पहले परिवार की प्रोफाइल पूरी करें',
     missingText:
       'कम से कम एक सदस्य, रिश्ता और कोई एलर्जी, डॉक्टर की पाबंदी या नापसंद जोड़ें। फिर भोजन योजना बनाने के लिए यहां लौटें।',
+    incompleteText: 'Portion-aware meal plan बनाने से पहले हर family member की उम्र पूरी करें।',
     completeProfile: 'परिवार प्रोफाइल पूरी करें',
     subscription: 'सब्सक्रिप्शन / ट्रायल चुनें',
     meal: 'कौन सा भोजन प्लान करना है',
@@ -97,6 +108,9 @@ const plannerCopy = {
     suggestedPlan: 'सुझाया गया प्लान',
     lastSelected: 'पिछली बार चुना गया',
     recipe: 'रेसिपी',
+    watchVideo: 'कैसे बनाएं वीडियो देखें',
+    videoLoading: 'Suitable cooking video खोज रहे हैं...',
+    videoEmpty: 'इस dish के लिए अभी suitable cooking video नहीं मिला। कृपया written recipe इस्तेमाल करें।',
     prep: 'तैयारी',
     difficulty: 'कठिनाई',
     cost: 'लागत',
@@ -122,6 +136,7 @@ const plannerCopy = {
     missingTitle: 'ಮೊದಲು ಕುಟುಂಬದ ಪ್ರೊಫೈಲ್ ಪೂರ್ಣಗೊಳಿಸಿ',
     missingText:
       'ಕನಿಷ್ಠ ಒಬ್ಬ ಸದಸ್ಯ, ಸಂಬಂಧ ಮತ್ತು ಯಾವುದೇ ಅಲರ್ಜಿ, ವೈದ್ಯರ ನಿರ್ಬಂಧ ಅಥವಾ ಇಷ್ಟವಿಲ್ಲದ ಪದಾರ್ಥಗಳನ್ನು ಸೇರಿಸಿ. ನಂತರ ಊಟದ ಯೋಜನೆ ಮಾಡಲು ಇಲ್ಲಿ ಮರಳಿ ಬನ್ನಿ.',
+    incompleteText: 'Portion-aware meal plan ಮಾಡಲು ಮೊದಲು ಪ್ರತಿ family member ವಯಸ್ಸು ಪೂರ್ಣಗೊಳಿಸಿ.',
     completeProfile: 'ಕುಟುಂಬದ ಪ್ರೊಫೈಲ್ ಪೂರ್ಣಗೊಳಿಸಿ',
     subscription: 'ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ / ಟ್ರಯಲ್ ಆಯ್ಕೆಮಾಡಿ',
     meal: 'ಯಾವ ಊಟವನ್ನು ಯೋಜಿಸಬೇಕು',
@@ -139,6 +154,9 @@ const plannerCopy = {
     suggestedPlan: 'ಸೂಚಿಸಿದ ಪ್ಲ್ಯಾನ್',
     lastSelected: 'ಕೊನೆಯದಾಗಿ ಆಯ್ಕೆಮಾಡಿದದು',
     recipe: 'ರೆಸಿಪಿ',
+    watchVideo: 'ಹೇಗೆ ಅಡುಗೆ ಮಾಡುವುದು ನೋಡಿ',
+    videoLoading: 'ಸೂಕ್ತ cooking video ಹುಡುಕಲಾಗುತ್ತಿದೆ...',
+    videoEmpty: 'ಈ dish ಗೆ ಈಗ suitable cooking video ಸಿಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು written recipe ಬಳಸಿ.',
     prep: 'ತಯಾರಿ',
     difficulty: 'ಕಷ್ಟದ ಮಟ್ಟ',
     cost: 'ವೆಚ್ಚ',
@@ -204,6 +222,24 @@ function cookingHabitNotes(value?: CustomerAccount['cookingHabit']) {
   }
 }
 
+function nonVegNotes(member: HouseholdMember, selectedMealTime: MealTime) {
+  const notes: string[] = [];
+  const label = member.name || 'This member';
+  if (member.nonVegFrequency) {
+    notes.push(`${label} non-vegetarian frequency preference: ${member.nonVegFrequency.replaceAll('_', ' ')}.`);
+  }
+  if (member.nonVegAvoidDays?.length) {
+    notes.push(`${label} avoids non-vegetarian food on ${member.nonVegAvoidDays.join(', ')}.`);
+  }
+  if (member.nonVegCustomRule) {
+    notes.push(`${label} custom non-vegetarian rule: ${member.nonVegCustomRule}.`);
+  }
+  if (member.foodPreference === 'non_vegetarian' || member.foodPreference === 'semi_vegetarian' || member.foodPreference === 'eggetarian') {
+    notes.push(`${label} may eat ${member.foodPreference.replace('_', ' ')}, but do not assume every ${selectedMealTime} should be non-vegetarian. Prefer a vegetarian common base with optional add-on when family preferences differ.`);
+  }
+  return notes;
+}
+
 function mealLabel(value: MealTime, labels: typeof plannerCopy.en.meals) {
   return labels[value] ?? value.replace('_', ' ');
 }
@@ -227,6 +263,8 @@ export default function PlannerPage() {
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [mealPlan, setMealPlan] = useState<FamilyMealPlan | null>(null);
+  const [videoSearch, setVideoSearch] = useState<RecipeVideoSearchResponse | null>(null);
+  const [videoStatus, setVideoStatus] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [lastPlan, setLastPlan] = useState('');
 
@@ -251,14 +289,21 @@ export default function PlannerPage() {
 
   const suggestedPlan = useMemo(() => planFromMemberCount(members.length), [members.length]);
   const canGenerate = members.length > 0;
+  const membersMissingAge = members.filter((member) => typeof member.age !== 'number' || Number.isNaN(member.age));
 
   const generatePlan = async () => {
     if (!canGenerate || isGenerating) return;
+    if (membersMissingAge.length) {
+      setError(t.incompleteText);
+      return;
+    }
 
     setIsGenerating(true);
     setError('');
     setStatus(t.generating);
     setMealPlan(null);
+    setVideoSearch(null);
+    setVideoStatus('');
 
     try {
       const userId = customer.userId || `customer_${Date.now()}`;
@@ -294,11 +339,14 @@ export default function PlannerPage() {
             return {
               name: member.name,
               relationship: member.relation || 'Family member',
-              age: 30,
+              age: member.age as number,
               gender: 'prefer_not_to_say',
-              activityLevel: 'moderate',
-              goals: ['Balanced home meal'],
+              activityLevel: member.activityLevel ?? 'moderate',
+              goals: ['Balanced home meal', ...nonVegNotes(member, selectedMealTime)],
               dietType: memberDietTypeFor(member.foodPreference),
+              nonVegFrequency: member.nonVegFrequency,
+              nonVegAvoidDays: member.nonVegAvoidDays ?? [],
+              nonVegCustomRule: member.nonVegCustomRule,
               likes: [],
               dislikes,
               allergies,
@@ -373,6 +421,37 @@ export default function PlannerPage() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const watchHowToCook = async () => {
+    if (!mealPlan) return;
+    setVideoStatus(t.videoLoading);
+    setVideoSearch(null);
+    trackAnalyticsEvent('recipe_video_requested', {
+      category: familyDietPreferenceFor(customer, members),
+      label: mealPlan.commonMeal.name,
+    });
+    const response = await fetch('/api/recipes/videos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        dishName: mealPlan.commonMeal.recipe.title || mealPlan.commonMeal.name,
+        country: 'India',
+        region: 'Karnataka',
+        preferredLanguage: language,
+        cuisine: ['Indian', 'Home-style'],
+        dietaryPreference: familyDietPreferenceFor(customer, members),
+        healthyPreparation: true,
+        familyRequirements: mealPlan.memberCustomizations.flatMap((customization) => customization.safetyNotes),
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      setVideoStatus(data.error?.message ?? t.videoEmpty);
+      return;
+    }
+    setVideoSearch(data);
+    setVideoStatus(data.results?.length ? data.note : t.videoEmpty);
   };
 
   return (
@@ -484,6 +563,37 @@ export default function PlannerPage() {
                       <li key={`${step}-${index}`}>{index + 1}. {step}</li>
                     ))}
                   </ol>
+
+                  <div className="mt-6 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100">
+                    <button
+                      type="button"
+                      onClick={watchHowToCook}
+                      className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-800"
+                    >
+                      {t.watchVideo}
+                    </button>
+                    {videoStatus ? <p className="mt-3 text-sm font-semibold text-emerald-900">{videoStatus}</p> : null}
+                    {videoSearch?.results?.length ? (
+                      <div className="mt-3 grid gap-2">
+                        {videoSearch.results.map((video) => (
+                          <a
+                            key={video.url}
+                            href={video.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-xl bg-white p-3 text-sm font-semibold text-emerald-950 ring-1 ring-emerald-100"
+                          >
+                            {video.sponsored ? <span className="mb-1 block text-xs uppercase text-amber-700">Sponsored Recipe Video / Paid Promotion</span> : null}
+                            <span>{video.title}</span>
+                            <small className="mt-1 block text-slate-600">
+                              {video.channelTitle} {video.language ? `| ${video.language}` : ''} | {video.matchQuality ?? video.source}
+                            </small>
+                            <small className="mt-1 block text-slate-500">{video.thirdPartyDisclaimer}</small>
+                          </a>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                 </article>
 
                 <div className="grid gap-6">

@@ -188,6 +188,29 @@ function totalIngredientCost(ingredients: Ingredient[]) {
   return ingredients.reduce((total, ingredient) => total + ingredient.estimatedCost.amount, 0);
 }
 
+function memberPortionLabel(member: FamilyMember) {
+  if (member.age < 6) return "small preschool-child portion, about one-third of a standard adult serving";
+  if (member.age < 13) return "child portion, about half of a standard adult serving";
+  if (member.activityLevel === "heavy" || member.activityLevel === "athlete") return "higher-activity adult portion, about one-quarter more than a standard adult serving";
+  if (member.activityLevel === "sedentary") return "lighter adult portion, adjusted for lower activity";
+  if (member.age > 65) return "senior-friendly portion, adjusted for appetite, chewing comfort and digestion rather than age alone";
+  return "standard adult portion";
+}
+
+function localWeekday(targetDate: string) {
+  const date = new Date(`${targetDate}T12:00:00`);
+  return ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][date.getDay()];
+}
+
+function prefersVegetarianBaseToday(input: GeneratePlanInput) {
+  const weekday = localWeekday(input.targetDate);
+  return input.members.some((member) => {
+    if (member.dietType !== "non_vegetarian" && member.dietType !== "eggitarian") return false;
+    if (member.nonVegAvoidDays?.map((day) => day.toLowerCase()).includes(weekday)) return true;
+    return member.nonVegFrequency === "occasionally" || member.nonVegFrequency === "1_2_days_per_week";
+  });
+}
+
 function recipeSteps(mealName: string) {
   const name = normalize(mealName);
   if (name.includes("khichdi")) {
@@ -416,6 +439,21 @@ function estimateForDiet(dietPreference: FamilyDietPreference, mealTime: MealTim
 
 function mealForDiet(input: GeneratePlanInput, mealId: string, mealTime: MealTime, regionFit: string): CommonMealDraft | null {
   const dietPreference = input.family.dietPreference ?? "vegetarian";
+
+  if ((dietPreference === "non_vegetarian" || dietPreference === "eggetarian") && prefersVegetarianBaseToday(input)) {
+    return {
+      mealId,
+      name: "Family Dal-Roti-Sabzi with Optional Egg or Chicken Add-On",
+      mealTime,
+      description: "A shared vegetarian base meal with optional egg or chicken protein for members whose saved frequency and avoid-day rules allow it today.",
+      ingredients: mixedFamilyIngredients(),
+      prepTimeMinutes: 38,
+      difficulty: "medium",
+      regionFit,
+      nutritionIntent: "Respect non-vegetarian frequency and avoid-day traditions without forcing the whole family into separate cooking.",
+      nutritionEstimate: estimateForDiet("mixed", mealTime)
+    };
+  }
 
   if (dietPreference === "non_vegetarian") {
     return {
@@ -1030,6 +1068,13 @@ export class AIService {
     const isChild = member.age < 13;
     const isSenior = member.age > 65 || member.specialStatuses.some((status) => status.toLowerCase().includes("senior"));
     const highActivity = member.activityLevel === "heavy" || member.activityLevel === "athlete";
+    const ageActivityPortion = memberPortionLabel(member);
+    const nonVegRuleNote =
+      member.dietType === "non_vegetarian" || member.dietType === "eggitarian"
+        ? ` Saved non-veg pattern: ${member.nonVegFrequency?.replaceAll("_", " ") ?? "not specified"}${
+            member.nonVegAvoidDays?.length ? `; avoid days: ${member.nonVegAvoidDays.join(", ")}` : "; no fixed avoid day"
+          }.`
+        : "";
     const hardConflicts = ingredientConflicts(commonMeal, memberHardRestrictions(member));
     const dislikedIngredients = ingredientConflicts(commonMeal, memberSoftDislikes(member));
     const dislikedMeals = mealNameConflicts(commonMeal, memberSoftDislikes(member));
@@ -1050,7 +1095,7 @@ export class AIService {
         modification: hardConflicts.length
           ? `Do not serve the conflicting item(s): ${conflicts}. Use a safe dal, roti, vegetable, curd-free, egg-free, or protein alternative based on the specific restriction.`
           : softDislikeGuidance,
-        portionGuidance: "Serve a normal age/activity-appropriate portion only after the conflicting item is removed or replaced.",
+        portionGuidance: `Serve a ${ageActivityPortion} only after the conflicting item is removed or replaced.${nonVegRuleNote}`,
         safetyNotes
       };
     }
@@ -1060,7 +1105,7 @@ export class AIService {
         memberId: member.memberId,
         memberName: member.name,
         modification: replacement ? "Use more sambar vegetables, moderate dosa count, and avoid sweet beverages." : "Keep khichdi grain portion controlled and add extra vegetables and curd.",
-        portionGuidance: replacement ? "2 medium dosas with 1.5 cups sambar and unsweetened curd." : "1 medium bowl khichdi, 1 cup vegetables, and 0.5 cup curd.",
+        portionGuidance: replacement ? `2 medium dosas with 1.5 cups sambar and unsweetened curd; adjust as a ${ageActivityPortion}.` : `1 medium bowl khichdi, 1 cup vegetables, and 0.5 cup curd; adjust as a ${ageActivityPortion}.`,
         safetyNotes: ["Diabetes-aware portion guidance; follow doctor-provided carbohydrate instructions if stricter.", ...safetyNotes]
       };
     }
@@ -1070,7 +1115,7 @@ export class AIService {
         memberId: member.memberId,
         memberName: member.name,
         modification: replacement ? "Serve dosa softer with extra sambar, less spice, and small pieces." : "Cook khichdi softer with mild spices and extra moisture.",
-        portionGuidance: replacement ? "1 soft dosa with 1 cup sambar, served warm and easy to chew." : "1 small soft bowl with curd if tolerated.",
+        portionGuidance: replacement ? `1 soft dosa with 1 cup sambar, served warm and easy to chew; ${ageActivityPortion}.` : `1 small soft bowl with curd if tolerated; ${ageActivityPortion}.`,
         safetyNotes: ["Watch chewing comfort and digestion.", ...safetyNotes]
       };
     }
@@ -1080,7 +1125,7 @@ export class AIService {
         memberId: member.memberId,
         memberName: member.name,
         modification: replacement ? "Add paneer side and extra sambar dal for protein support." : "Add paneer or extra dal topping for protein support.",
-        portionGuidance: replacement ? "3 dosas, 2 cups sambar, and paneer side." : "2 bowls khichdi with extra dal or paneer side.",
+        portionGuidance: replacement ? `3 dosas, 2 cups sambar, and paneer side; ${ageActivityPortion}.` : `Larger serving of the common meal with extra dal or suitable protein side; ${ageActivityPortion}.`,
         safetyNotes
       };
     }
@@ -1090,7 +1135,7 @@ export class AIService {
         memberId: member.memberId,
         memberName: member.name,
         modification: replacement ? "Serve smaller dosa pieces with mild sambar and curd." : "Serve mild khichdi with curd and colorful vegetables.",
-        portionGuidance: replacement ? "1 small dosa, 0.75 cup sambar, and curd." : "1 child-size bowl with curd.",
+        portionGuidance: replacement ? `1 small dosa, 0.75 cup sambar, and curd; ${ageActivityPortion}.` : `Child-size serving of the common meal with curd if suitable; ${ageActivityPortion}.`,
         safetyNotes: ["Child nutrition needs are individualized; consult a pediatric professional for specific concerns.", ...safetyNotes]
       };
     }
@@ -1099,7 +1144,7 @@ export class AIService {
       memberId: member.memberId,
       memberName: member.name,
       modification: replacement ? "Regular family serving with balanced sambar and curd." : "Regular balanced portion with vegetables and curd.",
-      portionGuidance: replacement ? "2 dosas, 1.5 cups sambar, and 0.5 cup curd." : "1.5 bowls khichdi with 0.5 cup curd.",
+      portionGuidance: replacement ? `2 dosas, 1.5 cups sambar, and 0.5 cup curd; ${ageActivityPortion}.${nonVegRuleNote}` : `Standard serving of the common meal with curd or suitable side; ${ageActivityPortion}.${nonVegRuleNote}`,
       safetyNotes
     };
   }

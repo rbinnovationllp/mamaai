@@ -17,7 +17,12 @@ export interface CustomerFamilyMemberProfile {
   id: string;
   name: string;
   relation: string;
+  age?: number;
+  activityLevel?: "sedentary" | "light" | "moderate" | "heavy" | "athlete";
   foodPreference?: "vegetarian" | "eggetarian" | "non_vegetarian" | "semi_vegetarian" | "vegan" | "other";
+  nonVegFrequency?: "occasionally" | "1_2_days_per_week" | "3_4_days_per_week" | "4_5_days_per_week" | "most_days" | "custom";
+  nonVegAvoidDays?: string[];
+  nonVegCustomRule?: string;
   allergies: string[];
   doctorAdvisedRestrictions: string[];
   dislikes: string[];
