@@ -21,6 +21,7 @@ export default function HomePage() {
           <nav className="hidden items-center gap-6 text-sm font-bold text-stone-600 md:flex">
             <a href="#how">{t.navHow}</a>
             <a href="#plans">{t.navPlans}</a>
+            <Link href="/planner">{t.navPlanner}</Link>
             <Link href="/pantry">{t.navPantry}</Link>
             <Link href="/subscription">{t.navSubscription}</Link>
           </nav>
@@ -48,6 +49,9 @@ export default function HomePage() {
             <div className="mt-7 flex flex-wrap gap-3">
               <Link href="/profile/family" className="rounded-full bg-orange-600 px-7 py-3.5 text-sm font-black text-white shadow-xl shadow-orange-900/20 transition hover:bg-orange-700">
                 {t.primaryCta}
+              </Link>
+              <Link href="/planner" className="rounded-full bg-emerald-800 px-7 py-3.5 text-sm font-black text-white shadow-xl shadow-emerald-900/20 transition hover:bg-emerald-900">
+                {t.plannerCta}
               </Link>
               <Link href="/ask-mama" className="rounded-full border border-emerald-200 bg-white px-7 py-3.5 text-sm font-black text-emerald-900 shadow-sm transition hover:border-emerald-400">
                 {t.demoCta}

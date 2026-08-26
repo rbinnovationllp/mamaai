@@ -11,6 +11,9 @@ const memberSchema = z.object({
   id: z.string().min(1),
   name: z.string().trim().min(1),
   relation: z.string().trim().min(1),
+  foodPreference: z
+    .enum(["vegetarian", "eggetarian", "non_vegetarian", "semi_vegetarian", "vegan", "other"])
+    .default("vegetarian"),
   allergies: z.array(z.string()).default([]),
   doctorAdvisedRestrictions: z.array(z.string()).default([]),
   dislikes: z.array(z.string()).default([]),
@@ -23,6 +26,12 @@ const familyProfileSchema = z.object({
     email: z.string().trim().email().optional().or(z.literal("")),
     mobile: z.string().trim().min(6).optional().or(z.literal("")),
     preferredLanguage: z.string().optional(),
+    householdFoodPreference: z
+      .enum(["vegetarian", "eggetarian", "non_vegetarian", "semi_vegetarian", "vegan", "mixed", "other"])
+      .default("vegetarian"),
+    cookingHabit: z
+      .enum(["fresh_home_cooked", "ready_frozen", "fresh_ready_mix", "takeaway_prepared", "other"])
+      .default("fresh_home_cooked"),
   }),
   members: z.array(memberSchema).min(1),
 });
@@ -70,6 +79,7 @@ export async function POST(request: Request) {
       id: member.id,
       name: member.name,
       relation: member.relation,
+      foodPreference: member.foodPreference ?? "vegetarian",
       allergies: member.allergies ?? [],
       doctorAdvisedRestrictions: member.doctorAdvisedRestrictions ?? [],
       dislikes: member.dislikes ?? [],
@@ -84,6 +94,8 @@ export async function POST(request: Request) {
       email: customer.email || undefined,
       mobile: customer.mobile || undefined,
       preferredLanguage: customer.preferredLanguage,
+      householdFoodPreference: customer.householdFoodPreference,
+      cookingHabit: customer.cookingHabit,
     });
     const familyProfile = await repository.saveFamilyProfile({ userId, members });
 

@@ -68,6 +68,7 @@ export const createFamilyInputSchema = z.object({
     "non_vegetarian",
     "semi_vegetarian",
     "eggetarian",
+    "vegan",
     "mixed",
   ]),
   cuisinePreferences: z.array(z.string().min(1)),
@@ -245,7 +246,7 @@ export const recipeVideoSearchRequestSchema = z.object({
   preferredLanguage: z.string().optional(),
   cuisine: z.array(z.string()).optional(),
   dietaryPreference: z
-    .enum(["vegetarian", "non_vegetarian", "semi_vegetarian", "eggetarian", "mixed"])
+    .enum(["vegetarian", "non_vegetarian", "semi_vegetarian", "eggetarian", "vegan", "mixed"])
     .optional(),
   healthyPreparation: z.boolean().optional(),
   familyRequirements: z.array(z.string()).optional(),

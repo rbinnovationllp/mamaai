@@ -7,6 +7,8 @@ export interface CustomerAccountRecord {
   email?: string;
   mobile?: string;
   preferredLanguage?: string;
+  householdFoodPreference?: "vegetarian" | "eggetarian" | "non_vegetarian" | "semi_vegetarian" | "vegan" | "mixed" | "other";
+  cookingHabit?: "fresh_home_cooked" | "ready_frozen" | "fresh_ready_mix" | "takeaway_prepared" | "other";
   createdAt: string;
   updatedAt: string;
 }
@@ -15,6 +17,7 @@ export interface CustomerFamilyMemberProfile {
   id: string;
   name: string;
   relation: string;
+  foodPreference?: "vegetarian" | "eggetarian" | "non_vegetarian" | "semi_vegetarian" | "vegan" | "other";
   allergies: string[];
   doctorAdvisedRestrictions: string[];
   dislikes: string[];
@@ -42,6 +45,8 @@ export class CustomerProfileRepository {
     email?: string;
     mobile?: string;
     preferredLanguage?: string;
+    householdFoodPreference?: CustomerAccountRecord["householdFoodPreference"];
+    cookingHabit?: CustomerAccountRecord["cookingHabit"];
   }): Promise<CustomerAccountRecord> {
     const timestamp = nowIso();
     const existing = await this.getCustomer(input.userId);
@@ -51,6 +56,8 @@ export class CustomerProfileRepository {
       email: input.email,
       mobile: input.mobile,
       preferredLanguage: input.preferredLanguage,
+      householdFoodPreference: input.householdFoodPreference ?? existing?.householdFoodPreference,
+      cookingHabit: input.cookingHabit ?? existing?.cookingHabit,
       createdAt: existing?.createdAt ?? timestamp,
       updatedAt: timestamp,
     };

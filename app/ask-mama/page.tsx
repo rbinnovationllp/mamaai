@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { AppPageNav } from '@/components/AppPageNav';
 import { useLanguage } from '@/components/LanguageProvider';
 import { VoiceTextInput } from '@/components/VoiceTextInput';
 
@@ -20,6 +21,9 @@ const SUGGESTED_QUESTIONS = [
   'What should I cook tonight with pantry staples?',
 ];
 
+const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
+const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
+
 export default function HomePage() {
   const { language } = useLanguage();
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -32,6 +36,7 @@ export default function HomePage() {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [profileContext, setProfileContext] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -41,6 +46,29 @@ export default function HomePage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    try {
+      const members = JSON.parse(window.localStorage.getItem(HOUSEHOLD_STORAGE_KEY) || '[]');
+      const customer = JSON.parse(window.localStorage.getItem(CUSTOMER_STORAGE_KEY) || '{}');
+      setProfileContext({
+        householdFoodPreference: customer.householdFoodPreference,
+        cookingHabit: customer.cookingHabit,
+        members: Array.isArray(members)
+          ? members.map((member) => ({
+              name: member.name,
+              relation: member.relation,
+              foodPreference: member.foodPreference,
+              allergies: member.allergies,
+              doctorAdvisedRestrictions: member.doctorAdvisedRestrictions,
+              dislikes: member.dislikes,
+            }))
+          : [],
+      });
+    } catch {
+      setProfileContext(null);
+    }
+  }, []);
 
   const handleSendMessage = async (textToSend?: string) => {
     const query = (textToSend || inputMessage).trim();
@@ -74,6 +102,7 @@ export default function HomePage() {
           history,
           isJudgeMode: true,
           language,
+          profileContext,
         }),
       });
 
@@ -106,6 +135,10 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col py-8 px-4 sm:px-6 lg:px-8 font-sans">
+      <div className="max-w-4xl w-full mx-auto">
+        <AppPageNav />
+      </div>
+
       {/* Top Banner Navigation */}
       <div className="max-w-4xl w-full mx-auto mb-6 flex items-center justify-between">
         <div>

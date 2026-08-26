@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { CookingStyle } from '@/lib/types';
+import { AppPageNav } from '@/components/AppPageNav';
 import { LanguageSelector, useLanguage } from '@/components/LanguageProvider';
 import { VoiceTextInput } from '@/components/VoiceTextInput';
 
@@ -48,67 +49,69 @@ export default function CultureProfilePage() {
 
   const handleSave = async () => {
     const profile = { country, region, cookingStyle, preferredCuisines: selectedCuisines };
-    await fetch('/api/user/culture', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(profile),
-    });
+    window.localStorage.setItem('mamaai_culture_profile_v1', JSON.stringify(profile));
     alert(t.saved);
   };
 
   return (
-    <main className="max-w-2xl mx-auto p-6 bg-white shadow-sm border rounded-xl my-6">
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">{t.title}</h1>
-          <p className="text-sm text-gray-600">{t.subtitle}</p>
-        </div>
-        <LanguageSelector />
-      </div>
+    <main className="min-h-screen bg-gray-50 px-4 py-6">
+      <div className="mx-auto max-w-2xl">
+        <AppPageNav />
 
-      <div className="space-y-4 text-sm">
-        <div>
-          <label className="block font-medium mb-1">{t.country}</label>
-          <VoiceTextInput
-            type="text"
-            value={country}
-            onValueChange={setCountry}
-            inputClassName="w-full border rounded-lg p-2"
-          />
-        </div>
+        <section className="rounded-xl border bg-white p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">{t.title}</h1>
+              <p className="text-sm text-gray-600">{t.subtitle}</p>
+            </div>
+            <LanguageSelector />
+          </div>
 
-        <div>
-          <label className="block font-medium mb-1">{t.region}</label>
-          <VoiceTextInput
-            type="text"
-            value={region}
-            onValueChange={setRegion}
-            inputClassName="w-full border rounded-lg p-2"
-          />
-        </div>
+          <div className="space-y-4 text-sm">
+            <div>
+              <label className="block font-medium mb-1">{t.country}</label>
+              <VoiceTextInput
+                type="text"
+                value={country}
+                onValueChange={setCountry}
+                inputClassName="w-full border rounded-lg p-2"
+              />
+            </div>
 
-        <div>
-          <label className="block font-medium mb-1">{t.eating}</label>
-          <select
-            value={cookingStyle}
-            onChange={(e) => setCookingStyle(e.target.value as CookingStyle)}
-            className="w-full border rounded-lg p-2"
-          >
-            <option value="MOSTLY_FRESH">{t.options[0]}</option>
-            <option value="MIX_FRESH_FROZEN">{t.options[1]}</option>
-            <option value="MOSTLY_FROZEN_READY">{t.options[2]}</option>
-            <option value="MOSTLY_READY_TO_EAT">{t.options[3]}</option>
-            <option value="FREQUENT_TAKEAWAY">{t.options[4]}</option>
-            <option value="MIXED_LIFESTYLE">{t.options[5]}</option>
-          </select>
-        </div>
+            <div>
+              <label className="block font-medium mb-1">{t.region}</label>
+              <VoiceTextInput
+                type="text"
+                value={region}
+                onValueChange={setRegion}
+                inputClassName="w-full border rounded-lg p-2"
+              />
+            </div>
 
-        <button
-          onClick={handleSave}
-          className="w-full bg-emerald-600 text-white font-medium py-2.5 rounded-lg hover:bg-emerald-700 transition mt-4"
-        >
-          {t.save}
-        </button>
+            <div>
+              <label className="block font-medium mb-1">{t.eating}</label>
+              <select
+                value={cookingStyle}
+                onChange={(e) => setCookingStyle(e.target.value as CookingStyle)}
+                className="w-full border rounded-lg p-2"
+              >
+                <option value="MOSTLY_FRESH">{t.options[0]}</option>
+                <option value="MIX_FRESH_FROZEN">{t.options[1]}</option>
+                <option value="MOSTLY_FROZEN_READY">{t.options[2]}</option>
+                <option value="MOSTLY_READY_TO_EAT">{t.options[3]}</option>
+                <option value="FREQUENT_TAKEAWAY">{t.options[4]}</option>
+                <option value="MIXED_LIFESTYLE">{t.options[5]}</option>
+              </select>
+            </div>
+
+            <button
+              onClick={handleSave}
+              className="w-full bg-emerald-600 text-white font-medium py-2.5 rounded-lg hover:bg-emerald-700 transition mt-4"
+            >
+              {t.save}
+            </button>
+          </div>
+        </section>
       </div>
     </main>
   );

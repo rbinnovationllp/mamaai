@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
+import { AppPageNav } from '@/components/AppPageNav';
 import { LanguageSelector, useLanguage } from '@/components/LanguageProvider';
 
 const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
@@ -26,6 +27,13 @@ const subscriptionCopy = {
     householdEmpty:
       'No household members found yet. You can still subscribe, or create your family profile first.',
     createProfile: 'Create family profile',
+    plannerCta: "Go to Meal Planner",
+    completeProfileCta: 'Complete Family Profile',
+    nextActionTitle: 'Next after subscription',
+    nextActionReady:
+      "Your saved household can go straight to the meal planner after payment or trial confirmation.",
+    nextActionMissing:
+      'Family details are still missing. Complete the family profile first, then return here to choose a plan.',
     accountTitle: 'Customer account',
     accountText: 'Enter your name and contact once. We will keep your selected plan and continue to Razorpay.',
     customerName: 'Your name',
@@ -82,6 +90,13 @@ const subscriptionCopy = {
     householdEmpty:
       'अभी household members नहीं मिले. आप subscribe कर सकते हैं, या पहले family profile बना सकते हैं.',
     createProfile: 'Family profile बनाएं',
+    plannerCta: 'Meal Planner पर जाएं',
+    completeProfileCta: 'Family Profile Complete करें',
+    nextActionTitle: 'Subscription के बाद next step',
+    nextActionReady:
+      'Payment या trial confirmation के बाद आपका saved household सीधे meal planner में जा सकता है.',
+    nextActionMissing:
+      'Family details अभी missing हैं. पहले family profile complete करें, फिर plan चुनें.',
     accountTitle: 'Customer account',
     accountText: 'अपना नाम और contact डालें. आपका selected plan सुरक्षित रहेगा और Razorpay खुलेगा.',
     customerName: 'Your name',
@@ -138,6 +153,13 @@ const subscriptionCopy = {
     householdEmpty:
       'Household members ಇನ್ನೂ ಸಿಗಲಿಲ್ಲ. ನೀವು subscribe ಮಾಡಬಹುದು, ಅಥವಾ ಮೊದಲು family profile ರಚಿಸಬಹುದು.',
     createProfile: 'Family profile ರಚಿಸಿ',
+    plannerCta: 'Meal Planner ಗೆ ಹೋಗಿ',
+    completeProfileCta: 'Family Profile Complete ಮಾಡಿ',
+    nextActionTitle: 'Subscription ನಂತರ next step',
+    nextActionReady:
+      'Payment ಅಥವಾ trial confirmation ನಂತರ ನಿಮ್ಮ saved household ನೇರವಾಗಿ meal planner ಗೆ ಹೋಗಬಹುದು.',
+    nextActionMissing:
+      'Family details ಇನ್ನೂ missing ಇವೆ. ಮೊದಲು family profile complete ಮಾಡಿ, ನಂತರ plan ಆಯ್ಕೆಮಾಡಿ.',
     accountTitle: 'Customer account',
     accountText: 'ನಿಮ್ಮ ಹೆಸರು ಮತ್ತು contact ನಮೂದಿಸಿ. Selected plan ಉಳಿಸಿ Razorpay ಮುಂದುವರಿಯುತ್ತದೆ.',
     customerName: 'Your name',
@@ -248,13 +270,17 @@ export default function SubscriptionPage() {
           setCustomerName(data.customer.name ?? '');
           setCustomerMobile(data.customer.mobile ?? '');
           setCustomerEmail(data.customer.email ?? '');
+          const existingCustomer = JSON.parse(window.localStorage.getItem(CUSTOMER_STORAGE_KEY) || '{}');
           window.localStorage.setItem(
             CUSTOMER_STORAGE_KEY,
             JSON.stringify({
+              ...existingCustomer,
               userId: data.userId,
               name: data.customer.name ?? '',
               mobile: data.customer.mobile ?? '',
               email: data.customer.email ?? '',
+              householdFoodPreference: data.customer.householdFoodPreference ?? existingCustomer.householdFoodPreference,
+              cookingHabit: data.customer.cookingHabit ?? existingCustomer.cookingHabit,
             })
           );
         }
@@ -327,6 +353,7 @@ export default function SubscriptionPage() {
       window.localStorage.setItem(
         CUSTOMER_STORAGE_KEY,
         JSON.stringify({
+          ...(JSON.parse(window.localStorage.getItem(CUSTOMER_STORAGE_KEY) || '{}')),
           userId: sessionData.userId,
           name: cleanName,
           mobile: cleanMobile,
@@ -385,15 +412,15 @@ export default function SubscriptionPage() {
           if (verifyRes.ok) {
             window.localStorage.setItem('mamaai_last_successful_plan', planTier);
             alert('Subscription activated successfully. Welcome to MAMAAI.');
-            window.location.href = '/';
+            window.location.href = '/planner?subscription=success';
           } else {
             setCheckoutStatus('Payment completed, but verification failed. Support team notified.');
           }
         },
         prefill: {
-          name: householdMembers[0]?.name ?? '',
-          email: '',
-          contact: '',
+          name: cleanName,
+          email: cleanEmail,
+          contact: cleanMobile,
         },
         notes: {
           householdMemberCount: String(householdMembers.length),
@@ -433,7 +460,7 @@ export default function SubscriptionPage() {
         setTimeout(() => {
           alert(`Judge Test Mode Activated! Features unlocked for [${judgePlanSelection.toUpperCase()}].`);
           setShowJudgeModal(false);
-          window.location.href = '/';
+          window.location.href = '/planner?judge=success';
         }, 1000);
       } else {
         setJudgeStatusMsg('Invalid Judge Access Key.');
@@ -448,6 +475,8 @@ export default function SubscriptionPage() {
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
 
       <div className="mx-auto max-w-6xl">
+        <AppPageNav />
+
         <div className="mb-8 flex flex-col items-center justify-between gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:flex-row">
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
@@ -520,6 +549,23 @@ export default function SubscriptionPage() {
               className="rounded-xl border border-emerald-200 px-4 py-2 text-center text-sm font-bold text-emerald-800 transition hover:bg-emerald-50"
             >
               {t.createProfile}
+            </Link>
+          </div>
+        </section>
+
+        <section className="mb-8 rounded-2xl border border-orange-100 bg-orange-50 p-5 shadow-sm">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+            <div>
+              <p className="text-sm font-bold text-orange-900">{t.nextActionTitle}</p>
+              <p className="mt-1 text-sm leading-6 text-orange-900/80">
+                {householdMembers.length > 0 ? t.nextActionReady : t.nextActionMissing}
+              </p>
+            </div>
+            <Link
+              href={householdMembers.length > 0 ? '/planner' : '/profile/family'}
+              className="rounded-xl bg-emerald-700 px-5 py-3 text-center text-sm font-bold text-white shadow-sm transition hover:bg-emerald-800"
+            >
+              {householdMembers.length > 0 ? t.plannerCta : t.completeProfileCta}
             </Link>
           </div>
         </section>

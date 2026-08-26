@@ -155,6 +155,26 @@ function mixedFamilyIngredients(): Ingredient[] {
   ];
 }
 
+function veganDalIngredients(): Ingredient[] {
+  return [
+    { name: "Masoor dal", quantity: "1.5 cups", category: "pulses", estimatedCost: money(65) },
+    { name: "Brown rice or millet", quantity: "1.5 cups", category: "grains", estimatedCost: money(75) },
+    { name: "Seasonal vegetable sabzi", quantity: "5 cups", category: "vegetables", estimatedCost: money(140) },
+    { name: "Roasted peanuts or sesame chutney", quantity: "0.5 cup", category: "protein", estimatedCost: money(45) },
+    { name: "Basic spices and lemon", quantity: "2 tsp spices + 2 lemons", category: "spices", estimatedCost: money(25) }
+  ];
+}
+
+function veganHighTeaIngredients(): Ingredient[] {
+  return [
+    { name: "Besan", quantity: "1.5 cups", category: "pulses", estimatedCost: money(45) },
+    { name: "Mixed grated vegetables", quantity: "2 cups", category: "vegetables", estimatedCost: money(65) },
+    { name: "Peanut or coconut chutney", quantity: "1 cup", category: "protein", estimatedCost: money(55) },
+    { name: "Seasonal fruit", quantity: "5 pieces", category: "fruits", estimatedCost: money(90) },
+    { name: "Herbal infusion or lemon water", quantity: "5 cups", category: "other", estimatedCost: money(30) }
+  ];
+}
+
 function nutritionEstimate(values: Omit<NutritionEstimate, "basis" | "dataSource" | "confidence">, basis: string): NutritionEstimate {
   return {
     ...values,
@@ -334,6 +354,12 @@ function preferenceResolutionFor(members: FamilyMember[], commonMeal: CommonMeal
 
 function estimateForDiet(dietPreference: FamilyDietPreference, mealTime: MealTime): NutritionEstimate {
   if (mealTime === "high_tea" || mealTime === "evening_snack" || mealTime === "snack") {
+    if (dietPreference === "vegan") {
+      return nutritionEstimate(
+        { caloriesKcal: 940, proteinGrams: 38, carbsGrams: 122, fatGrams: 30, fiberGrams: 24 },
+        "Estimated family total for vegan high tea with vegetable chilla, peanut chutney, fruit, and herbal infusion."
+      );
+    }
     return nutritionEstimate(
       { caloriesKcal: 980, proteinGrams: 42, carbsGrams: 118, fatGrams: 34, fiberGrams: 18 },
       "Estimated family total for high tea with vegetable chilla, curd, fruit, and unsweetened tea."
@@ -358,6 +384,13 @@ function estimateForDiet(dietPreference: FamilyDietPreference, mealTime: MealTim
     return nutritionEstimate(
       { caloriesKcal: 1720, proteinGrams: 86, carbsGrams: 215, fatGrams: 49, fiberGrams: 34 },
       "Estimated family total for vegetarian base meal with optional egg or chicken protein add-on."
+    );
+  }
+
+  if (dietPreference === "vegan") {
+    return nutritionEstimate(
+      { caloriesKcal: 1500, proteinGrams: 62, carbsGrams: 230, fatGrams: 34, fiberGrams: 42 },
+      "Estimated family total for vegan dal, millet or rice, vegetables, and nut/seed chutney."
     );
   }
 
@@ -429,6 +462,21 @@ function mealForDiet(input: GeneratePlanInput, mealId: string, mealTime: MealTim
     };
   }
 
+  if (dietPreference === "vegan") {
+    return {
+      mealId,
+      name: "Vegan Dal, Millet-Rice and Seasonal Sabzi Plate",
+      mealTime,
+      description: "A fully plant-based family meal with dal, vegetables, millet or rice, and nut/seed chutney. It avoids meat, fish, eggs, milk, paneer, butter, ghee, curd and other dairy.",
+      ingredients: veganDalIngredients(),
+      prepTimeMinutes: 35,
+      difficulty: "easy",
+      regionFit,
+      nutritionIntent: "Plant-based family meal that keeps protein, fiber and practical home cooking visible without animal-derived ingredients.",
+      nutritionEstimate: estimateForDiet(dietPreference, mealTime)
+    };
+  }
+
   return null;
 }
 
@@ -446,6 +494,20 @@ function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
   const regionFit = `${input.family.city}, ${input.family.state}, ${input.family.country} friendly${cuisineFit}${localContext}`;
 
   if (mealTime === "high_tea" || mealTime === "evening_snack" || mealTime === "snack") {
+    if (input.family.dietPreference === "vegan") {
+      return completeMeal({
+        mealId,
+        name: "Vegan High Tea: Vegetable Chilla with Peanut Chutney and Fruit",
+        mealTime,
+        description: "A vegan high-tea plate using besan, vegetables, chutney, fruit and herbal beverage without dairy or eggs.",
+        ingredients: veganHighTeaIngredients(),
+        prepTimeMinutes: 25,
+        difficulty: "easy",
+        regionFit,
+        nutritionIntent: "Light plant-based snack with pulse protein, fruit, hydration, and no animal-derived ingredients.",
+        nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime)
+      });
+    }
     return completeMeal({
       mealId,
       name: "High Tea: Vegetable Chilla with Curd, Fruit and Unsweetened Tea",

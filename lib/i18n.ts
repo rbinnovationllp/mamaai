@@ -12,6 +12,7 @@ export const homeCopy = {
   en: {
     navHow: "How it works",
     navPlans: "Plans",
+    navPlanner: "Meal Planner",
     navPantry: "Pantry",
     navSubscription: "Subscription",
     start: "Start planning",
@@ -21,6 +22,7 @@ export const homeCopy = {
     intro:
       "Planned with love for everyone you call family, with practical portions, restrictions, recipes, groceries, and separate Family+ care for four-paw members.",
     primaryCta: "Plan my family meals",
+    plannerCta: "Plan Today's Family Meal",
     demoCta: "Try Judge Demo",
     checks: ["Preferences and dislikes", "Allergies and restrictions", "Fasting and special days", "Pantry and grocery planning"],
     questionLabel: "Today's question",
@@ -53,6 +55,7 @@ export const homeCopy = {
   hi: {
     navHow: "कैसे काम करता है",
     navPlans: "प्लान",
+    navPlanner: "Meal Planner",
     navPantry: "पैंट्री",
     navSubscription: "सब्सक्रिप्शन",
     start: "प्लान शुरू करें",
@@ -62,6 +65,7 @@ export const homeCopy = {
     intro:
       "आप जिन्हें परिवार कहते हैं, उनके लिए प्यार से बनाई गई योजना: हिस्से, restrictions, recipes, groceries और Family+ में four-paw members के लिए अलग pet-appropriate care.",
     primaryCta: "मेरे परिवार का भोजन प्लान करें",
+    plannerCta: "आज का Family Meal Plan करें",
     demoCta: "Judge Demo देखें",
     checks: ["पसंद और नापसंद", "Allergies और restrictions", "Fasting और special days", "Pantry और grocery planning"],
     questionLabel: "आज का सवाल",
@@ -94,6 +98,7 @@ export const homeCopy = {
   kn: {
     navHow: "ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ",
     navPlans: "ಪ್ಲ್ಯಾನ್‌ಗಳು",
+    navPlanner: "Meal Planner",
     navPantry: "ಪ್ಯಾಂಟ್ರಿ",
     navSubscription: "ಸಬ್ಸ್ಕ್ರಿಪ್ಶನ್",
     start: "ಪ್ಲ್ಯಾನ್ ಪ್ರಾರಂಭಿಸಿ",
@@ -103,6 +108,7 @@ export const homeCopy = {
     intro:
       "ನೀವು ಕುಟುಂಬವೆಂದು ಕರೆಯುವ ಎಲ್ಲರಿಗೂ ಪ್ರೀತಿಯಿಂದ ರೂಪಿಸಿದ ಪ್ಲ್ಯಾನ್: portions, restrictions, recipes, groceries ಮತ್ತು Family+ ನಲ್ಲಿ four-paw members ಗಾಗಿ ಬೇರೆ pet-appropriate care.",
     primaryCta: "ನನ್ನ ಕುಟುಂಬದ ಊಟ ಪ್ಲ್ಯಾನ್ ಮಾಡಿ",
+    plannerCta: "ಇಂದಿನ Family Meal Plan ಮಾಡಿ",
     demoCta: "Judge Demo ನೋಡಿ",
     checks: ["ಇಷ್ಟಗಳು ಮತ್ತು ಅನಿಷ್ಟಗಳು", "Allergies ಮತ್ತು restrictions", "Fasting ಮತ್ತು special days", "Pantry ಮತ್ತು grocery planning"],
     questionLabel: "ಇಂದಿನ ಪ್ರಶ್ನೆ",

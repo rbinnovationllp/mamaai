@@ -6,7 +6,7 @@ export type ActivityLevel = "sedentary" | "light" | "moderate" | "heavy" | "athl
 
 export type DietType = "vegetarian" | "non_vegetarian" | "eggitarian" | "vegan" | "jain" | "satvik" | "other";
 
-export type FamilyDietPreference = "vegetarian" | "non_vegetarian" | "semi_vegetarian" | "eggetarian" | "mixed";
+export type FamilyDietPreference = "vegetarian" | "non_vegetarian" | "semi_vegetarian" | "eggetarian" | "vegan" | "mixed";
 
 export type PlanType = "daily" | "weekly" | "monthly";
 
