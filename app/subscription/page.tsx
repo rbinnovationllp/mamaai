@@ -6,6 +6,7 @@ import Script from 'next/script';
 import { LanguageSelector, useLanguage } from '@/components/LanguageProvider';
 
 const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
+const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
 
 type HouseholdMember = {
   id: string;
@@ -25,6 +26,13 @@ const subscriptionCopy = {
     householdEmpty:
       'No household members found yet. You can still subscribe, or create your family profile first.',
     createProfile: 'Create family profile',
+    accountTitle: 'Customer account',
+    accountText: 'Enter your name and contact once. We will keep your selected plan and continue to Razorpay.',
+    customerName: 'Your name',
+    customerMobile: 'Mobile number',
+    customerEmail: 'Email address',
+    accountReady: 'Customer account ready.',
+    accountNeeded: 'Please enter your name before checkout. Mobile or email is recommended for support.',
     suggested: 'Suggested plan',
     starterSupport: 'Supports up to 4 human family members.',
     premiumSupport: 'Supports up to 6 human family members.',
@@ -74,6 +82,13 @@ const subscriptionCopy = {
     householdEmpty:
       'अभी household members नहीं मिले. आप subscribe कर सकते हैं, या पहले family profile बना सकते हैं.',
     createProfile: 'Family profile बनाएं',
+    accountTitle: 'Customer account',
+    accountText: 'अपना नाम और contact डालें. आपका selected plan सुरक्षित रहेगा और Razorpay खुलेगा.',
+    customerName: 'Your name',
+    customerMobile: 'Mobile number',
+    customerEmail: 'Email address',
+    accountReady: 'Customer account ready.',
+    accountNeeded: 'Checkout से पहले अपना नाम डालें. Support के लिए mobile या email बेहतर है.',
     suggested: 'Suggested plan',
     starterSupport: '4 human family members तक support.',
     premiumSupport: '6 human family members तक support.',
@@ -123,6 +138,13 @@ const subscriptionCopy = {
     householdEmpty:
       'Household members ಇನ್ನೂ ಸಿಗಲಿಲ್ಲ. ನೀವು subscribe ಮಾಡಬಹುದು, ಅಥವಾ ಮೊದಲು family profile ರಚಿಸಬಹುದು.',
     createProfile: 'Family profile ರಚಿಸಿ',
+    accountTitle: 'Customer account',
+    accountText: 'ನಿಮ್ಮ ಹೆಸರು ಮತ್ತು contact ನಮೂದಿಸಿ. Selected plan ಉಳಿಸಿ Razorpay ಮುಂದುವರಿಯುತ್ತದೆ.',
+    customerName: 'Your name',
+    customerMobile: 'Mobile number',
+    customerEmail: 'Email address',
+    accountReady: 'Customer account ready.',
+    accountNeeded: 'Checkout ಮೊದಲು ನಿಮ್ಮ ಹೆಸರು ನಮೂದಿಸಿ. Support ಗೆ mobile ಅಥವಾ email ಉತ್ತಮ.',
     suggested: 'Suggested plan',
     starterSupport: '4 human family members ವರೆಗೆ support.',
     premiumSupport: '6 human family members ವರೆಗೆ support.',
@@ -179,27 +201,73 @@ export default function SubscriptionPage() {
   const [judgePlanSelection, setJudgePlanSelection] = useState('family_plus');
   const [judgeStatusMsg, setJudgeStatusMsg] = useState('');
   const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([]);
+  const [customerUserId, setCustomerUserId] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerMobile, setCustomerMobile] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [checkoutStatus, setCheckoutStatus] = useState('');
 
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(HOUSEHOLD_STORAGE_KEY);
-      if (!saved) return;
-
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) {
-        setHouseholdMembers(
-          parsed
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const nextMembers = parsed
             .filter((member) => member?.name)
             .map((member) => ({
               id: String(member.id ?? member.name),
               name: String(member.name),
               relation: String(member.relation ?? ''),
-            }))
-        );
+            }));
+          setHouseholdMembers(nextMembers);
+          if (nextMembers[0]?.name) setCustomerName((current) => current || nextMembers[0].name);
+        }
+      }
+
+      const savedCustomer = window.localStorage.getItem(CUSTOMER_STORAGE_KEY);
+      if (savedCustomer) {
+        const parsedCustomer = JSON.parse(savedCustomer);
+        setCustomerUserId(String(parsedCustomer.userId ?? ''));
+        setCustomerName(String(parsedCustomer.name ?? ''));
+        setCustomerMobile(String(parsedCustomer.mobile ?? ''));
+        setCustomerEmail(String(parsedCustomer.email ?? ''));
       }
     } catch {
       setHouseholdMembers([]);
     }
+  }, []);
+
+  useEffect(() => {
+    async function loadCustomerSession() {
+      try {
+        const response = await fetch('/api/customer/session', { cache: 'no-store' });
+        const data = await response.json();
+        if (data.authenticated && data.customer) {
+          setCustomerUserId(data.userId);
+          setCustomerName(data.customer.name ?? '');
+          setCustomerMobile(data.customer.mobile ?? '');
+          setCustomerEmail(data.customer.email ?? '');
+          window.localStorage.setItem(
+            CUSTOMER_STORAGE_KEY,
+            JSON.stringify({
+              userId: data.userId,
+              name: data.customer.name ?? '',
+              mobile: data.customer.mobile ?? '',
+              email: data.customer.email ?? '',
+            })
+          );
+        }
+        if (data.familyProfile?.members?.length) {
+          setHouseholdMembers(data.familyProfile.members);
+          window.localStorage.setItem(HOUSEHOLD_STORAGE_KEY, JSON.stringify(data.familyProfile.members));
+        }
+      } catch {
+        // The account panel below still lets the customer continue.
+      }
+    }
+
+    loadCustomerSession();
   }, []);
 
   const suggestedPlan = useMemo(
@@ -225,12 +293,54 @@ export default function SubscriptionPage() {
   const handleSubscribe = async (planTier: 'starter' | 'premium' | 'family_plus') => {
     try {
       setLoadingPlan(planTier);
+      setCheckoutStatus('');
+
+      const cleanName = customerName.trim() || householdMembers[0]?.name?.trim() || '';
+      const cleanMobile = customerMobile.trim();
+      const cleanEmail = customerEmail.trim();
+
+      if (!cleanName) {
+        setCheckoutStatus(t.accountNeeded);
+        setLoadingPlan(null);
+        return;
+      }
+
+      const sessionResponse = await fetch('/api/customer/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: cleanName,
+          mobile: cleanMobile,
+          email: cleanEmail,
+          preferredLanguage: language,
+        }),
+      });
+      const sessionData = await sessionResponse.json();
+
+      if (!sessionResponse.ok || !sessionData.authenticated) {
+        setCheckoutStatus(sessionData.error?.message || 'Please create your account before checkout.');
+        setLoadingPlan(null);
+        return;
+      }
+
+      setCustomerUserId(sessionData.userId);
+      window.localStorage.setItem(
+        CUSTOMER_STORAGE_KEY,
+        JSON.stringify({
+          userId: sessionData.userId,
+          name: cleanName,
+          mobile: cleanMobile,
+          email: cleanEmail,
+          selectedPlan: planTier,
+        })
+      );
+      setCheckoutStatus('Preparing secure Razorpay checkout...');
 
       const res = await fetch('/api/razorpay/subscriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: 'demo-user',
+          userId: sessionData.userId,
           plan: planTier,
           billingMarket,
           customerNotify: false,
@@ -241,14 +351,14 @@ export default function SubscriptionPage() {
       const data = await res.json();
 
       if (!res.ok || !data.configured) {
-        alert(data.error?.message || data.message || 'Failed to create Razorpay subscription.');
+        setCheckoutStatus(data.error?.message || data.message || 'Failed to create Razorpay subscription.');
         setLoadingPlan(null);
         return;
       }
 
       const isLoaded = await loadRazorpayScript();
       if (!isLoaded) {
-        alert('Razorpay SDK failed to load. Please check your network connection.');
+        setCheckoutStatus('Razorpay SDK failed to load. Please check your network connection.');
         setLoadingPlan(null);
         return;
       }
@@ -267,16 +377,17 @@ export default function SubscriptionPage() {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_subscription_id: response.razorpay_subscription_id,
               razorpay_signature: response.razorpay_signature,
-              userId: 'demo-user',
+              userId: sessionData.userId,
               planTier,
             }),
           });
 
           if (verifyRes.ok) {
+            window.localStorage.setItem('mamaai_last_successful_plan', planTier);
             alert('Subscription activated successfully. Welcome to MAMAAI.');
             window.location.href = '/';
           } else {
-            alert('Payment completed, but verification failed. Support team notified.');
+            setCheckoutStatus('Payment completed, but verification failed. Support team notified.');
           }
         },
         prefill: {
@@ -297,7 +408,7 @@ export default function SubscriptionPage() {
       paymentObject.open();
     } catch (err) {
       console.error('Subscription error:', err);
-      alert('An unexpected error occurred. Please try again.');
+      setCheckoutStatus(err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.');
     } finally {
       setLoadingPlan(null);
     }
@@ -411,6 +522,55 @@ export default function SubscriptionPage() {
               {t.createProfile}
             </Link>
           </div>
+        </section>
+
+        <section className="mb-8 rounded-2xl border border-amber-100 bg-white p-5 shadow-sm">
+          <div className="mb-4">
+            <p className="text-sm font-bold text-emerald-800">{t.accountTitle}</p>
+            <p className="mt-1 text-sm text-slate-600">{t.accountText}</p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-slate-700">{t.customerName}</span>
+              <input
+                value={customerName}
+                onChange={(event) => setCustomerName(event.target.value)}
+                className="rounded-xl border border-slate-200 px-3 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                placeholder="Example: Rajesh"
+              />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-slate-700">{t.customerMobile}</span>
+              <input
+                value={customerMobile}
+                onChange={(event) => setCustomerMobile(event.target.value)}
+                className="rounded-xl border border-slate-200 px-3 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                placeholder="Example: 9876543210"
+              />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-slate-700">{t.customerEmail}</span>
+              <input
+                value={customerEmail}
+                onChange={(event) => setCustomerEmail(event.target.value)}
+                className="rounded-xl border border-slate-200 px-3 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                placeholder="Example: name@email.com"
+              />
+            </label>
+          </div>
+
+          {customerUserId ? (
+            <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+              {t.accountReady}
+            </p>
+          ) : null}
+
+          {checkoutStatus ? (
+            <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+              {checkoutStatus}
+            </p>
+          ) : null}
         </section>
 
         <div className="grid items-stretch gap-6 md:grid-cols-3">
