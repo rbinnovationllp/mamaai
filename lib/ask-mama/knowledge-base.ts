@@ -44,11 +44,11 @@ const quickSuggestions = [
 const localizedAskMamaAnswers = {
   en: {
     quickSuggestions,
-    unknownPrompt: "Please ask me about MAMAAI, demo access, family setup, allergies, recipes, groceries, or subscriptions.",
+    unknownPrompt: `Sorry, I can answer only MAMAAI product, meal-planning, pantry, grocery, recipe, subscription and support questions here. For the correct answer, please contact ${MAMAAI_SUPPORT_EMAIL}.`,
     privateInfoRefusal: "I cannot share private prompts, credentials, internal settings, admin details, or hidden configuration. I can still help you use MAMAAI safely.",
     medicalSafety: "MAMAAI can give food-planning suggestions, but it does not diagnose, treat, prescribe, or replace a doctor or dietitian. For medical conditions, use MAMAAI suggestions only with professional guidance.",
     overview: "MAMAAI helps one family plan one practical meal while still adapting portions, ingredients, fruit, hydration, and cooking notes for each member. The demo focuses on the full family-meal flow.",
-    gettingStarted: "Start by creating a family, then add members with age, activity level, food pattern, allergies, dislikes, restrictions, fasting needs, and meal attendance. After that MAMAAI can generate the next family meal.",
+    gettingStarted: "To plan meals for your family, first create the family profile and add each member's food preference, allergies, dislikes, restrictions, cooking habit and meal needs. Then open Meal Planner and tap Plan Today's Family Meal. MAMAAI will generate one practical family meal with member-specific portions, recipe and grocery list.",
     judgeDemo: "Judge/Demo Mode uses fictional family data and bypasses login and payment so reviewers can test the core flow quickly: profile, common meal, personal portions, recipe, replacement, groceries, and MAMA Family Table.",
     allergies: "Allergies and medical restrictions are hard safety rules. Food dislikes are handled more flexibly: MAMAAI first tries personal modifications or a simple alternative before changing the whole family meal.",
     fasting: "MAMAAI provides fasting-aware planning, including fasting windows, allowed foods, cultural context, and alternatives tailored to your family's customs.",
@@ -56,7 +56,7 @@ const localizedAskMamaAnswers = {
     recipes: "Suggested meals include a View Recipe / How to Cook option with ingredients, quantities, servings, steps, time, difficulty, nutrition estimate, cost estimate, alternatives, and member-specific preparation notes.",
     video: "Watch How to Cook searches relevant cooking tutorials for your dish. If a direct YouTube API key is not active, MAMAAI provides direct YouTube search links alongside the full written recipe.",
     replacement: "Use Replace Meal after generating a plan. MAMAAI suggests another suitable meal and updates portions, modifications, recipe details, and the grocery list where available.",
-    grocery: "The grocery list is created from the selected meal and family portions. When a meal is replaced, the list updates so the family can see what ingredients and approximate quantities are needed.",
+    grocery: "MAMAAI uses pantry and grocery information to plan around what you already have, what needs to be bought, and what can be substituted. If you ask what to cook with pantry staples, open Pantry, add available staples, then generate a meal plan so the grocery list and substitutions stay connected to your family profile.",
     installGeneral:
       "Yes. MAMAAI can be added to your phone home screen like an app. On Android, open www.mamaai.in in Chrome, tap the three-dot menu, choose Install app or Add to Home screen, then confirm. On iPhone, open www.mamaai.in in Safari, tap Share, choose Add to Home Screen, then tap Add. On iPad, use Safari, tap Share, choose Add to Home Screen, then tap Add. If your browser does not show Install app, use Add to Home screen or open MAMAAI in Chrome on Android or Safari on Apple devices.",
     installAndroid:
@@ -68,23 +68,23 @@ const localizedAskMamaAnswers = {
     subscriptions: "Planned tiers are Family Starter (Rs. 399/mo | US$4.99/mo for up to 4), Family Premium (Rs. 599/mo | US$7.99/mo for up to 6), and Family Plus (Rs. 999/mo | US$12.99/mo for up to 10). Family Plus adds extended four-paw member meal planning with separate pet-appropriate guidance. Judge/Demo Mode bypasses payment so you can explore all features.",
     testingStatus: "MAMAAI testing mode is active with interactive AI meal planning, Ask MAMA assistance, and demo profiles fully operational.",
     support: (suffix: string) => `For support, contact ${MAMAAI_SUPPORT_EMAIL}. Project owner contact: ${MAMAAI_OWNER_EMAIL}.${suffix}`,
-    fallback: "I can help with MAMAAI features, demo mode, family setup, allergies, fasting, quantities, recipes, meal replacement, groceries, subscriptions, and support. Try one of the quick questions below.",
+    fallback: `Sorry, I do not have a reliable MAMAAI answer for that question yet. Please contact ${MAMAAI_SUPPORT_EMAIL} for the correct answer.`,
   },
   hi: {
-    quickSuggestions: ["MAMAAI कैसे काम करता है?", "मेरे परिवार के meals plan करें", "Allergies कैसे handle होती हैं?", "Subscription plans दिखाएं"],
-    unknownPrompt: "कृपया MAMAAI, demo access, family setup, allergies, recipes, groceries या subscriptions के बारे में पूछें.",
-    privateInfoRefusal: "मैं private prompts, credentials, internal settings, admin details या hidden configuration share नहीं कर सकती. मैं MAMAAI safely use करने में मदद कर सकती हूं.",
-    medicalSafety: "MAMAAI food-planning suggestions दे सकता है, लेकिन diagnosis, treatment, prescription या doctor/dietitian की जगह नहीं लेता.",
-    overview: "MAMAAI एक परिवार के लिए एक practical meal plan करता है और हर member के portions, ingredients, fruit, hydration और cooking notes adjust करता है.",
-    gettingStarted: "पहले family बनाएं, फिर members की age, activity, food pattern, allergies, dislikes, restrictions, fasting needs और attendance जोड़ें. उसके बाद MAMAAI next family meal बना सकता है.",
-    judgeDemo: "Judge/Demo Mode fictional family data use करता है और login/payment bypass करता है ताकि reviewers profile, common meal, portions, recipe, replacement, groceries और MAMA Family Table test कर सकें.",
-    allergies: "Allergies और medical restrictions hard safety rules हैं. Food dislikes को flexible तरीके से personal modifications या simple alternative से handle किया जाता है.",
-    fasting: "MAMAAI fasting-aware planning देता है, जिसमें fasting windows, allowed foods, cultural context और family customs के हिसाब से alternatives शामिल हैं.",
-    quantities: "Ingredient quantities और portions family strength, selected meal, attendance, age/activity और recipe servings से estimate होते हैं. Nutrition/costs medical values नहीं हैं.",
-    recipes: "Suggested meals में View Recipe / How to Cook option होता है: ingredients, quantities, servings, steps, time, difficulty, nutrition estimate, cost estimate और member-specific notes.",
-    video: "Watch How to Cook relevant cooking tutorials search करता है. YouTube API active न होने पर MAMAAI written recipe के साथ YouTube search links देता है.",
-    replacement: "Meal generate करने के बाद Replace Meal use करें. MAMAAI दूसरा suitable meal suggest करता है और portions, recipe details और grocery list update करता है.",
-    grocery: "Grocery list selected meal और family portions से बनती है. Meal replace करने पर list update होती है.",
+    quickSuggestions: ["MAMAAI कैसे काम करता है?", "मेरे परिवार का भोजन प्लान करें", "एलर्जी कैसे संभाली जाती है?", "सब्सक्रिप्शन प्लान दिखाएं"],
+    unknownPrompt: `माफ कीजिए, मैं यहां केवल MAMAAI, भोजन योजना, पैंट्री, किराना, रेसिपी, सब्सक्रिप्शन और सपोर्ट से जुड़े प्रश्नों का उत्तर दे सकती हूं। सही उत्तर के लिए कृपया ${MAMAAI_SUPPORT_EMAIL} पर संपर्क करें।`,
+    privateInfoRefusal: "मैं निजी prompts, credentials, internal settings, admin details या hidden configuration साझा नहीं कर सकती। मैं MAMAAI को सुरक्षित तरीके से इस्तेमाल करने में मदद कर सकती हूं।",
+    medicalSafety: "MAMAAI भोजन योजना के सुझाव दे सकता है, लेकिन यह diagnosis, treatment, prescription या doctor/dietitian की जगह नहीं लेता।",
+    overview: "MAMAAI एक परिवार के लिए एक व्यावहारिक भोजन योजना बनाता है और हर सदस्य के हिस्से, सामग्री, फल, पानी और cooking notes को अलग-अलग जरूरतों के अनुसार समायोजित करता है।",
+    gettingStarted: "अपने परिवार का भोजन प्लान करने के लिए पहले परिवार प्रोफाइल बनाएं। हर सदस्य की भोजन पसंद, एलर्जी, नापसंद, डॉक्टर की पाबंदी, खाना बनाने की आदत और भोजन की जरूरतें जोड़ें। फिर Meal Planner खोलकर “आज का पारिवारिक भोजन प्लान करें” दबाएं। MAMAAI एक साझा भोजन, सदस्य-विशेष हिस्से, रेसिपी और किराने की सूची बनाएगा।",
+    judgeDemo: "Judge/Demo Mode में काल्पनिक family data और payment bypass होता है, ताकि reviewers profile, common meal, portions, recipe, replacement, groceries और MAMA Family Table जल्दी test कर सकें।",
+    allergies: "एलर्जी और डॉक्टर की पाबंदियां सख्त safety rules हैं। Food dislikes को पहले personal modification या simple alternative से handle किया जाता है, ताकि पूरी family meal unnecessarily न बदले।",
+    fasting: "MAMAAI fasting-aware planning देता है, जिसमें व्रत का समय, allowed foods, cultural context और family customs के अनुसार alternatives शामिल होते हैं।",
+    quantities: "Ingredient quantities और portions family strength, selected meal, attendance, age/activity और recipe servings से estimate होते हैं। Nutrition और cost planning estimates हैं, medical values नहीं।",
+    recipes: "Suggested meals में recipe मिलती है: ingredients, quantities, servings, steps, time, difficulty, nutrition estimate, cost estimate और member-specific cooking notes।",
+    video: "Watch How to Cook dish से जुड़े cooking tutorials खोजने में मदद करता है। YouTube API active न होने पर MAMAAI written recipe के साथ YouTube search link देता है।",
+    replacement: "Meal generate होने के बाद Replace Meal इस्तेमाल करें। MAMAAI दूसरा suitable meal suggest करता है और portions, recipe details और grocery list update करता है।",
+    grocery: "MAMAAI पैंट्री और किराने की जानकारी का उपयोग करके बताता है कि घर में मौजूद सामान से क्या बन सकता है, क्या खरीदना है और कौन-सा बदलाव व्यावहारिक है। पैंट्री में उपलब्ध items जोड़ें, फिर Meal Planner से भोजन योजना बनाएं ताकि किराने की सूची और substitutions परिवार प्रोफाइल से जुड़े रहें।",
     installGeneral:
       "हां. MAMAAI को आप phone की Home Screen पर app की तरह add कर सकते हैं. Android पर Chrome में www.mamaai.in खोलें, तीन-dot menu दबाएं, Install app या Add to Home screen चुनें, फिर confirm करें. iPhone पर Safari में www.mamaai.in खोलें, Share button दबाएं, Add to Home Screen चुनें, फिर Add दबाएं. iPad पर भी Safari में Share button से Add to Home Screen चुनें. अगर आपके browser में Install app नहीं दिखता, तो Add to Home screen use करें या Android पर Chrome और Apple device पर Safari खोलें.",
     installAndroid:
@@ -93,26 +93,26 @@ const localizedAskMamaAnswers = {
       "iPhone पर Safari खोलें और www.mamaai.in पर जाएं. नीचे या ऊपर दिखने वाला Share button दबाएं. जरूरत हो तो list में scroll करके Add to Home Screen चुनें. नाम MAMAAI रहने दें और Add दबाएं. MAMAAI icon आपके iPhone Home Screen पर आ जाएगा. iPhone पर Chrome से यह option अक्सर नहीं मिलता, इसलिए Safari use करें.",
     installIpad:
       "iPad पर Safari खोलें और www.mamaai.in पर जाएं. address bar के पास Share button दबाएं. Add to Home Screen चुनें, फिर Add दबाएं. MAMAAI icon iPad Home Screen पर आ जाएगा.",
-    subscriptions: "Plans हैं Family Starter (Rs. 399/mo | US$4.99/mo, 4 members तक), Family Premium (Rs. 599/mo | US$7.99/mo, 6 members तक), और Family Plus (Rs. 999/mo | US$12.99/mo, 10 members तक). Family Plus में separate pet-appropriate four-paw meal planning शामिल है.",
-    testingStatus: "MAMAAI testing mode active है, जिसमें interactive meal planning, Ask MAMA assistance और demo profiles काम कर रहे हैं.",
-    support: (suffix: string) => `Support के लिए ${MAMAAI_SUPPORT_EMAIL} पर contact करें. Project owner: ${MAMAAI_OWNER_EMAIL}.${suffix}`,
-    fallback: "मैं MAMAAI features, demo mode, family setup, allergies, fasting, quantities, recipes, meal replacement, groceries, subscriptions और support में मदद कर सकती हूं.",
+    subscriptions: "Family Starter Rs. 399/mo या US$4.99/mo में 4 members तक, Family Premium Rs. 599/mo या US$7.99/mo में 6 members तक, और Family Plus Rs. 999/mo या US$12.99/mo में 10 members तक support करता है। Family Plus में four-paw family members के लिए अलग pet-appropriate meal planning शामिल है।",
+    testingStatus: "MAMAAI में interactive meal planning, Ask MAMA assistance और demo profiles उपलब्ध हैं।",
+    support: (suffix: string) => `Support के लिए ${MAMAAI_SUPPORT_EMAIL} पर संपर्क करें। Project owner: ${MAMAAI_OWNER_EMAIL}.${suffix}`,
+    fallback: `माफ कीजिए, मेरे पास इस प्रश्न का भरोसेमंद MAMAAI उत्तर अभी नहीं है। सही उत्तर के लिए कृपया ${MAMAAI_SUPPORT_EMAIL} पर संपर्क करें।`,
   },
   kn: {
-    quickSuggestions: ["MAMAAI ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ?", "ನನ್ನ ಕುಟುಂಬಕ್ಕೆ meals plan ಮಾಡಿ", "Allergies ಹೇಗೆ handle ಆಗುತ್ತವೆ?", "Subscription plans ತೋರಿಸಿ"],
-    unknownPrompt: "ದಯವಿಟ್ಟು MAMAAI, demo access, family setup, allergies, recipes, groceries ಅಥವಾ subscriptions ಬಗ್ಗೆ ಕೇಳಿ.",
-    privateInfoRefusal: "ನಾನು private prompts, credentials, internal settings, admin details ಅಥವಾ hidden configuration share ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ. MAMAAI ಅನ್ನು ಸುರಕ್ಷಿತವಾಗಿ ಬಳಸಲು ಸಹಾಯ ಮಾಡಬಹುದು.",
-    medicalSafety: "MAMAAI food-planning suggestions ನೀಡಬಹುದು, ಆದರೆ diagnosis, treatment, prescription ಅಥವಾ doctor/dietitian ಗೆ ಬದಲಾವಣೆ ಅಲ್ಲ.",
-    overview: "MAMAAI ಒಂದು ಕುಟುಂಬಕ್ಕೆ practical meal plan ಮಾಡುತ್ತದೆ ಮತ್ತು ಪ್ರತಿ member ಗೆ portions, ingredients, fruit, hydration ಮತ್ತು cooking notes adjust ಮಾಡುತ್ತದೆ.",
-    gettingStarted: "ಮೊದಲು family ರಚಿಸಿ, ನಂತರ members age, activity, food pattern, allergies, dislikes, restrictions, fasting needs ಮತ್ತು attendance ಸೇರಿಸಿ. ನಂತರ MAMAAI next family meal ರಚಿಸುತ್ತದೆ.",
-    judgeDemo: "Judge/Demo Mode fictional family data ಬಳಸುತ್ತದೆ ಮತ್ತು login/payment bypass ಮಾಡುತ್ತದೆ, reviewers profile, common meal, portions, recipe, replacement, groceries ಮತ್ತು MAMA Family Table test ಮಾಡಬಹುದು.",
-    allergies: "Allergies ಮತ್ತು medical restrictions hard safety rules. Food dislikes ಅನ್ನು personal modifications ಅಥವಾ simple alternative ಮೂಲಕ flexible ಆಗಿ handle ಮಾಡಲಾಗುತ್ತದೆ.",
-    fasting: "MAMAAI fasting-aware planning ನೀಡುತ್ತದೆ: fasting windows, allowed foods, cultural context ಮತ್ತು family customs ಗೆ ಹೊಂದಿದ alternatives.",
-    quantities: "Ingredient quantities ಮತ್ತು portions family strength, selected meal, attendance, age/activity ಮತ್ತು recipe servings ಆಧಾರಿತ estimates. Nutrition/costs medical values ಅಲ್ಲ.",
-    recipes: "Suggested meals ನಲ್ಲಿ View Recipe / How to Cook option ಇದೆ: ingredients, quantities, servings, steps, time, difficulty, nutrition estimate, cost estimate ಮತ್ತು member-specific notes.",
-    video: "Watch How to Cook relevant cooking tutorials search ಮಾಡುತ್ತದೆ. YouTube API active ಇಲ್ಲದಿದ್ದರೆ written recipe ಜೊತೆಗೆ YouTube search links ನೀಡುತ್ತದೆ.",
+    quickSuggestions: ["MAMAAI ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ?", "ನನ್ನ ಕುಟುಂಬದ ಊಟವನ್ನು ಪ್ಲ್ಯಾನ್ ಮಾಡಿ", "ಅಲರ್ಜಿ ಹೇಗೆ ನೋಡಿಕೊಳ್ಳಲಾಗುತ್ತದೆ?", "ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಪ್ಲ್ಯಾನ್‌ಗಳನ್ನು ತೋರಿಸಿ"],
+    unknownPrompt: `ಕ್ಷಮಿಸಿ, ಇಲ್ಲಿ ನಾನು MAMAAI, ಊಟ ಯೋಜನೆ, ಪ್ಯಾಂಟ್ರಿ, ಕಿರಾಣಿ, ರೆಸಿಪಿ, ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಮತ್ತು support ಪ್ರಶ್ನೆಗಳಿಗೆ ಮಾತ್ರ ಉತ್ತರಿಸಬಹುದು. ಸರಿಯಾದ ಉತ್ತರಕ್ಕಾಗಿ ದಯವಿಟ್ಟು ${MAMAAI_SUPPORT_EMAIL} ಸಂಪರ್ಕಿಸಿ.`,
+    privateInfoRefusal: "ನಾನು private prompts, credentials, internal settings, admin details ಅಥವಾ hidden configuration ಹಂಚಿಕೊಳ್ಳಲು ಸಾಧ್ಯವಿಲ್ಲ. MAMAAI ಅನ್ನು ಸುರಕ್ಷಿತವಾಗಿ ಬಳಸಲು ಸಹಾಯ ಮಾಡಬಹುದು.",
+    medicalSafety: "MAMAAI ಊಟ ಯೋಜನೆ ಸಲಹೆಗಳನ್ನು ನೀಡಬಹುದು, ಆದರೆ diagnosis, treatment, prescription ಅಥವಾ doctor/dietitian ಗೆ ಬದಲಾವಣೆ ಅಲ್ಲ.",
+    overview: "MAMAAI ಒಂದು ಕುಟುಂಬಕ್ಕೆ ಪ್ರಾಯೋಗಿಕ ಊಟದ ಯೋಜನೆ ಮಾಡುತ್ತದೆ ಮತ್ತು ಪ್ರತಿ ಸದಸ್ಯರ portions, ingredients, fruit, hydration ಮತ್ತು cooking notes ಅನ್ನು ಅವಶ್ಯಕತೆಗಳಿಗೆ ಅನುಗುಣವಾಗಿ ಹೊಂದಿಸುತ್ತದೆ.",
+    gettingStarted: "ನಿಮ್ಮ ಕುಟುಂಬದ ಊಟವನ್ನು ಪ್ಲ್ಯಾನ್ ಮಾಡಲು ಮೊದಲು ಕುಟುಂಬ ಪ್ರೊಫೈಲ್ ರಚಿಸಿ. ಪ್ರತಿ ಸದಸ್ಯರ ಆಹಾರ ಇಷ್ಟ, ಅಲರ್ಜಿ, ಇಷ್ಟವಿಲ್ಲದ ಪದಾರ್ಥ, ವೈದ್ಯರ ನಿರ್ಬಂಧ, ಅಡುಗೆ ಪದ್ಧತಿ ಮತ್ತು ಊಟದ ಅಗತ್ಯಗಳನ್ನು ಸೇರಿಸಿ. ನಂತರ Meal Planner ತೆರೆಯಿರಿ ಮತ್ತು “ಇಂದಿನ ಕುಟುಂಬದ ಊಟವನ್ನು ಯೋಜಿಸಿ” ಒತ್ತಿ. MAMAAI ಒಂದು ಸಾಮಾನ್ಯ ಕುಟುಂಬದ ಊಟ, ಸದಸ್ಯರಿಗನುಗುಣ ಭಾಗಗಳು, ರೆಸಿಪಿ ಮತ್ತು ಕಿರಾಣಿ ಪಟ್ಟಿ ರಚಿಸುತ್ತದೆ.",
+    judgeDemo: "Judge/Demo Mode ನಲ್ಲಿ fictional family data ಮತ್ತು payment bypass ಇರುತ್ತದೆ, reviewers profile, common meal, portions, recipe, replacement, groceries ಮತ್ತು MAMA Family Table ಅನ್ನು ಬೇಗ test ಮಾಡಬಹುದು.",
+    allergies: "ಅಲರ್ಜಿ ಮತ್ತು ವೈದ್ಯರ ನಿರ್ಬಂಧಗಳು ಕಟ್ಟುನಿಟ್ಟಿನ safety rules. Food dislikes ಅನ್ನು ಮೊದಲು personal modification ಅಥವಾ simple alternative ಮೂಲಕ handle ಮಾಡಲಾಗುತ್ತದೆ.",
+    fasting: "MAMAAI fasting-aware planning ನೀಡುತ್ತದೆ: ವ್ರತದ ಸಮಯ, allowed foods, cultural context ಮತ್ತು family customs ಗೆ ಹೊಂದಿದ alternatives.",
+    quantities: "Ingredient quantities ಮತ್ತು portions family strength, selected meal, attendance, age/activity ಮತ್ತು recipe servings ಆಧಾರಿತ estimates. Nutrition/costs planning estimates, medical values ಅಲ್ಲ.",
+    recipes: "Suggested meals ನಲ್ಲಿ recipe ಸಿಗುತ್ತದೆ: ingredients, quantities, servings, steps, time, difficulty, nutrition estimate, cost estimate ಮತ್ತು member-specific cooking notes.",
+    video: "Watch How to Cook dish ಗೆ ಸಂಬಂಧಿಸಿದ cooking tutorials ಹುಡುಕಲು ಸಹಾಯ ಮಾಡುತ್ತದೆ. YouTube API active ಇಲ್ಲದಿದ್ದರೆ MAMAAI written recipe ಜೊತೆಗೆ YouTube search link ನೀಡುತ್ತದೆ.",
     replacement: "Meal generate ಆದ ನಂತರ Replace Meal ಬಳಸಿ. MAMAAI suitable meal suggest ಮಾಡಿ portions, recipe details ಮತ್ತು grocery list update ಮಾಡುತ್ತದೆ.",
-    grocery: "Grocery list selected meal ಮತ್ತು family portions ಆಧರಿಸಿ ರಚಿಸಲಾಗುತ್ತದೆ. Meal replace ಮಾಡಿದಾಗ list update ಆಗುತ್ತದೆ.",
+    grocery: "MAMAAI ಪ್ಯಾಂಟ್ರಿ ಮತ್ತು ಕಿರಾಣಿ ಮಾಹಿತಿಯನ್ನು ಬಳಸಿ ಮನೆಯಲ್ಲಿ ಇರುವ ಸಾಮಗ್ರಿಗಳಿಂದ ಏನು ಮಾಡಬಹುದು, ಏನು ಖರೀದಿಸಬೇಕು ಮತ್ತು ಯಾವ ಬದಲಾವಣೆ ಪ್ರಾಯೋಗಿಕ ಎನ್ನುವುದನ್ನು ತಿಳಿಸುತ್ತದೆ. ಪ್ಯಾಂಟ್ರಿಯಲ್ಲಿ ಲಭ್ಯವಿರುವ items ಸೇರಿಸಿ, ನಂತರ Meal Planner ನಲ್ಲಿ ಊಟದ ಯೋಜನೆ ರಚಿಸಿ.",
     installGeneral:
       "ಹೌದು. MAMAAI ಅನ್ನು ನಿಮ್ಮ phone Home Screen ಗೆ app ತರಹ add ಮಾಡಬಹುದು. Android ನಲ್ಲಿ Chrome ತೆರೆದು www.mamaai.in ಗೆ ಹೋಗಿ, ಮೂರು-dot menu ಒತ್ತಿ, Install app ಅಥವಾ Add to Home screen ಆಯ್ಕೆ ಮಾಡಿ, ನಂತರ confirm ಮಾಡಿ. iPhone ನಲ್ಲಿ Safari ತೆರೆದು www.mamaai.in ಗೆ ಹೋಗಿ, Share button ಒತ್ತಿ, Add to Home Screen ಆಯ್ಕೆ ಮಾಡಿ, ನಂತರ Add ಒತ್ತಿ. iPad ನಲ್ಲೂ Safari ಬಳಸಿ Share button ಮೂಲಕ Add to Home Screen ಆಯ್ಕೆ ಮಾಡಿ. ನಿಮ್ಮ browser ನಲ್ಲಿ Install app ಕಾಣಿಸದಿದ್ದರೆ Add to Home screen ಬಳಸಿ, ಅಥವಾ Android ನಲ್ಲಿ Chrome ಮತ್ತು Apple devices ನಲ್ಲಿ Safari ಬಳಸಿ.",
     installAndroid:
@@ -121,10 +121,10 @@ const localizedAskMamaAnswers = {
       "iPhone ನಲ್ಲಿ Safari ತೆರೆಯಿರಿ ಮತ್ತು www.mamaai.in ಗೆ ಹೋಗಿ. Share button ಒತ್ತಿ. ಬೇಕಾದರೆ list ನಲ್ಲಿ scroll ಮಾಡಿ Add to Home Screen ಆಯ್ಕೆ ಮಾಡಿ. ಹೆಸರು MAMAAI ಆಗಿಯೇ ಇರಲಿ, ನಂತರ Add ಒತ್ತಿ. MAMAAI icon iPhone Home Screen ನಲ್ಲಿ ಕಾಣಿಸುತ್ತದೆ. iPhone ನಲ್ಲಿ Chrome ಸಾಮಾನ್ಯವಾಗಿ icon add ಮಾಡಲು ಬಿಡುವುದಿಲ್ಲ, ಆದ್ದರಿಂದ Safari ಬಳಸಿ.",
     installIpad:
       "iPad ನಲ್ಲಿ Safari ತೆರೆಯಿರಿ ಮತ್ತು www.mamaai.in ಗೆ ಹೋಗಿ. address bar ಹತ್ತಿರದ Share button ಒತ್ತಿ. Add to Home Screen ಆಯ್ಕೆ ಮಾಡಿ, ನಂತರ Add ಒತ್ತಿ. MAMAAI icon iPad Home Screen ನಲ್ಲಿ ಕಾಣಿಸುತ್ತದೆ.",
-    subscriptions: "Plans: Family Starter (Rs. 399/mo | US$4.99/mo, 4 members ವರೆಗೆ), Family Premium (Rs. 599/mo | US$7.99/mo, 6 members ವರೆಗೆ), Family Plus (Rs. 999/mo | US$12.99/mo, 10 members ವರೆಗೆ). Family Plus ನಲ್ಲಿ separate pet-appropriate four-paw meal planning ಸೇರಿದೆ.",
-    testingStatus: "MAMAAI testing mode active ಇದೆ: interactive meal planning, Ask MAMA assistance ಮತ್ತು demo profiles ಲಭ್ಯವಿವೆ.",
+    subscriptions: "Family Starter Rs. 399/mo ಅಥವಾ US$4.99/mo ನಲ್ಲಿ 4 members ವರೆಗೆ, Family Premium Rs. 599/mo ಅಥವಾ US$7.99/mo ನಲ್ಲಿ 6 members ವರೆಗೆ, Family Plus Rs. 999/mo ಅಥವಾ US$12.99/mo ನಲ್ಲಿ 10 members ವರೆಗೆ support ಮಾಡುತ್ತದೆ. Family Plus ನಲ್ಲಿ four-paw family members ಗಾಗಿ ಬೇರೆ pet-appropriate meal planning ಸೇರಿದೆ.",
+    testingStatus: "MAMAAI ನಲ್ಲಿ interactive meal planning, Ask MAMA assistance ಮತ್ತು demo profiles ಲಭ್ಯವಿವೆ.",
     support: (suffix: string) => `Support ಗಾಗಿ ${MAMAAI_SUPPORT_EMAIL} ಸಂಪರ್ಕಿಸಿ. Project owner: ${MAMAAI_OWNER_EMAIL}.${suffix}`,
-    fallback: "ನಾನು MAMAAI features, demo mode, family setup, allergies, fasting, quantities, recipes, meal replacement, groceries, subscriptions ಮತ್ತು support ಬಗ್ಗೆ ಸಹಾಯ ಮಾಡಬಹುದು.",
+    fallback: `ಕ್ಷಮಿಸಿ, ಈ ಪ್ರಶ್ನೆಗೆ ನನ್ನ ಬಳಿ ವಿಶ್ವಾಸಾರ್ಹ MAMAAI ಉತ್ತರ ಇನ್ನೂ ಇಲ್ಲ. ಸರಿಯಾದ ಉತ್ತರಕ್ಕಾಗಿ ದಯವಿಟ್ಟು ${MAMAAI_SUPPORT_EMAIL} ಸಂಪರ್ಕಿಸಿ.`,
   },
 } satisfies Record<AppLanguage, typeof localizedAskMamaAnswers.en>;
 
@@ -194,6 +194,54 @@ const androidTerms = ["android", "chrome", "एंड्रॉयड", "एं�
 const iphoneTerms = ["iphone", "ios", "safari", "आईफोन", "आईओएस", "सफारी", "ಐಫೋನ್", "ಐಒಎಸ್", "ಸಫಾರಿ"];
 const ipadTerms = ["ipad", "आईपैड", "आइपैड", "ಐಪ್ಯಾಡ್"];
 const deviceTerms = [...androidTerms, ...iphoneTerms, ...ipadTerms, "phone", "mobile", "फोन", "मोबाइल", "ಫೋನ್", "ಮೊಬೈಲ್"];
+const mealPlanningTerms = [
+  "plan meals",
+  "meal plan",
+  "meals plan",
+  "plan my meal",
+  "plan my family meal",
+  "family meal",
+  "what should i cook",
+  "what can i cook",
+  "cook tonight",
+  "dinner idea",
+  "lunch idea",
+  "breakfast idea",
+  "pantry staples",
+];
+const mealPlanningTermsUnicode = [
+  "भोजन प्लान",
+  "भोजन योजना",
+  "खाना प्लान",
+  "परिवार का भोजन",
+  "क्या पकाएं",
+  "क्या बना सकते",
+  "पैंट्री",
+  "ಪ್ಲ್ಯಾನ್",
+  "ಊಟ",
+  "ಅಡುಗೆ",
+  "ಏನು ಮಾಡಬಹುದು",
+  "ಪ್ಯಾಂಟ್ರಿ",
+];
+const subscriptionTerms = [
+  "subscription",
+  "price",
+  "pricing",
+  "plan price",
+  "plans price",
+  "paid plan",
+  "payment",
+  "revenuecat",
+  "subscribe",
+  "cost of plan",
+  "सब्सक्रिप्शन",
+  "कीमत",
+  "पेमेंट",
+  "भुगतान",
+  "सಬ್ಸ್ಕ್ರಿಪ್ಷನ್",
+  "ಬೆಲೆ",
+  "ಪಾವತಿ",
+];
 
 function hasAny(text: string, terms: string[]): boolean {
   return terms.some((term) => text.includes(term));
@@ -270,12 +318,24 @@ export function answerAskMama(question: string, detailed = false, language: AppL
     };
   }
 
-  if (hasAny(text, ["add family", "family member", "start", "get started", "plan meals for my family", "create family"])) {
+  if (hasAny(text, ["grocery", "shopping", "list", "ingredients to buy", "pantry", "staples"]) || hasAny(rawText, ["पैंट्री", "किराना", "ಕಿರಾಣಿ", "ಪ್ಯಾಂಟ್ರಿ"])) {
+    return {
+      category: "grocery",
+      answer: localized.grocery,
+      suggestions: localized.quickSuggestions,
+    };
+  }
+
+  if (
+    hasAny(text, ["add family", "family member", "start", "get started", "create family"]) ||
+    hasAny(text, mealPlanningTerms) ||
+    hasAny(rawText, mealPlanningTermsUnicode)
+  ) {
     return {
       category: "getting_started",
       answer: localized.gettingStarted,
       action: { type: "add_family", label: "Add Family" },
-      suggestions: ["How are allergies handled?", "How are ingredient quantities calculated?", "How do I replace a meal?"],
+      suggestions: localized.quickSuggestions,
     };
   }
 
@@ -336,15 +396,15 @@ export function answerAskMama(question: string, detailed = false, language: AppL
     };
   }
 
-  if (hasAny(text, ["grocery", "shopping", "list", "ingredients to buy"])) {
+  if (hasAny(text, ["grocery", "shopping", "list", "ingredients to buy", "pantry", "staples"]) || hasAny(rawText, ["पैंट्री", "किराना", "ಕಿರಾಣಿ", "ಪ್ಯಾಂಟ್ರಿ"])) {
     return {
       category: "grocery",
       answer: localized.grocery,
-      suggestions: ["How are ingredient quantities calculated?", "Can I get recipes for suggested meals?", "Show subscription plans"],
+      suggestions: localized.quickSuggestions,
     };
   }
 
-  if (hasAny(text, ["subscription", "price", "pricing", "plan", "revenuecat", "payment"])) {
+  if (hasAny(text, subscriptionTerms) || hasAny(rawText, subscriptionTerms)) {
     return {
       category: "subscriptions",
       answer: localized.subscriptions,

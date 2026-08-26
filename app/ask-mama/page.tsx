@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { AppPageNav } from '@/components/AppPageNav';
 import { useLanguage } from '@/components/LanguageProvider';
 import { VoiceTextInput } from '@/components/VoiceTextInput';
+import { askMamaCopy } from '@/lib/i18n';
 
 interface ChatMessage {
   id: string;
@@ -13,24 +14,17 @@ interface ChatMessage {
   timestamp: string;
 }
 
-const SUGGESTED_QUESTIONS = [
-  'How does MAMAAI work?',
-  'Plan meals for my family',
-  'How are allergies handled?',
-  'Show subscription plans',
-  'What should I cook tonight with pantry staples?',
-];
-
 const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
 const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
 
 export default function HomePage() {
   const { language } = useLanguage();
+  const t = askMamaCopy[language] ?? askMamaCopy.en;
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
       sender: 'mama',
-      text: "Namaste! I am MAMA, your kitchen companion and MAMAAI support assistant. How can I help you plan, cook, or balance your family's meals today?",
+      text: t.welcome,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
@@ -46,6 +40,12 @@ export default function HomePage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    setMessages((currentMessages) =>
+      currentMessages.map((message) => (message.id === 'welcome' ? { ...message, text: t.welcome } : message)),
+    );
+  }, [t.welcome]);
 
   useEffect(() => {
     try {
@@ -175,13 +175,13 @@ export default function HomePage() {
             </div>
             <div>
               <h2 className="text-base font-bold leading-tight">Ask MAMA</h2>
-              <p className="text-xs text-emerald-100">Live AI Support & Personal Kitchen Companion</p>
+              <p className="text-xs text-emerald-100">{t.subtitle}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/80 backdrop-blur-sm text-white border border-emerald-400">
               <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
-              Live Assistant
+              {t.live}
             </span>
           </div>
         </div>
@@ -209,7 +209,7 @@ export default function HomePage() {
           {isLoading && (
             <div className="flex items-center gap-2 text-xs text-gray-500 italic bg-gray-50 px-3 py-2 rounded-xl w-fit border border-gray-100">
               <span className="inline-block animate-spin text-emerald-600 font-bold">🌀</span>
-              MAMA is formulating your answer...
+              {t.loading}
             </div>
           )}
           <div ref={messagesEndRef} />
@@ -217,7 +217,7 @@ export default function HomePage() {
 
         {/* Suggested Quick Prompts */}
         <div className="px-4 py-2.5 bg-gray-50/80 border-t border-gray-100 flex gap-2 overflow-x-auto no-scrollbar">
-          {SUGGESTED_QUESTIONS.map((q, idx) => (
+          {t.suggestions.map((q, idx) => (
             <button
               key={idx}
               onClick={() => handleSendMessage(q)}
@@ -241,7 +241,7 @@ export default function HomePage() {
             type="text"
             value={inputMessage}
             onValueChange={setInputMessage}
-            placeholder="Ask about app features, dinner ideas, recipes, or dietary swaps..."
+            placeholder={t.placeholder}
             disabled={isLoading}
             className="flex-1"
             inputClassName="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition disabled:bg-gray-50"
@@ -251,7 +251,7 @@ export default function HomePage() {
             disabled={isLoading || !inputMessage.trim()}
             className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl text-sm font-bold transition disabled:opacity-50 shadow-sm"
           >
-            Send
+            {t.send}
           </button>
         </form>
       </div>
