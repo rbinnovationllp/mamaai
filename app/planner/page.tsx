@@ -4,7 +4,17 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AppPageNav } from '@/components/AppPageNav';
 import { LanguageSelector, useLanguage } from '@/components/LanguageProvider';
-import type { DietType, FamilyDietPreference, FamilyMealPlan, MealTime, RecipeVideoSearchResponse } from '@/lib/shared/contracts';
+import type {
+  DayFoodPreference,
+  DayWiseFoodRoutinePreference,
+  DietType,
+  FamilyDietPreference,
+  FamilyMealPlan,
+  MealSlot,
+  MealTime,
+  RecipeVideoSearchResponse,
+  WeeklyFoodRoutineStatus,
+} from '@/lib/shared/contracts';
 import { trackAnalyticsEvent } from '@/lib/shared/client-analytics';
 
 const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
@@ -34,6 +44,8 @@ type CustomerAccount = {
   email?: string;
   householdFoodPreference?: 'vegetarian' | 'eggetarian' | 'non_vegetarian' | 'semi_vegetarian' | 'vegan' | 'mixed' | 'other';
   cookingHabit?: 'fresh_home_cooked' | 'ready_frozen' | 'fresh_ready_mix' | 'takeaway_prepared' | 'other';
+  weeklyFoodRoutineStatus?: WeeklyFoodRoutineStatus;
+  weeklyFoodRoutine?: DayWiseFoodRoutinePreference[];
 };
 
 const plannerCopy = {
@@ -181,6 +193,17 @@ function todayLocalDate() {
   return new Date().toLocaleDateString('en-CA');
 }
 
+function weekdayForDate(dateString: string) {
+  return ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][
+    new Date(`${dateString}T12:00:00`).getDay()
+  ];
+}
+
+function mealSlotForMealTime(mealTime: MealTime): MealSlot {
+  if (mealTime === 'breakfast' || mealTime === 'lunch' || mealTime === 'dinner') return mealTime;
+  return 'snacks';
+}
+
 function planFromMemberCount(count: number): 'starter' | 'premium' | 'family_plus' {
   if (count >= 7) return 'family_plus';
   if (count >= 5) return 'premium';
@@ -220,6 +243,29 @@ function cookingHabitNotes(value?: CustomerAccount['cookingHabit']) {
     default:
       return ['Household mostly cooks fresh meals at home. Prioritize fresh home-cooked family meals.'];
   }
+}
+
+function routineLabel(value?: DayFoodPreference) {
+  return value ? value.replaceAll('_', ' ') : 'no particular preference';
+}
+
+function weeklyRoutineNotes(customer: CustomerAccount, selectedMealTime: MealTime, targetDate: string) {
+  if (customer.weeklyFoodRoutineStatus !== 'add' || !Array.isArray(customer.weeklyFoodRoutine)) return [];
+  const weekday = weekdayForDate(targetDate);
+  const entry = customer.weeklyFoodRoutine.find((item) => item.day?.toLowerCase() === weekday);
+  if (!entry) return [];
+  const slot = mealSlotForMealTime(selectedMealTime);
+  const mealPreference = entry.meals?.[slot];
+  const notes = [
+    `Saved weekly food routine for ${weekday}: day preference ${routineLabel(entry.preference)}${
+      mealPreference ? `; ${slot} preference ${routineLabel(mealPreference)}` : ''
+    }. Treat this as an important preference, not an absolute command.`,
+    'Latest explicit user request for this meal should override the saved weekly routine for this occasion.',
+  ];
+  if (entry.note?.trim()) {
+    notes.push(`Saved weekly routine note for ${weekday}: ${entry.note.trim()}.`);
+  }
+  return notes;
 }
 
 function nonVegNotes(member: HouseholdMember, selectedMealTime: MealTime) {
@@ -307,6 +353,7 @@ export default function PlannerPage() {
 
     try {
       const userId = customer.userId || `customer_${Date.now()}`;
+      const targetDate = todayLocalDate();
       const familyResponse = await fetch('/api/families', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -319,7 +366,12 @@ export default function PlannerPage() {
             city: 'Bengaluru',
             dietPreference: familyDietPreferenceFor(customer, members),
             cuisinePreferences: ['Indian', 'Home-style', customer.cookingHabit ?? 'fresh_home_cooked'],
-            localIngredientAvailabilityNotes: cookingHabitNotes(customer.cookingHabit),
+            localIngredientAvailabilityNotes: [
+              ...cookingHabitNotes(customer.cookingHabit),
+              ...weeklyRoutineNotes(customer, selectedMealTime, targetDate),
+            ],
+            weeklyFoodRoutineStatus: customer.weeklyFoodRoutineStatus ?? 'skip',
+            weeklyFoodRoutine: customer.weeklyFoodRoutine ?? [],
             budget: {
               type: 'none',
               currency: 'INR',
@@ -405,7 +457,7 @@ export default function PlannerPage() {
             },
           ],
           userPlanningMode: 'new_user_next_meal',
-          targetDate: todayLocalDate(),
+          targetDate,
         }),
       });
       const mealData = await mealResponse.json();

@@ -1,5 +1,9 @@
 import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { getMamaAiTableName, mamaAiDynamoDb } from "./dynamodb-client";
+import type {
+  DayWiseFoodRoutinePreference,
+  WeeklyFoodRoutineStatus,
+} from "@/lib/shared/contracts";
 
 export interface CustomerAccountRecord {
   userId: string;
@@ -9,6 +13,8 @@ export interface CustomerAccountRecord {
   preferredLanguage?: string;
   householdFoodPreference?: "vegetarian" | "eggetarian" | "non_vegetarian" | "semi_vegetarian" | "vegan" | "mixed" | "other";
   cookingHabit?: "fresh_home_cooked" | "ready_frozen" | "fresh_ready_mix" | "takeaway_prepared" | "other";
+  weeklyFoodRoutineStatus?: WeeklyFoodRoutineStatus;
+  weeklyFoodRoutine?: DayWiseFoodRoutinePreference[];
   createdAt: string;
   updatedAt: string;
 }
@@ -52,6 +58,8 @@ export class CustomerProfileRepository {
     preferredLanguage?: string;
     householdFoodPreference?: CustomerAccountRecord["householdFoodPreference"];
     cookingHabit?: CustomerAccountRecord["cookingHabit"];
+    weeklyFoodRoutineStatus?: CustomerAccountRecord["weeklyFoodRoutineStatus"];
+    weeklyFoodRoutine?: CustomerAccountRecord["weeklyFoodRoutine"];
   }): Promise<CustomerAccountRecord> {
     const timestamp = nowIso();
     const existing = await this.getCustomer(input.userId);
@@ -63,6 +71,8 @@ export class CustomerProfileRepository {
       preferredLanguage: input.preferredLanguage,
       householdFoodPreference: input.householdFoodPreference ?? existing?.householdFoodPreference,
       cookingHabit: input.cookingHabit ?? existing?.cookingHabit,
+      weeklyFoodRoutineStatus: input.weeklyFoodRoutineStatus ?? existing?.weeklyFoodRoutineStatus ?? "skip",
+      weeklyFoodRoutine: input.weeklyFoodRoutine ?? existing?.weeklyFoodRoutine ?? [],
       createdAt: existing?.createdAt ?? timestamp,
       updatedAt: timestamp,
     };
