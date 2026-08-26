@@ -1,6 +1,7 @@
 import { createId, nowIso } from "@/lib/repositories/in-memory-store";
 import type {
   CommonMeal,
+  DayFoodPreference,
   Family,
   FamilyDietPreference,
   FamilyMealPlan,
@@ -8,6 +9,7 @@ import type {
   HighTeaPreference,
   Ingredient,
   MealAttendanceEntry,
+  MealSlot,
   MealTime,
   MealTimeContext,
   NutritionEstimate,
@@ -202,13 +204,40 @@ function localWeekday(targetDate: string) {
   return ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][date.getDay()];
 }
 
+function mealSlotForMealTime(mealTime?: MealTime): MealSlot {
+  if (mealTime === "breakfast" || mealTime === "lunch" || mealTime === "dinner") return mealTime;
+  return "snacks";
+}
+
+function weeklyRoutinePreferenceFor(input: GeneratePlanInput): DayFoodPreference | undefined {
+  if (input.family.weeklyFoodRoutineStatus !== "add" || !input.family.weeklyFoodRoutine?.length) return undefined;
+  const weekday = localWeekday(input.targetDate);
+  const entry = input.family.weeklyFoodRoutine.find((item) => item.day.toLowerCase() === weekday);
+  if (!entry) return undefined;
+  const mealPreference = entry.meals?.[mealSlotForMealTime(input.mealTime)];
+  return mealPreference && mealPreference !== "no_preference" ? mealPreference : entry.preference;
+}
+
+function weeklyRoutinePrefersVegetarianBase(input: GeneratePlanInput) {
+  const preference = weeklyRoutinePreferenceFor(input);
+  return (
+    preference === "vegetarian" ||
+    preference === "vegan" ||
+    preference === "light_meal" ||
+    preference === "fasting_vrat"
+  );
+}
+
 function prefersVegetarianBaseToday(input: GeneratePlanInput) {
   const weekday = localWeekday(input.targetDate);
-  return input.members.some((member) => {
-    if (member.dietType !== "non_vegetarian" && member.dietType !== "eggitarian") return false;
-    if (member.nonVegAvoidDays?.map((day) => day.toLowerCase()).includes(weekday)) return true;
-    return member.nonVegFrequency === "occasionally" || member.nonVegFrequency === "1_2_days_per_week";
-  });
+  return (
+    weeklyRoutinePrefersVegetarianBase(input) ||
+    input.members.some((member) => {
+      if (member.dietType !== "non_vegetarian" && member.dietType !== "eggitarian") return false;
+      if (member.nonVegAvoidDays?.map((day) => day.toLowerCase()).includes(weekday)) return true;
+      return member.nonVegFrequency === "occasionally" || member.nonVegFrequency === "1_2_days_per_week";
+    })
+  );
 }
 
 function recipeSteps(mealName: string) {
@@ -439,6 +468,22 @@ function estimateForDiet(dietPreference: FamilyDietPreference, mealTime: MealTim
 
 function mealForDiet(input: GeneratePlanInput, mealId: string, mealTime: MealTime, regionFit: string): CommonMealDraft | null {
   const dietPreference = input.family.dietPreference ?? "vegetarian";
+  const routinePreference = weeklyRoutinePreferenceFor(input);
+
+  if (routinePreference === "vegan") {
+    return {
+      mealId,
+      name: "Vegan Dal, Millet-Rice and Seasonal Sabzi Plate",
+      mealTime,
+      description: "A fully plant-based family meal with dal, vegetables, millet or rice, and nut/seed chutney. It avoids meat, fish, eggs, milk, paneer, butter, ghee, curd and other dairy.",
+      ingredients: veganDalIngredients(),
+      prepTimeMinutes: 35,
+      difficulty: "easy",
+      regionFit,
+      nutritionIntent: "Saved weekly routine prefers vegan food today, so animal-derived ingredients are avoided unless the user overrides this for this meal.",
+      nutritionEstimate: estimateForDiet("vegan", mealTime)
+    };
+  }
 
   if ((dietPreference === "non_vegetarian" || dietPreference === "eggetarian") && prefersVegetarianBaseToday(input)) {
     return {
@@ -450,7 +495,7 @@ function mealForDiet(input: GeneratePlanInput, mealId: string, mealTime: MealTim
       prepTimeMinutes: 38,
       difficulty: "medium",
       regionFit,
-      nutritionIntent: "Respect non-vegetarian frequency and avoid-day traditions without forcing the whole family into separate cooking.",
+      nutritionIntent: "Respect saved weekly routine, non-vegetarian frequency, and avoid-day traditions without forcing the whole family into separate cooking.",
       nutritionEstimate: estimateForDiet("mixed", mealTime)
     };
   }
@@ -789,6 +834,12 @@ function translateText(text: string | undefined, language: OutputLanguage): stri
       "अनाज, दाल प्रोटीन, सब्जियों, दही और सदस्य-विशेष हिस्सों के मार्गदर्शन वाला संतुलित दोपहर का भोजन।",
     "Plant-based family meal that keeps protein, fiber and practical home cooking visible without animal-derived ingredients.":
       "पौधों पर आधारित पारिवारिक भोजन, जिसमें पशु-जनित सामग्री के बिना प्रोटीन, फाइबर और व्यावहारिक घर का खाना शामिल है।",
+    "Saved weekly routine prefers vegan food today, so animal-derived ingredients are avoided unless the user overrides this for this meal.":
+      "आज सेव किए गए साप्ताहिक रूटीन में वीगन भोजन पसंद है, इसलिए जब तक उपयोगकर्ता इस भोजन के लिए अलग निर्देश न दे, पशु-जनित सामग्री से बचा गया है।",
+    "Respect saved weekly routine, non-vegetarian frequency, and avoid-day traditions without forcing the whole family into separate cooking.":
+      "सेव किए गए साप्ताहिक रूटीन, नॉन-वेज आवृत्ति और avoid-day परंपराओं का सम्मान करें, बिना पूरे परिवार को अलग-अलग पकाने के लिए मजबूर किए।",
+    "Saved weekly family food routine was considered as a preference; the user's latest request should override it for this occasion, and learned routine changes require user confirmation.":
+      "सेव किया गया साप्ताहिक family food routine preference के रूप में माना गया है; इस अवसर पर user का नया निर्देश इसे override करेगा, और learned routine changes के लिए user confirmation जरूरी है।",
     "Nutrition values are estimates and should not be treated as medical advice.":
       "पोषण संबंधी आंकड़े अनुमान हैं और इन्हें चिकित्सा सलाह नहीं माना जाना चाहिए।",
     "Known allergies and doctor restrictions must be reviewed before cooking.":
@@ -830,6 +881,12 @@ function translateText(text: string | undefined, language: OutputLanguage): stri
       "ಧಾನ್ಯಗಳು, ದಾಲ್ ಪ್ರೋಟೀನ್, ತರಕಾರಿಗಳು, ಮೊಸರು ಮತ್ತು ಸದಸ್ಯರಿಗನುಗುಣ ಭಾಗ ಮಾರ್ಗದರ್ಶನದೊಂದಿಗೆ ಸಮತೋಲನ ಮಧ್ಯಾಹ್ನದ ಊಟ.",
     "Plant-based family meal that keeps protein, fiber and practical home cooking visible without animal-derived ingredients.":
       "ಪ್ರಾಣಿ ಮೂಲದ ಪದಾರ್ಥಗಳಿಲ್ಲದೆ ಪ್ರೋಟೀನ್, ಫೈಬರ್ ಮತ್ತು ಪ್ರಾಯೋಗಿಕ ಮನೆಯ ಅಡುಗೆಯನ್ನು ಒಳಗೊಂಡ ಸಸ್ಯಾಧಾರಿತ ಕುಟುಂಬದ ಊಟ.",
+    "Saved weekly routine prefers vegan food today, so animal-derived ingredients are avoided unless the user overrides this for this meal.":
+      "ಇಂದು ಉಳಿಸಿದ weekly routine vegan ಆಹಾರವನ್ನು ಇಷ್ಟಪಡುತ್ತದೆ, ಆದ್ದರಿಂದ user ಈ meal ಗೆ ಬೇರೆ ಸೂಚನೆ ನೀಡದಿದ್ದರೆ animal-derived ingredients ತಪ್ಪಿಸಲಾಗಿದೆ.",
+    "Respect saved weekly routine, non-vegetarian frequency, and avoid-day traditions without forcing the whole family into separate cooking.":
+      "ಪೂರ್ಣ ಕುಟುಂಬಕ್ಕೆ ಬೇರೆ ಬೇರೆ ಅಡುಗೆ ಒತ್ತಾಯಿಸದೆ, ಉಳಿಸಿದ weekly routine, non-veg frequency ಮತ್ತು avoid-day traditions ಗೌರವಿಸಿ.",
+    "Saved weekly family food routine was considered as a preference; the user's latest request should override it for this occasion, and learned routine changes require user confirmation.":
+      "ಉಳಿಸಿದ weekly family food routine ಅನ್ನು preference ಆಗಿ ಪರಿಗಣಿಸಲಾಗಿದೆ; ಈ occasion ಗೆ user ನ latest request ಅದನ್ನು override ಮಾಡಬೇಕು, ಮತ್ತು learned routine changes ಗೆ user confirmation ಅಗತ್ಯ.",
     "Nutrition values are estimates and should not be treated as medical advice.":
       "ಪೋಷಕಾಂಶದ ಮೌಲ್ಯಗಳು ಅಂದಾಜುಗಳು; ಅವನ್ನು ವೈದ್ಯಕೀಯ ಸಲಹೆಯಾಗಿ ಪರಿಗಣಿಸಬಾರದು.",
     "Known allergies and doctor restrictions must be reviewed before cooking.":
@@ -1053,6 +1110,11 @@ export class AIService {
         "Nutrition values are estimates and should not be treated as medical advice.",
         "Known allergies and doctor restrictions must be reviewed before cooking.",
         budgetWarning(input.family, totalCost, estimatedDailyCost),
+        ...(input.family.weeklyFoodRoutineStatus === "add"
+          ? [
+              "Saved weekly family food routine was considered as a preference; the user's latest request should override it for this occasion, and learned routine changes require user confirmation."
+            ]
+          : []),
         input.userPlanningMode === "returning_user_weekly_editable"
           ? "Returning-user mode should reuse editable weekly planning to control AI cost and avoid unnecessary regeneration."
           : "New-user mode generates a focused next-meal plan for onboarding and demo clarity."

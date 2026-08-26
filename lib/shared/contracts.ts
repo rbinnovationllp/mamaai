@@ -16,6 +16,30 @@ export type NonVegetarianFrequency =
   | "most_days"
   | "custom";
 
+export type WeeklyFoodRoutineStatus = "add" | "no_fixed_routine" | "skip";
+
+export type DayFoodPreference =
+  | "vegetarian"
+  | "non_vegetarian"
+  | "eggetarian"
+  | "vegan"
+  | "light_meal"
+  | "fasting_vrat"
+  | "special_family_meal"
+  | "eating_out_takeaway"
+  | "ready_frozen"
+  | "no_preference"
+  | "custom";
+
+export type MealSlot = "breakfast" | "lunch" | "snacks" | "dinner";
+
+export interface DayWiseFoodRoutinePreference {
+  day: string;
+  preference: DayFoodPreference;
+  note?: string;
+  meals?: Partial<Record<MealSlot, DayFoodPreference>>;
+}
+
 export type PlanType = "daily" | "weekly" | "monthly";
 
 export type MealTime = "breakfast" | "lunch" | "dinner" | "snack" | "evening_snack" | "high_tea";
@@ -188,6 +212,8 @@ export interface Family {
   cuisinePreferenceWeights?: CuisinePreferenceWeight[];
   indianRegionalPreferences?: string[];
   localIngredientAvailabilityNotes?: string[];
+  weeklyFoodRoutineStatus?: WeeklyFoodRoutineStatus;
+  weeklyFoodRoutine?: DayWiseFoodRoutinePreference[];
   budget: BudgetProfile;
   kitchenProfile: KitchenProfile;
   subscriptionPlan: SubscriptionPlan;
@@ -489,6 +515,8 @@ export interface CreateFamilyInput {
   city: string;
   dietPreference: FamilyDietPreference;
   cuisinePreferences: string[];
+  weeklyFoodRoutineStatus?: WeeklyFoodRoutineStatus;
+  weeklyFoodRoutine?: DayWiseFoodRoutinePreference[];
   budget: BudgetProfile;
   kitchenProfile: KitchenProfile;
   subscriptionPlan: SubscriptionPlan;

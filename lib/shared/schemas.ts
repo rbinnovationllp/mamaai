@@ -83,6 +83,92 @@ export const createFamilyInputSchema = z.object({
     .optional(),
   indianRegionalPreferences: z.array(z.string()).optional(),
   localIngredientAvailabilityNotes: z.array(z.string()).optional(),
+  weeklyFoodRoutineStatus: z.enum(["add", "no_fixed_routine", "skip"]).optional(),
+  weeklyFoodRoutine: z
+    .array(
+      z.object({
+        day: z.string().min(1),
+        preference: z.enum([
+          "vegetarian",
+          "non_vegetarian",
+          "eggetarian",
+          "vegan",
+          "light_meal",
+          "fasting_vrat",
+          "special_family_meal",
+          "eating_out_takeaway",
+          "ready_frozen",
+          "no_preference",
+          "custom",
+        ]),
+        note: z.string().optional(),
+        meals: z
+          .object({
+            breakfast: z
+              .enum([
+                "vegetarian",
+                "non_vegetarian",
+                "eggetarian",
+                "vegan",
+                "light_meal",
+                "fasting_vrat",
+                "special_family_meal",
+                "eating_out_takeaway",
+                "ready_frozen",
+                "no_preference",
+                "custom",
+              ])
+              .optional(),
+            lunch: z
+              .enum([
+                "vegetarian",
+                "non_vegetarian",
+                "eggetarian",
+                "vegan",
+                "light_meal",
+                "fasting_vrat",
+                "special_family_meal",
+                "eating_out_takeaway",
+                "ready_frozen",
+                "no_preference",
+                "custom",
+              ])
+              .optional(),
+            snacks: z
+              .enum([
+                "vegetarian",
+                "non_vegetarian",
+                "eggetarian",
+                "vegan",
+                "light_meal",
+                "fasting_vrat",
+                "special_family_meal",
+                "eating_out_takeaway",
+                "ready_frozen",
+                "no_preference",
+                "custom",
+              ])
+              .optional(),
+            dinner: z
+              .enum([
+                "vegetarian",
+                "non_vegetarian",
+                "eggetarian",
+                "vegan",
+                "light_meal",
+                "fasting_vrat",
+                "special_family_meal",
+                "eating_out_takeaway",
+                "ready_frozen",
+                "no_preference",
+                "custom",
+              ])
+              .optional(),
+          })
+          .optional(),
+      })
+    )
+    .optional(),
   budget: budgetProfileSchema,
   kitchenProfile: kitchenProfileSchema,
   subscriptionPlan: anyPlanTierSchema,

@@ -5,7 +5,13 @@ import Link from 'next/link';
 import { AppPageNav } from '@/components/AppPageNav';
 import { LanguageSelector, useLanguage } from '@/components/LanguageProvider';
 import { VoiceTextInput } from '@/components/VoiceTextInput';
-import type { ActivityLevel } from '@/lib/shared/contracts';
+import type {
+  ActivityLevel,
+  DayFoodPreference,
+  DayWiseFoodRoutinePreference,
+  MealSlot,
+  WeeklyFoodRoutineStatus,
+} from '@/lib/shared/contracts';
 
 export interface FamilyMemberProfile {
   id: string;
@@ -55,6 +61,38 @@ const copy = {
     nonVegAvoidDays: 'Days this member avoids non-vegetarian food',
     nonVegCustomRule: 'Other non-veg rule',
     noFixedRestriction: 'No fixed restriction',
+    routineTitle: 'Optional family food routine',
+    routineQuestion: 'Does your family normally follow any preferred food routine or day-wise meal schedule?',
+    routineHelp: 'Use this only if your family already has regular day-wise habits. You can edit it later.',
+    routineStatusOptions: {
+      add: 'Yes, I would like to add it',
+      no_fixed_routine: 'No fixed routine',
+      skip: 'Skip for now',
+    },
+    editRoutine: 'Edit Family Food Routine',
+    dayPreference: 'Day preference',
+    mealPreferences: 'Meal-level preferences (optional)',
+    note: 'Short note',
+    notePlaceholder: 'Example: family normally prefers chicken for Sunday lunch',
+    mealSlots: {
+      breakfast: 'Breakfast',
+      lunch: 'Lunch',
+      snacks: 'Snacks',
+      dinner: 'Dinner',
+    },
+    routineOptions: {
+      vegetarian: 'Vegetarian',
+      non_vegetarian: 'Non-Vegetarian',
+      eggetarian: 'Eggetarian',
+      vegan: 'Vegan',
+      light_meal: 'Light meal',
+      fasting_vrat: 'Fasting / Vrat',
+      special_family_meal: 'Special family meal',
+      eating_out_takeaway: 'Eating out / Takeaway',
+      ready_frozen: 'Ready/Frozen meal preferred',
+      no_preference: 'No particular preference',
+      custom: 'Custom preference',
+    },
     commonMeal: 'Prefer One Common Family Meal',
     separateMeal: 'Allow Separate / Alternative Meal',
     foodOptions: {
@@ -141,6 +179,38 @@ const copy = {
     nonVegAvoidDays: 'कौन से दिन यह member non-veg avoid करता है?',
     nonVegCustomRule: 'अन्य non-veg rule',
     noFixedRestriction: 'कोई fixed restriction नहीं',
+    routineTitle: 'Optional family food routine',
+    routineQuestion: 'क्या आपका परिवार कोई preferred day-wise food routine follow करता है?',
+    routineHelp: 'यह optional है. अगर आपके घर की regular day-wise habit है तो add करें, बाद में edit कर सकते हैं.',
+    routineStatusOptions: {
+      add: 'Yes, I would like to add it',
+      no_fixed_routine: 'No fixed routine',
+      skip: 'अभी skip करें',
+    },
+    editRoutine: 'Family Food Routine edit करें',
+    dayPreference: 'Day preference',
+    mealPreferences: 'Meal-level preferences (optional)',
+    note: 'Short note',
+    notePlaceholder: 'Example: Sunday lunch में family chicken पसंद करती है',
+    mealSlots: {
+      breakfast: 'नाश्ता',
+      lunch: 'दोपहर का भोजन',
+      snacks: 'स्नैक्स',
+      dinner: 'रात का खाना',
+    },
+    routineOptions: {
+      vegetarian: 'शाकाहारी',
+      non_vegetarian: 'मांसाहारी',
+      eggetarian: 'अंडा खाते हैं / Eggetarian',
+      vegan: 'Vegan',
+      light_meal: 'हल्का भोजन',
+      fasting_vrat: 'उपवास / व्रत',
+      special_family_meal: 'Special family meal',
+      eating_out_takeaway: 'Eating out / Takeaway',
+      ready_frozen: 'Ready/Frozen meal preferred',
+      no_preference: 'No particular preference',
+      custom: 'Custom preference',
+    },
     commonMeal: 'Prefer One Common Family Meal',
     separateMeal: 'Allow Separate / Alternative Meal',
     foodOptions: {
@@ -227,6 +297,38 @@ const copy = {
     nonVegAvoidDays: 'ಈ member non-veg ತಪ್ಪಿಸುವ ದಿನಗಳು',
     nonVegCustomRule: 'ಇತರೆ non-veg rule',
     noFixedRestriction: 'ನಿಶ್ಚಿತ restriction ಇಲ್ಲ',
+    routineTitle: 'Optional family food routine',
+    routineQuestion: 'ನಿಮ್ಮ ಕುಟುಂಬ preferred day-wise food routine follow ಮಾಡುತ್ತದೆಯೇ?',
+    routineHelp: 'ಇದು optional. ಮನೆಯ regular day-wise habit ಇದ್ದರೆ add ಮಾಡಿ, ನಂತರ edit ಮಾಡಬಹುದು.',
+    routineStatusOptions: {
+      add: 'Yes, I would like to add it',
+      no_fixed_routine: 'No fixed routine',
+      skip: 'ಈಗ skip ಮಾಡಿ',
+    },
+    editRoutine: 'Family Food Routine edit ಮಾಡಿ',
+    dayPreference: 'Day preference',
+    mealPreferences: 'Meal-level preferences (optional)',
+    note: 'Short note',
+    notePlaceholder: 'Example: Sunday lunch ಗೆ family chicken ಇಷ್ಟಪಡುತ್ತದೆ',
+    mealSlots: {
+      breakfast: 'ಉಪಹಾರ',
+      lunch: 'ಮಧ್ಯಾಹ್ನದ ಊಟ',
+      snacks: 'ತಿಂಡಿ',
+      dinner: 'ರಾತ್ರಿ ಊಟ',
+    },
+    routineOptions: {
+      vegetarian: 'ಸಸ್ಯಾಹಾರಿ',
+      non_vegetarian: 'ಮಾಂಸಾಹಾರಿ',
+      eggetarian: 'ಮೊಟ್ಟೆ ತಿನ್ನುವವರು / Eggetarian',
+      vegan: 'Vegan',
+      light_meal: 'ಹಗುರ ಊಟ',
+      fasting_vrat: 'ಉಪವಾಸ / ವ್ರತ',
+      special_family_meal: 'Special family meal',
+      eating_out_takeaway: 'Eating out / Takeaway',
+      ready_frozen: 'Ready/Frozen meal preferred',
+      no_preference: 'No particular preference',
+      custom: 'Custom preference',
+    },
     commonMeal: 'Prefer One Common Family Meal',
     separateMeal: 'Allow Separate / Alternative Meal',
     foodOptions: {
@@ -307,6 +409,55 @@ function getSuggestedPlan(memberCount: number): string {
 
 const weekdayOptions = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
 const nonVegFoodPreferences = new Set(['non_vegetarian', 'semi_vegetarian', 'eggetarian']);
+const routinePreferenceOptions: DayFoodPreference[] = [
+  'no_preference',
+  'vegetarian',
+  'non_vegetarian',
+  'eggetarian',
+  'vegan',
+  'light_meal',
+  'fasting_vrat',
+  'special_family_meal',
+  'eating_out_takeaway',
+  'ready_frozen',
+  'custom',
+];
+const mealSlotOptions: MealSlot[] = ['breakfast', 'lunch', 'snacks', 'dinner'];
+
+function defaultWeeklyRoutine(): DayWiseFoodRoutinePreference[] {
+  return weekdayOptions.map((day) => ({
+    day,
+    preference: 'no_preference',
+    note: '',
+    meals: {},
+  }));
+}
+
+function mergeWeeklyRoutine(saved: unknown): DayWiseFoodRoutinePreference[] {
+  const savedEntries = Array.isArray(saved) ? saved : [];
+  return weekdayOptions.map((day) => {
+    const match = savedEntries.find((entry) => entry?.day === day);
+    return {
+      day,
+      preference: routinePreferenceOptions.includes(match?.preference)
+        ? match.preference
+        : 'no_preference',
+      note: typeof match?.note === 'string' ? match.note : '',
+      meals: typeof match?.meals === 'object' && match?.meals ? match.meals : {},
+    };
+  });
+}
+
+function cleanWeeklyRoutine(entries: DayWiseFoodRoutinePreference[]) {
+  return entries.map((entry) => ({
+    day: entry.day,
+    preference: entry.preference,
+    note: entry.note?.trim() || undefined,
+    meals: Object.fromEntries(
+      Object.entries(entry.meals ?? {}).filter(([, value]) => value && value !== 'no_preference')
+    ),
+  }));
+}
 
 const inputClassName =
   'rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
@@ -328,6 +479,10 @@ export default function FamilyProfilePage() {
   const [householdFoodPreference, setHouseholdFoodPreference] =
     useState<HouseholdFoodPreference>('vegetarian');
   const [cookingHabit, setCookingHabit] = useState<CookingHabit>('fresh_home_cooked');
+  const [weeklyFoodRoutineStatus, setWeeklyFoodRoutineStatus] =
+    useState<WeeklyFoodRoutineStatus>('skip');
+  const [weeklyFoodRoutine, setWeeklyFoodRoutine] =
+    useState<DayWiseFoodRoutinePreference[]>(() => defaultWeeklyRoutine());
   const [nonVegFrequency, setNonVegFrequency] = useState<NonVegFrequency>('occasionally');
   const [nonVegAvoidDays, setNonVegAvoidDays] = useState<string[]>([]);
   const [nonVegCustomRule, setNonVegCustomRule] = useState('');
@@ -356,6 +511,8 @@ export default function FamilyProfilePage() {
         setCustomerName(String(parsedCustomer.name ?? ''));
         setCustomerMobile(String(parsedCustomer.mobile ?? ''));
         setCustomerEmail(String(parsedCustomer.email ?? ''));
+        setWeeklyFoodRoutineStatus(parsedCustomer.weeklyFoodRoutineStatus ?? 'skip');
+        setWeeklyFoodRoutine(mergeWeeklyRoutine(parsedCustomer.weeklyFoodRoutine));
       }
 
       const savedDraft = window.localStorage.getItem(FAMILY_PROFILE_DRAFT_KEY);
@@ -371,6 +528,8 @@ export default function FamilyProfilePage() {
         setMemberFoodPreference(draft.memberFoodPreference ?? 'vegetarian');
         setHouseholdFoodPreference(draft.householdFoodPreference ?? 'vegetarian');
         setCookingHabit(draft.cookingHabit ?? 'fresh_home_cooked');
+        setWeeklyFoodRoutineStatus(draft.weeklyFoodRoutineStatus ?? 'skip');
+        setWeeklyFoodRoutine(mergeWeeklyRoutine(draft.weeklyFoodRoutine));
         setNonVegFrequency(draft.nonVegFrequency ?? 'occasionally');
         setNonVegAvoidDays(Array.isArray(draft.nonVegAvoidDays) ? draft.nonVegAvoidDays : []);
         setNonVegCustomRule(String(draft.nonVegCustomRule ?? ''));
@@ -409,6 +568,8 @@ export default function FamilyProfilePage() {
           memberFoodPreference,
           householdFoodPreference,
           cookingHabit,
+          weeklyFoodRoutineStatus,
+          weeklyFoodRoutine,
           nonVegFrequency,
           nonVegAvoidDays,
           nonVegCustomRule,
@@ -432,6 +593,8 @@ export default function FamilyProfilePage() {
     memberFoodPreference,
     householdFoodPreference,
     cookingHabit,
+    weeklyFoodRoutineStatus,
+    weeklyFoodRoutine,
     nonVegFrequency,
     nonVegAvoidDays,
     nonVegCustomRule,
@@ -516,6 +679,31 @@ export default function FamilyProfilePage() {
     );
   };
 
+  const updateRoutineDay = (
+    day: string,
+    patch: Partial<DayWiseFoodRoutinePreference>
+  ) => {
+    setWeeklyFoodRoutine((current) =>
+      current.map((entry) => (entry.day === day ? { ...entry, ...patch } : entry))
+    );
+  };
+
+  const updateRoutineMeal = (day: string, meal: MealSlot, preference: DayFoodPreference) => {
+    setWeeklyFoodRoutine((current) =>
+      current.map((entry) =>
+        entry.day === day
+          ? {
+              ...entry,
+              meals: {
+                ...(entry.meals ?? {}),
+                [meal]: preference,
+              },
+            }
+          : entry
+      )
+    );
+  };
+
   const handleSaveFamily = async () => {
     const cleanCustomerName = customerName.trim() || members[0]?.name?.trim();
     const cleanMobile = customerMobile.trim();
@@ -543,6 +731,8 @@ export default function FamilyProfilePage() {
         preferredLanguage: language,
         householdFoodPreference,
         cookingHabit,
+        weeklyFoodRoutineStatus,
+        weeklyFoodRoutine: weeklyFoodRoutineStatus === 'add' ? cleanWeeklyRoutine(weeklyFoodRoutine) : [],
       };
       const response = await fetch('/api/customer/family-profile', {
         method: 'POST',
@@ -617,6 +807,100 @@ export default function FamilyProfilePage() {
               </select>
             </label>
           </div>
+        </section>
+
+        <section className="mb-8 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-emerald-100 sm:p-6">
+          <div className="mb-5">
+            <h2 className="text-2xl font-bold tracking-tight text-slate-950">{t.routineTitle}</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{t.routineHelp}</p>
+          </div>
+
+          <label className="grid gap-2">
+            <span className="text-sm font-semibold text-slate-700">{t.routineQuestion}</span>
+            <select
+              value={weeklyFoodRoutineStatus}
+              onChange={(event) => setWeeklyFoodRoutineStatus(event.target.value as WeeklyFoodRoutineStatus)}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            >
+              <option value="add">{t.routineStatusOptions.add}</option>
+              <option value="no_fixed_routine">{t.routineStatusOptions.no_fixed_routine}</option>
+              <option value="skip">{t.routineStatusOptions.skip}</option>
+            </select>
+          </label>
+
+          {weeklyFoodRoutineStatus === 'add' ? (
+            <div className="mt-5 grid gap-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-bold text-emerald-800">{t.editRoutine}</p>
+              </div>
+
+              {weeklyFoodRoutine.map((entry) => (
+                <article
+                  key={entry.day}
+                  className="grid gap-4 rounded-2xl bg-emerald-50/60 p-4 ring-1 ring-emerald-100"
+                >
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="grid gap-2">
+                      <span className="text-sm font-bold text-slate-800">
+                        {t.weekdays[entry.day as keyof typeof t.weekdays]} - {t.dayPreference}
+                      </span>
+                      <select
+                        value={entry.preference}
+                        onChange={(event) =>
+                          updateRoutineDay(entry.day, {
+                            preference: event.target.value as DayFoodPreference,
+                          })
+                        }
+                        className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                      >
+                        {routinePreferenceOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {t.routineOptions[option]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="grid gap-2">
+                      <span className="text-sm font-bold text-slate-800">{t.note}</span>
+                      <VoiceTextInput
+                        value={entry.note ?? ''}
+                        onValueChange={(value) => updateRoutineDay(entry.day, { note: value })}
+                        placeholder={t.notePlaceholder}
+                        inputClassName={inputClassName}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <span className="text-sm font-bold text-slate-800">{t.mealPreferences}</span>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      {mealSlotOptions.map((slot) => (
+                        <label key={`${entry.day}-${slot}`} className="grid gap-1">
+                          <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                            {t.mealSlots[slot]}
+                          </span>
+                          <select
+                            value={entry.meals?.[slot] ?? 'no_preference'}
+                            onChange={(event) =>
+                              updateRoutineMeal(entry.day, slot, event.target.value as DayFoodPreference)
+                            }
+                            className="rounded-xl border border-emerald-100 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                          >
+                            {routinePreferenceOptions.map((option) => (
+                              <option key={option} value={option}>
+                                {t.routineOptions[option]}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : null}
         </section>
 
         <form

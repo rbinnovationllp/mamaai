@@ -41,6 +41,92 @@ const familyProfileSchema = z.object({
     cookingHabit: z
       .enum(["fresh_home_cooked", "ready_frozen", "fresh_ready_mix", "takeaway_prepared", "other"])
       .default("fresh_home_cooked"),
+    weeklyFoodRoutineStatus: z.enum(["add", "no_fixed_routine", "skip"]).default("skip"),
+    weeklyFoodRoutine: z
+      .array(
+        z.object({
+          day: z.string().min(1),
+          preference: z.enum([
+            "vegetarian",
+            "non_vegetarian",
+            "eggetarian",
+            "vegan",
+            "light_meal",
+            "fasting_vrat",
+            "special_family_meal",
+            "eating_out_takeaway",
+            "ready_frozen",
+            "no_preference",
+            "custom",
+          ]),
+          note: z.string().trim().optional().or(z.literal("")),
+          meals: z
+            .object({
+              breakfast: z
+                .enum([
+                  "vegetarian",
+                  "non_vegetarian",
+                  "eggetarian",
+                  "vegan",
+                  "light_meal",
+                  "fasting_vrat",
+                  "special_family_meal",
+                  "eating_out_takeaway",
+                  "ready_frozen",
+                  "no_preference",
+                  "custom",
+                ])
+                .optional(),
+              lunch: z
+                .enum([
+                  "vegetarian",
+                  "non_vegetarian",
+                  "eggetarian",
+                  "vegan",
+                  "light_meal",
+                  "fasting_vrat",
+                  "special_family_meal",
+                  "eating_out_takeaway",
+                  "ready_frozen",
+                  "no_preference",
+                  "custom",
+                ])
+                .optional(),
+              snacks: z
+                .enum([
+                  "vegetarian",
+                  "non_vegetarian",
+                  "eggetarian",
+                  "vegan",
+                  "light_meal",
+                  "fasting_vrat",
+                  "special_family_meal",
+                  "eating_out_takeaway",
+                  "ready_frozen",
+                  "no_preference",
+                  "custom",
+                ])
+                .optional(),
+              dinner: z
+                .enum([
+                  "vegetarian",
+                  "non_vegetarian",
+                  "eggetarian",
+                  "vegan",
+                  "light_meal",
+                  "fasting_vrat",
+                  "special_family_meal",
+                  "eating_out_takeaway",
+                  "ready_frozen",
+                  "no_preference",
+                  "custom",
+                ])
+                .optional(),
+            })
+            .optional(),
+        })
+      )
+      .default([]),
   }),
   members: z.array(memberSchema).min(1),
 });
@@ -110,6 +196,16 @@ export async function POST(request: Request) {
       preferredLanguage: customer.preferredLanguage,
       householdFoodPreference: customer.householdFoodPreference,
       cookingHabit: customer.cookingHabit,
+      weeklyFoodRoutineStatus: customer.weeklyFoodRoutineStatus,
+      weeklyFoodRoutine:
+        customer.weeklyFoodRoutineStatus === "add"
+          ? customer.weeklyFoodRoutine.map((entry) => ({
+              day: entry.day,
+              preference: entry.preference,
+              note: entry.note || undefined,
+              meals: entry.meals ?? {},
+            }))
+          : [],
     });
     const familyProfile = await repository.saveFamilyProfile({ userId, members });
 
