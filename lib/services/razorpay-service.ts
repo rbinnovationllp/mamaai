@@ -44,9 +44,9 @@ function toIsoFromSeconds(value?: number) {
 
 function configuredRazorpayKey() {
   return {
-    keyId: process.env.RAZORPAY_KEY_ID,
-    keySecret: process.env.RAZORPAY_KEY_SECRET,
-    webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET,
+    keyId: process.env.RAZORPAY_KEY_ID?.trim(),
+    keySecret: process.env.RAZORPAY_KEY_SECRET?.trim(),
+    webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET?.trim(),
   };
 }
 
@@ -332,3 +332,4 @@ export class RazorpayService {
     });
   }
 }
+
