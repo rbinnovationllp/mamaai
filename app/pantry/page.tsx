@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { AppPageNav } from '@/components/AppPageNav';
 import { LanguageSelector, useLanguage } from '@/components/LanguageProvider';
 import { VoiceTextInput } from '@/components/VoiceTextInput';
 
@@ -103,6 +104,8 @@ export default function PantryPage() {
 
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-6 font-sans">
+      <AppPageNav />
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{t.title}</h1>

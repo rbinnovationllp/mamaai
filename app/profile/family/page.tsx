@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { AppPageNav } from '@/components/AppPageNav';
 import { LanguageSelector, useLanguage } from '@/components/LanguageProvider';
 import { VoiceTextInput } from '@/components/VoiceTextInput';
 
@@ -9,14 +10,19 @@ export interface FamilyMemberProfile {
   id: string;
   name: string;
   relation: string;
+  foodPreference?: 'vegetarian' | 'eggetarian' | 'non_vegetarian' | 'semi_vegetarian' | 'vegan' | 'other';
   allergies: string[];
   doctorAdvisedRestrictions: string[];
   dislikes: string[];
   mealStrategyPreference: 'common' | 'allow_separate';
 }
 
+type HouseholdFoodPreference = 'vegetarian' | 'eggetarian' | 'non_vegetarian' | 'semi_vegetarian' | 'vegan' | 'mixed' | 'other';
+type CookingHabit = 'fresh_home_cooked' | 'ready_frozen' | 'fresh_ready_mix' | 'takeaway_prepared' | 'other';
+
 const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
 const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
+const FAMILY_PROFILE_DRAFT_KEY = 'mamaai_family_profile_draft_v1';
 
 const copy = {
   en: {
@@ -32,8 +38,27 @@ const copy = {
     dislikes: 'Taste dislikes',
     dislikesHint: 'Example: karela, mushroom',
     strategy: 'Meal Strategy Preference',
+    memberFood: 'Member food preference',
+    householdFood: 'Household food preference',
+    cookingHabit: 'How does your family usually prepare meals?',
     commonMeal: 'Prefer One Common Family Meal',
     separateMeal: 'Allow Separate / Alternative Meal',
+    foodOptions: {
+      vegetarian: 'Vegetarian',
+      eggetarian: 'Eggetarian',
+      non_vegetarian: 'Non-Vegetarian',
+      semi_vegetarian: 'Mostly Vegetarian / Semi-Vegetarian',
+      vegan: 'Vegan - no meat, eggs, milk or dairy',
+      mixed: 'Mixed household preferences',
+      other: 'Other / Custom Preference',
+    },
+    cookingOptions: {
+      fresh_home_cooked: 'Mostly cook fresh meals at home',
+      ready_frozen: 'Mostly use ready-made / frozen cooked meals',
+      fresh_ready_mix: 'Mix of fresh cooking and ready-made / frozen foods',
+      takeaway_prepared: 'Mostly buy prepared meals / takeaway',
+      other: 'Other',
+    },
     add: 'Add Member Profile',
     accountTitle: 'Your account details',
     accountText: 'Used to save this family profile and connect it with your subscription.',
@@ -68,8 +93,27 @@ const copy = {
     dislikes: 'Taste dislikes',
     dislikesHint: 'Example: karela, mushroom',
     strategy: 'Meal Strategy Preference',
+    memberFood: 'Member food preference',
+    householdFood: 'Household food preference',
+    cookingHabit: 'आपका परिवार आम तौर पर meals कैसे prepare करता है?',
     commonMeal: 'Prefer One Common Family Meal',
     separateMeal: 'Allow Separate / Alternative Meal',
+    foodOptions: {
+      vegetarian: 'शाकाहारी',
+      eggetarian: 'अंडा खाते हैं / Eggetarian',
+      non_vegetarian: 'मांसाहारी',
+      semi_vegetarian: 'ज्यादातर शाकाहारी / Semi-Vegetarian',
+      vegan: 'Vegan - meat, egg, milk या dairy नहीं',
+      mixed: 'घर में अलग-अलग food preferences',
+      other: 'Other / Custom Preference',
+    },
+    cookingOptions: {
+      fresh_home_cooked: 'ज्यादातर ताजा घर का खाना',
+      ready_frozen: 'ज्यादातर ready-made / frozen cooked meals',
+      fresh_ready_mix: 'Fresh cooking और ready-made / frozen foods का mix',
+      takeaway_prepared: 'ज्यादातर prepared meals / takeaway',
+      other: 'Other',
+    },
     add: 'Add Member Profile',
     accountTitle: 'Your account details',
     accountText: 'इससे आपका family profile और subscription एक ही account से जुड़ेंगे.',
@@ -104,8 +148,27 @@ const copy = {
     dislikes: 'Taste dislikes',
     dislikesHint: 'Example: karela, mushroom',
     strategy: 'Meal Strategy Preference',
+    memberFood: 'Member food preference',
+    householdFood: 'Household food preference',
+    cookingHabit: 'ನಿಮ್ಮ ಕುಟುಂಬ ಸಾಮಾನ್ಯವಾಗಿ meals ಹೇಗೆ prepare ಮಾಡುತ್ತದೆ?',
     commonMeal: 'Prefer One Common Family Meal',
     separateMeal: 'Allow Separate / Alternative Meal',
+    foodOptions: {
+      vegetarian: 'ಸಸ್ಯಾಹಾರಿ',
+      eggetarian: 'ಮೊಟ್ಟೆ ತಿನ್ನುವವರು / Eggetarian',
+      non_vegetarian: 'ಮಾಂಸಾಹಾರಿ',
+      semi_vegetarian: 'ಹೆಚ್ಚಾಗಿ ಸಸ್ಯಾಹಾರಿ / Semi-Vegetarian',
+      vegan: 'Vegan - meat, egg, milk ಅಥವಾ dairy ಇಲ್ಲ',
+      mixed: 'ಮನೆಯಲ್ಲಿ ಬೇರೆ ಬೇರೆ food preferences',
+      other: 'Other / Custom Preference',
+    },
+    cookingOptions: {
+      fresh_home_cooked: 'ಹೆಚ್ಚಾಗಿ ತಾಜಾ ಮನೆಯಲ್ಲಿ ಅಡುಗೆ',
+      ready_frozen: 'ಹೆಚ್ಚಾಗಿ ready-made / frozen cooked meals',
+      fresh_ready_mix: 'Fresh cooking ಮತ್ತು ready-made / frozen foods mix',
+      takeaway_prepared: 'ಹೆಚ್ಚಾಗಿ prepared meals / takeaway',
+      other: 'Other',
+    },
     add: 'Add Member Profile',
     accountTitle: 'Your account details',
     accountText: 'ಇದರಿಂದ family profile ಮತ್ತು subscription ಒಂದೇ account ಗೆ ಜೋಡಿಸಲಾಗುತ್ತದೆ.',
@@ -155,6 +218,11 @@ export default function FamilyProfilePage() {
   const [allergyInput, setAllergyInput] = useState('');
   const [doctorInput, setDoctorInput] = useState('');
   const [dislikeInput, setDislikeInput] = useState('');
+  const [memberFoodPreference, setMemberFoodPreference] =
+    useState<NonNullable<FamilyMemberProfile['foodPreference']>>('vegetarian');
+  const [householdFoodPreference, setHouseholdFoodPreference] =
+    useState<HouseholdFoodPreference>('vegetarian');
+  const [cookingHabit, setCookingHabit] = useState<CookingHabit>('fresh_home_cooked');
   const [formError, setFormError] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerMobile, setCustomerMobile] = useState('');
@@ -181,6 +249,25 @@ export default function FamilyProfilePage() {
         setCustomerMobile(String(parsedCustomer.mobile ?? ''));
         setCustomerEmail(String(parsedCustomer.email ?? ''));
       }
+
+      const savedDraft = window.localStorage.getItem(FAMILY_PROFILE_DRAFT_KEY);
+      if (savedDraft) {
+        const draft = JSON.parse(savedDraft);
+        setName(String(draft.name ?? ''));
+        setRelation(String(draft.relation ?? ''));
+        setAllergyInput(String(draft.allergyInput ?? ''));
+        setDoctorInput(String(draft.doctorInput ?? ''));
+        setDislikeInput(String(draft.dislikeInput ?? ''));
+        setMemberFoodPreference(draft.memberFoodPreference ?? 'vegetarian');
+        setHouseholdFoodPreference(draft.householdFoodPreference ?? 'vegetarian');
+        setCookingHabit(draft.cookingHabit ?? 'fresh_home_cooked');
+        setCustomerName((current) => current || String(draft.customerName ?? ''));
+        setCustomerMobile((current) => current || String(draft.customerMobile ?? ''));
+        setCustomerEmail((current) => current || String(draft.customerEmail ?? ''));
+        if (draft.mealStrategy === 'common' || draft.mealStrategy === 'allow_separate') {
+          setMealStrategy(draft.mealStrategy);
+        }
+      }
     } catch {
       setMembers([]);
     }
@@ -193,6 +280,43 @@ export default function FamilyProfilePage() {
       // Local persistence is helpful, but the form should still work without it.
     }
   }, [members]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        FAMILY_PROFILE_DRAFT_KEY,
+        JSON.stringify({
+          name,
+          relation,
+          allergyInput,
+          doctorInput,
+          dislikeInput,
+          memberFoodPreference,
+          householdFoodPreference,
+          cookingHabit,
+          customerName,
+          customerMobile,
+          customerEmail,
+          mealStrategy,
+        })
+      );
+    } catch {
+      // Draft persistence is helpful, but the page still works without it.
+    }
+  }, [
+    name,
+    relation,
+    allergyInput,
+    doctorInput,
+    dislikeInput,
+    memberFoodPreference,
+    householdFoodPreference,
+    cookingHabit,
+    customerName,
+    customerMobile,
+    customerEmail,
+    mealStrategy,
+  ]);
 
   const suggestedPlan = useMemo(() => getSuggestedPlan(members.length), [members.length]);
 
@@ -216,6 +340,7 @@ export default function FamilyProfilePage() {
       id: `m_${Date.now()}`,
       name: cleanName,
       relation: cleanRelation,
+      foodPreference: memberFoodPreference,
       allergies: splitCsv(allergyInput),
       doctorAdvisedRestrictions: splitCsv(doctorInput),
       dislikes: splitCsv(dislikeInput),
@@ -229,7 +354,13 @@ export default function FamilyProfilePage() {
     setAllergyInput('');
     setDoctorInput('');
     setDislikeInput('');
+    setMemberFoodPreference(householdFoodPreference === 'mixed' ? 'vegetarian' : householdFoodPreference === 'other' ? 'other' : householdFoodPreference);
     setMealStrategy('common');
+    try {
+      window.localStorage.removeItem(FAMILY_PROFILE_DRAFT_KEY);
+    } catch {
+      // Ignore draft cleanup failures.
+    }
   };
 
   const handleRemoveMember = (memberId: string) => {
@@ -270,6 +401,8 @@ export default function FamilyProfilePage() {
         mobile: cleanMobile,
         email: cleanEmail,
         preferredLanguage: language,
+        householdFoodPreference,
+        cookingHabit,
       };
       const response = await fetch('/api/customer/family-profile', {
         method: 'POST',
@@ -284,6 +417,7 @@ export default function FamilyProfilePage() {
 
       window.localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify({ ...customer, userId: data.userId }));
       window.localStorage.setItem(HOUSEHOLD_STORAGE_KEY, JSON.stringify(members));
+      window.localStorage.removeItem(FAMILY_PROFILE_DRAFT_KEY);
       setSaveStatus(t.saved);
       window.setTimeout(() => {
         window.location.href = '/subscription';
@@ -298,16 +432,51 @@ export default function FamilyProfilePage() {
   return (
     <main className="min-h-screen bg-[#f8faf9] px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl">
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <Link href="/" className="text-sm font-semibold text-emerald-700">
-            <span aria-hidden="true">&larr;</span> MAMAAI Home
-          </Link>
+        <AppPageNav />
+
+        <div className="mb-6 flex items-center justify-end gap-4">
           <LanguageSelector />
         </div>
 
         <section className="mb-8 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
           <h1 className="text-3xl font-bold tracking-tight text-slate-950">{t.title}</h1>
           <p className="mt-3 text-base leading-7 text-slate-600">{t.subtitle}</p>
+        </section>
+
+        <section className="mb-8 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-emerald-100 sm:p-6">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-slate-700">{t.householdFood}</span>
+              <select
+                value={householdFoodPreference}
+                onChange={(event) => setHouseholdFoodPreference(event.target.value as HouseholdFoodPreference)}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              >
+                <option value="vegetarian">{t.foodOptions.vegetarian}</option>
+                <option value="eggetarian">{t.foodOptions.eggetarian}</option>
+                <option value="non_vegetarian">{t.foodOptions.non_vegetarian}</option>
+                <option value="semi_vegetarian">{t.foodOptions.semi_vegetarian}</option>
+                <option value="vegan">{t.foodOptions.vegan}</option>
+                <option value="mixed">{t.foodOptions.mixed}</option>
+                <option value="other">{t.foodOptions.other}</option>
+              </select>
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-slate-700">{t.cookingHabit}</span>
+              <select
+                value={cookingHabit}
+                onChange={(event) => setCookingHabit(event.target.value as CookingHabit)}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              >
+                <option value="fresh_home_cooked">{t.cookingOptions.fresh_home_cooked}</option>
+                <option value="ready_frozen">{t.cookingOptions.ready_frozen}</option>
+                <option value="fresh_ready_mix">{t.cookingOptions.fresh_ready_mix}</option>
+                <option value="takeaway_prepared">{t.cookingOptions.takeaway_prepared}</option>
+                <option value="other">{t.cookingOptions.other}</option>
+              </select>
+            </label>
+          </div>
         </section>
 
         <form
@@ -381,6 +550,24 @@ export default function FamilyProfilePage() {
               </select>
             </label>
 
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-slate-700">{t.memberFood}</span>
+              <select
+                value={memberFoodPreference}
+                onChange={(event) =>
+                  setMemberFoodPreference(event.target.value as NonNullable<FamilyMemberProfile['foodPreference']>)
+                }
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              >
+                <option value="vegetarian">{t.foodOptions.vegetarian}</option>
+                <option value="eggetarian">{t.foodOptions.eggetarian}</option>
+                <option value="non_vegetarian">{t.foodOptions.non_vegetarian}</option>
+                <option value="semi_vegetarian">{t.foodOptions.semi_vegetarian}</option>
+                <option value="vegan">{t.foodOptions.vegan}</option>
+                <option value="other">{t.foodOptions.other}</option>
+              </select>
+            </label>
+
             {formError ? (
               <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
                 {formError}
@@ -426,6 +613,9 @@ export default function FamilyProfilePage() {
                     <div>
                       <h3 className="text-2xl font-bold text-slate-950">{member.name}</h3>
                       <p className="mt-1 text-base font-semibold text-slate-500">{member.relation}</p>
+                      <p className="mt-1 text-sm font-semibold text-emerald-700">
+                        {t.memberFood}: {t.foodOptions[member.foodPreference ?? 'vegetarian']}
+                      </p>
                     </div>
 
                     <button
@@ -546,7 +736,7 @@ export default function FamilyProfilePage() {
               </button>
 
               <Link
-                href="/#planner"
+                href="/planner"
                 className="rounded-2xl border border-white/35 px-5 py-4 text-center text-base font-bold text-white transition hover:bg-white/10"
               >
                 {t.demo}
