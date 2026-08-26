@@ -71,7 +71,15 @@ export async function POST(request: Request) {
       body?.diagnosticKey ??
       "";
 
-    if (!process.env.JUDGE_TEST_KEY || suppliedKey !== process.env.JUDGE_TEST_KEY) {
+    const allowedDiagnosticKeys = [
+      process.env.JUDGE_TEST_KEY,
+      process.env.MAMAAI_JUDGE_TEST_KEY,
+      process.env.RAZORPAY_DIAGNOSTIC_KEY,
+    ]
+      .map((value) => value?.trim())
+      .filter(Boolean);
+
+    if (!allowedDiagnosticKeys.includes(String(suppliedKey).trim())) {
       return NextResponse.json(
         { error: { code: "UNAUTHORIZED", message: "Diagnostic key is invalid." } },
         { status: 401 }
@@ -132,3 +140,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
+
+
