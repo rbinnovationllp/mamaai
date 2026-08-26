@@ -26,27 +26,102 @@ function isCookingQuestion(message: string) {
   return /(cook|meal|dinner|lunch|breakfast|frozen|ready|family|खाना|भोजन|पक|अंडा|शाकाहारी|ಊಟ|ಅಡುಗೆ|ತಿಂಡಿ)/i.test(message);
 }
 
+function localizedProfileValue(kind: "food" | "cooking", value: string | undefined, language: AppLanguage) {
+  const fallback = {
+    en: "not yet selected",
+    hi: "अभी नहीं चुना गया",
+    kn: "ಇನ್ನೂ ಆಯ್ಕೆಮಾಡಿಲ್ಲ",
+  }[language];
+  if (!value) return fallback;
+
+  const food = {
+    en: {
+      vegetarian: "Vegetarian",
+      eggetarian: "Eggetarian",
+      non_vegetarian: "Non-Vegetarian",
+      semi_vegetarian: "Mostly Vegetarian / Semi-Vegetarian",
+      vegan: "Vegan",
+      mixed: "Mixed family preferences",
+      other: "Custom preference",
+    },
+    hi: {
+      vegetarian: "शाकाहारी",
+      eggetarian: "एगेटेरियन",
+      non_vegetarian: "मांसाहारी",
+      semi_vegetarian: "अधिकतर शाकाहारी / सेमी-वेज",
+      vegan: "वीगन",
+      mixed: "परिवार में अलग-अलग भोजन पसंद",
+      other: "कस्टम पसंद",
+    },
+    kn: {
+      vegetarian: "ಸಸ್ಯಾಹಾರಿ",
+      eggetarian: "ಎಗ್ಗೆಟೇರಿಯನ್",
+      non_vegetarian: "ಮಾಂಸಾಹಾರಿ",
+      semi_vegetarian: "ಹೆಚ್ಚಾಗಿ ಸಸ್ಯಾಹಾರಿ / ಸೆಮಿ-ವೆಜ್",
+      vegan: "ವೀಗನ್",
+      mixed: "ಕುಟುಂಬದಲ್ಲಿ ವಿಭಿನ್ನ ಆಹಾರ ಇಷ್ಟಗಳು",
+      other: "ಕಸ್ಟಮ್ ಇಷ್ಟ",
+    },
+  }[language] as Record<string, string>;
+
+  const cooking = {
+    en: {
+      fresh_home_cooked: "mostly fresh home-cooked meals",
+      ready_frozen: "mostly ready-made or frozen cooked meals",
+      fresh_ready_mix: "a mix of fresh cooking and ready-made or frozen foods",
+      takeaway_prepared: "mostly prepared meals or takeaway",
+      other: "custom cooking habit",
+    },
+    hi: {
+      fresh_home_cooked: "अधिकतर घर में ताजा बना खाना",
+      ready_frozen: "अधिकतर ready-made या frozen cooked meals",
+      fresh_ready_mix: "ताजा खाना और ready-made/frozen foods का मिश्रण",
+      takeaway_prepared: "अधिकतर बाहर से तैयार खाना या takeaway",
+      other: "कस्टम cooking habit",
+    },
+    kn: {
+      fresh_home_cooked: "ಹೆಚ್ಚಾಗಿ ಮನೆಯಲ್ಲಿ ತಾಜಾ ಅಡುಗೆ",
+      ready_frozen: "ಹೆಚ್ಚಾಗಿ ready-made ಅಥವಾ frozen cooked meals",
+      fresh_ready_mix: "ತಾಜಾ ಅಡುಗೆ ಮತ್ತು ready-made/frozen foods ಮಿಶ್ರಣ",
+      takeaway_prepared: "ಹೆಚ್ಚಾಗಿ ಹೊರಗಿನ prepared meals ಅಥವಾ takeaway",
+      other: "ಕಸ್ಟಮ್ cooking habit",
+    },
+  }[language] as Record<string, string>;
+
+  return (kind === "food" ? food[value] : cooking[value]) ?? value;
+}
+
 function profileAwareAnswer(message: string, context: RequestPayload["profileContext"], language: AppLanguage) {
   if (!context || !isCookingQuestion(message)) return null;
 
   const members = context.members?.filter((member) => member.name) ?? [];
   if (!members.length && !context.householdFoodPreference && !context.cookingHabit) return null;
 
-  const food = context.householdFoodPreference || "not yet selected";
-  const cooking = context.cookingHabit || "not yet selected";
+  const food = localizedProfileValue("food", context.householdFoodPreference, language);
+  const cooking = localizedProfileValue("cooking", context.cookingHabit, language);
   const memberSummary = members
-    .map((member) => `${member.name}: ${member.foodPreference || "food preference not set"}`)
+    .map((member) => `${member.name}: ${localizedProfileValue("food", member.foodPreference, language)}`)
     .join(", ");
 
   if (language === "hi") {
-    return `आपके saved profile के अनुसार household food preference: ${food}; cooking habit: ${cooking}. Members: ${memberSummary || "member food preferences अभी missing हैं"}. MAMAAI इसी आधार पर common family meal suggest करेगा, और allergies/doctor restrictions को hard rules मानेगा. Vegan preference हो तो meat, fish, egg, milk, paneer, butter, ghee और dairy avoid होंगे. Next step: Meal Planner में "आज का Family Meal Plan करें" दबाएं.`;
+    return `आपकी सेव की हुई प्रोफाइल के अनुसार परिवार की भोजन पसंद: ${food}; खाना बनाने की आदत: ${cooking}. सदस्य: ${memberSummary || "सदस्यों की भोजन पसंद अभी नहीं जोड़ी गई है"}. MAMAAI इसी आधार पर साझा पारिवारिक भोजन सुझाएगा और एलर्जी/डॉक्टर की पाबंदियों को सख्त नियम मानेगा। वीगन पसंद होने पर मांस, मछली, अंडा, दूध, पनीर, मक्खन, घी और डेयरी नहीं सुझाई जाएगी। अगला कदम: Meal Planner में "आज का पारिवारिक भोजन प्लान करें" दबाएं।`;
   }
 
   if (language === "kn") {
-    return `ನಿಮ್ಮ saved profile ಪ್ರಕಾರ household food preference: ${food}; cooking habit: ${cooking}. Members: ${memberSummary || "member food preferences ಇನ್ನೂ missing"}. MAMAAI ಇದನ್ನೇ ಆಧಾರ ಮಾಡಿಕೊಂಡು common family meal suggest ಮಾಡುತ್ತದೆ ಮತ್ತು allergies/doctor restrictions ಅನ್ನು hard rules ಆಗಿ ನೋಡುತ್ತದೆ. Vegan ಆಯ್ಕೆಯಲ್ಲಿ meat, fish, egg, milk, paneer, butter, ghee ಮತ್ತು dairy avoid ಆಗುತ್ತವೆ. Next step: Meal Planner ನಲ್ಲಿ "ಇಂದಿನ Family Meal Plan ಮಾಡಿ" ಒತ್ತಿ.`;
+    return `ನಿಮ್ಮ ಉಳಿಸಿದ ಪ್ರೊಫೈಲ್ ಪ್ರಕಾರ ಕುಟುಂಬದ ಆಹಾರ ಇಷ್ಟ: ${food}; ಅಡುಗೆ ಪದ್ಧತಿ: ${cooking}. ಸದಸ್ಯರು: ${memberSummary || "ಸದಸ್ಯರ ಆಹಾರ ಇಷ್ಟಗಳು ಇನ್ನೂ ಸೇರಿಲ್ಲ"}. MAMAAI ಇದನ್ನೇ ಆಧಾರ ಮಾಡಿಕೊಂಡು ಸಾಮಾನ್ಯ ಕುಟುಂಬದ ಊಟವನ್ನು ಸೂಚಿಸುತ್ತದೆ ಮತ್ತು ಅಲರ್ಜಿ/ವೈದ್ಯರ ನಿರ್ಬಂಧಗಳನ್ನು ಕಡ್ಡಾಯ ನಿಯಮಗಳಾಗಿ ನೋಡುತ್ತದೆ. ವೀಗನ್ ಆಯ್ಕೆಯಿದ್ದರೆ ಮಾಂಸ, ಮೀನು, ಮೊಟ್ಟೆ, ಹಾಲು, ಪನೀರ್, ಬೆಣ್ಣೆ, ತುಪ್ಪ ಮತ್ತು ಡೈರಿ ಪದಾರ್ಥಗಳನ್ನು ಸೂಚಿಸುವುದಿಲ್ಲ. ಮುಂದಿನ ಹಂತ: Meal Planner ನಲ್ಲಿ "ಇಂದಿನ ಕುಟುಂಬದ ಊಟವನ್ನು ಯೋಜಿಸಿ" ಒತ್ತಿ.`;
   }
 
   return `Using your saved profile: household food preference is ${food}; cooking habit is ${cooking}. Members: ${memberSummary || "member food preferences are still missing"}. MAMAAI will use this to suggest a practical common family meal while treating allergies and doctor restrictions as hard rules. If Vegan is selected, it avoids meat, fish, eggs, milk, paneer, butter, ghee and other dairy. Next step: open Meal Planner and tap "Plan Today's Family Meal."`;
+}
+
+function localizedSuggestions(language: AppLanguage) {
+  if (language === "hi") {
+    return ["Meal Planner खोलें", "Family Profile पूरी करें", "Subscription plans दिखाएं"];
+  }
+  if (language === "kn") {
+    return ["Meal Planner ತೆರೆಯಿರಿ", "Family Profile ಪೂರ್ಣಗೊಳಿಸಿ", "Subscription plans ತೋರಿಸಿ"];
+  }
+  return ["Open Meal Planner", "Complete Family Profile", "Show subscription plans"];
 }
 
 export async function POST(request: Request) {
@@ -69,7 +144,7 @@ export async function POST(request: Request) {
         role: "model",
         response: contextualAnswer,
         category: "meal_planning",
-        suggestions: ["Open Meal Planner", "Complete Family Profile", "Show subscription plans"],
+        suggestions: localizedSuggestions(language),
         action: "/planner",
       });
     }

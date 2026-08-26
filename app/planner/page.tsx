@@ -52,50 +52,110 @@ const plannerCopy = {
     fruit: 'Fruit and hydration',
     profile: 'Family Profile',
     members: 'members',
+    suggestedPlan: 'Suggested plan',
+    lastSelected: 'Last selected',
+    recipe: 'Recipe',
+    prep: 'Prep',
+    difficulty: 'Difficulty',
+    cost: 'Cost',
+    minute: 'min',
+    meals: {
+      breakfast: 'Breakfast',
+      lunch: 'Lunch',
+      dinner: 'Dinner',
+      evening_snack: 'Evening Snack',
+      high_tea: 'High Tea',
+      snack: 'Snack',
+    },
+    difficulties: {
+      easy: 'Easy',
+      medium: 'Medium',
+      hard: 'Hard',
+    },
   },
   hi: {
-    title: 'आज का Family Meal Plan करें',
-    subtitle: 'Saved household profile से अगला practical family food plan generate और view करें.',
-    readyTitle: 'आपका saved household ready है',
-    missingTitle: 'पहले family profile complete करें',
+    title: 'आज का पारिवारिक भोजन प्लान करें',
+    subtitle: 'आपकी सेव की हुई घरेलू प्रोफाइल से अगला व्यावहारिक पारिवारिक भोजन बनाएं और देखें।',
+    readyTitle: 'आपकी घरेलू प्रोफाइल तैयार है',
+    missingTitle: 'पहले परिवार की प्रोफाइल पूरी करें',
     missingText:
-      'कम से कम एक family member, relation और allergies/restrictions/dislikes add करें. फिर food plan generate करने के लिए यहां आएं.',
-    completeProfile: 'Family Profile Complete करें',
-    subscription: 'Subscription / Trial चुनें',
-    meal: 'कौन सा meal plan करना है',
-    generate: 'आज का Family Meal Plan करें',
-    generating: 'Family food plan बन रहा है...',
-    success: 'आज का family food plan ready है.',
+      'कम से कम एक सदस्य, रिश्ता और कोई एलर्जी, डॉक्टर की पाबंदी या नापसंद जोड़ें। फिर भोजन योजना बनाने के लिए यहां लौटें।',
+    completeProfile: 'परिवार प्रोफाइल पूरी करें',
+    subscription: 'सब्सक्रिप्शन / ट्रायल चुनें',
+    meal: 'कौन सा भोजन प्लान करना है',
+    generate: 'आज का पारिवारिक भोजन प्लान करें',
+    generating: 'पारिवारिक भोजन योजना बन रही है...',
+    success: 'आज का पारिवारिक भोजन तैयार है।',
     noSubscription:
-      'अगर payment या trial complete नहीं है, पहले subscription चुनें. Judges subscription page से evaluator access use कर सकते हैं.',
-    commonMeal: 'आज का Family Meal',
-    portions: 'Member guidance',
-    grocery: 'Grocery list',
-    fruit: 'Fruit और hydration',
-    profile: 'Family Profile',
-    members: 'members',
+      'अगर पेमेंट या ट्रायल पूरा नहीं है, तो पहले सब्सक्रिप्शन चुनें। जज सब्सक्रिप्शन पेज से evaluator access इस्तेमाल कर सकते हैं।',
+    commonMeal: 'आज का पारिवारिक भोजन',
+    portions: 'सदस्य-विशेष मार्गदर्शन',
+    grocery: 'किराने की सूची',
+    fruit: 'फल और पानी',
+    profile: 'परिवार प्रोफाइल',
+    members: 'सदस्य',
+    suggestedPlan: 'सुझाया गया प्लान',
+    lastSelected: 'पिछली बार चुना गया',
+    recipe: 'रेसिपी',
+    prep: 'तैयारी',
+    difficulty: 'कठिनाई',
+    cost: 'लागत',
+    minute: 'मिनट',
+    meals: {
+      breakfast: 'नाश्ता',
+      lunch: 'दोपहर का भोजन',
+      dinner: 'रात का खाना',
+      evening_snack: 'शाम का नाश्ता',
+      high_tea: 'हाई टी',
+      snack: 'नाश्ता',
+    },
+    difficulties: {
+      easy: 'आसान',
+      medium: 'मध्यम',
+      hard: 'कठिन',
+    },
   },
   kn: {
-    title: 'ಇಂದಿನ Family Meal Plan ಮಾಡಿ',
-    subtitle: 'Saved household profile ನಿಂದ ಮುಂದಿನ practical family food plan generate ಮಾಡಿ ನೋಡಿ.',
-    readyTitle: 'ನಿಮ್ಮ saved household ready ಇದೆ',
-    missingTitle: 'ಮೊದಲು family profile complete ಮಾಡಿ',
+    title: 'ಇಂದಿನ ಕುಟುಂಬದ ಊಟವನ್ನು ಯೋಜಿಸಿ',
+    subtitle: 'ನಿಮ್ಮ ಉಳಿಸಿದ ಮನೆಯ ಪ್ರೊಫೈಲ್ ಆಧರಿಸಿ ಮುಂದಿನ ಪ್ರಾಯೋಗಿಕ ಕುಟುಂಬದ ಊಟವನ್ನು ರಚಿಸಿ ನೋಡಿ.',
+    readyTitle: 'ನಿಮ್ಮ ಮನೆಯ ಪ್ರೊಫೈಲ್ ಸಿದ್ಧವಾಗಿದೆ',
+    missingTitle: 'ಮೊದಲು ಕುಟುಂಬದ ಪ್ರೊಫೈಲ್ ಪೂರ್ಣಗೊಳಿಸಿ',
     missingText:
-      'ಕನಿಷ್ಠ ಒಬ್ಬ family member, relation ಮತ್ತು allergies/restrictions/dislikes ಸೇರಿಸಿ. ನಂತರ food plan generate ಮಾಡಲು ಇಲ್ಲಿ ಬನ್ನಿ.',
-    completeProfile: 'Family Profile Complete ಮಾಡಿ',
-    subscription: 'Subscription / Trial ಆಯ್ಕೆಮಾಡಿ',
-    meal: 'ಯಾವ meal plan ಮಾಡಬೇಕು',
-    generate: 'ಇಂದಿನ Family Meal Plan ಮಾಡಿ',
-    generating: 'Family food plan ಸಿದ್ಧವಾಗುತ್ತಿದೆ...',
-    success: 'ಇಂದಿನ family food plan ready ಇದೆ.',
+      'ಕನಿಷ್ಠ ಒಬ್ಬ ಸದಸ್ಯ, ಸಂಬಂಧ ಮತ್ತು ಯಾವುದೇ ಅಲರ್ಜಿ, ವೈದ್ಯರ ನಿರ್ಬಂಧ ಅಥವಾ ಇಷ್ಟವಿಲ್ಲದ ಪದಾರ್ಥಗಳನ್ನು ಸೇರಿಸಿ. ನಂತರ ಊಟದ ಯೋಜನೆ ಮಾಡಲು ಇಲ್ಲಿ ಮರಳಿ ಬನ್ನಿ.',
+    completeProfile: 'ಕುಟುಂಬದ ಪ್ರೊಫೈಲ್ ಪೂರ್ಣಗೊಳಿಸಿ',
+    subscription: 'ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ / ಟ್ರಯಲ್ ಆಯ್ಕೆಮಾಡಿ',
+    meal: 'ಯಾವ ಊಟವನ್ನು ಯೋಜಿಸಬೇಕು',
+    generate: 'ಇಂದಿನ ಕುಟುಂಬದ ಊಟವನ್ನು ಯೋಜಿಸಿ',
+    generating: 'ಕುಟುಂಬದ ಊಟದ ಯೋಜನೆ ಸಿದ್ಧವಾಗುತ್ತಿದೆ...',
+    success: 'ಇಂದಿನ ಕುಟುಂಬದ ಊಟ ಸಿದ್ಧವಾಗಿದೆ.',
     noSubscription:
-      'Payment ಅಥವಾ trial complete ಆಗಿಲ್ಲದಿದ್ದರೆ ಮೊದಲು subscription ಆಯ್ಕೆಮಾಡಿ. Judges subscription page ನಲ್ಲಿ evaluator access ಬಳಸಬಹುದು.',
-    commonMeal: 'ಇಂದಿನ Family Meal',
-    portions: 'Member guidance',
-    grocery: 'Grocery list',
-    fruit: 'Fruit ಮತ್ತು hydration',
-    profile: 'Family Profile',
-    members: 'members',
+      'ಪಾವತಿ ಅಥವಾ ಟ್ರಯಲ್ ಪೂರ್ಣವಾಗಿರದಿದ್ದರೆ ಮೊದಲು ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಆಯ್ಕೆಮಾಡಿ. ಜಡ್ಜ್‌ಗಳು ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಪೇಜ್‌ನಿಂದ evaluator access ಬಳಸಬಹುದು.',
+    commonMeal: 'ಇಂದಿನ ಕುಟುಂಬದ ಊಟ',
+    portions: 'ಸದಸ್ಯರಿಗನುಗುಣ ಮಾರ್ಗದರ್ಶನ',
+    grocery: 'ಕಿರಾಣಿ ಪಟ್ಟಿ',
+    fruit: 'ಹಣ್ಣು ಮತ್ತು ನೀರು',
+    profile: 'ಕುಟುಂಬ ಪ್ರೊಫೈಲ್',
+    members: 'ಸದಸ್ಯರು',
+    suggestedPlan: 'ಸೂಚಿಸಿದ ಪ್ಲ್ಯಾನ್',
+    lastSelected: 'ಕೊನೆಯದಾಗಿ ಆಯ್ಕೆಮಾಡಿದದು',
+    recipe: 'ರೆಸಿಪಿ',
+    prep: 'ತಯಾರಿ',
+    difficulty: 'ಕಷ್ಟದ ಮಟ್ಟ',
+    cost: 'ವೆಚ್ಚ',
+    minute: 'ನಿಮಿಷ',
+    meals: {
+      breakfast: 'ಉಪಹಾರ',
+      lunch: 'ಮಧ್ಯಾಹ್ನದ ಊಟ',
+      dinner: 'ರಾತ್ರಿ ಊಟ',
+      evening_snack: 'ಸಂಜೆ ತಿಂಡಿ',
+      high_tea: 'ಹೈ ಟೀ',
+      snack: 'ತಿಂಡಿ',
+    },
+    difficulties: {
+      easy: 'ಸುಲಭ',
+      medium: 'ಮಧ್ಯಮ',
+      hard: 'ಕಷ್ಟ',
+    },
   },
 };
 
@@ -144,10 +204,18 @@ function cookingHabitNotes(value?: CustomerAccount['cookingHabit']) {
   }
 }
 
-function mealLabel(value: MealTime) {
+function mealLabel(value: MealTime, labels: typeof plannerCopy.en.meals) {
+  return labels[value] ?? value.replace('_', ' ');
+}
+
+function planLabel(value: string) {
   return value
     .replace('_', ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function difficultyLabel(value: FamilyMealPlan['commonMeal']['difficulty'], labels: typeof plannerCopy.en.difficulties) {
+  return labels[value] ?? value;
 }
 
 export default function PlannerPage() {
@@ -344,8 +412,8 @@ export default function PlannerPage() {
                     {members.length} {t.members}: {members.map((member) => member.name).join(', ')}
                   </p>
                   <p className="mt-2 text-sm font-semibold text-emerald-800">
-                    Suggested plan: {suggestedPlan.replace('_', ' ')}
-                    {lastPlan ? ` | Last selected: ${lastPlan.replace('_', ' ')}` : ''}
+                    {t.suggestedPlan}: {planLabel(suggestedPlan)}
+                    {lastPlan ? ` | ${t.lastSelected}: ${planLabel(lastPlan)}` : ''}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -366,11 +434,11 @@ export default function PlannerPage() {
                     onChange={(event) => setSelectedMealTime(event.target.value as MealTime)}
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                   >
-                    <option value="breakfast">Breakfast</option>
-                    <option value="lunch">Lunch</option>
-                    <option value="dinner">Dinner</option>
-                    <option value="evening_snack">Evening Snack</option>
-                    <option value="high_tea">High Tea</option>
+                    <option value="breakfast">{t.meals.breakfast}</option>
+                    <option value="lunch">{t.meals.lunch}</option>
+                    <option value="dinner">{t.meals.dinner}</option>
+                    <option value="evening_snack">{t.meals.evening_snack}</option>
+                    <option value="high_tea">{t.meals.high_tea}</option>
                   </select>
                 </label>
                 <button
@@ -399,18 +467,18 @@ export default function PlannerPage() {
               <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
                 <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">
-                    {mealLabel(mealPlan.commonMeal.mealTime)} | {mealPlan.targetDate}
+                    {mealLabel(mealPlan.commonMeal.mealTime, t.meals)} | {mealPlan.targetDate}
                   </p>
                   <h2 className="mt-2 text-3xl font-black text-slate-950">{mealPlan.commonMeal.name}</h2>
                   <p className="mt-3 text-sm leading-6 text-slate-600">{mealPlan.commonMeal.description}</p>
 
                   <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                    <InfoTile label="Prep" value={`${mealPlan.commonMeal.prepTimeMinutes} min`} />
-                    <InfoTile label="Difficulty" value={mealPlan.commonMeal.difficulty} />
-                    <InfoTile label="Cost" value={`Rs. ${mealPlan.estimatedCost.mealCost.amount}`} />
+                    <InfoTile label={t.prep} value={`${mealPlan.commonMeal.prepTimeMinutes} ${t.minute}`} />
+                    <InfoTile label={t.difficulty} value={difficultyLabel(mealPlan.commonMeal.difficulty, t.difficulties)} />
+                    <InfoTile label={t.cost} value={`₹${mealPlan.estimatedCost.mealCost.amount}`} />
                   </div>
 
-                  <h3 className="mt-6 text-lg font-bold text-slate-950">Recipe</h3>
+                  <h3 className="mt-6 text-lg font-bold text-slate-950">{t.recipe}</h3>
                   <ol className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
                     {mealPlan.commonMeal.recipe.steps.map((step, index) => (
                       <li key={`${step}-${index}`}>{index + 1}. {step}</li>

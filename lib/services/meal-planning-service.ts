@@ -22,7 +22,7 @@ export class MealPlanningService {
     }
 
     const nutritionContexts = this.nutritionContextService.analyze(familyContext.members);
-    const mealPlan = this.aiService.generateFamilyMealPlan({
+    const generatedMealPlan = this.aiService.generateFamilyMealPlan({
       family: familyContext.family,
       members: familyContext.members,
       planType: request.planType,
@@ -34,10 +34,12 @@ export class MealPlanningService {
       targetDate: request.targetDate ?? new Date().toISOString().slice(0, 10)
     });
 
-    const safety = this.safetyValidationService.validateMealPlan(mealPlan, familyContext.members);
+    const safety = this.safetyValidationService.validateMealPlan(generatedMealPlan, familyContext.members);
     if (!safety.ok) {
       throw new Error(`Meal plan failed safety validation: ${safety.errors.join(" ")}`);
     }
+
+    const mealPlan = this.aiService.localizeFamilyMealPlan(generatedMealPlan, request.mealTimeContext?.locale);
 
     store.mealPlans.push(mealPlan);
     return { nutritionContexts, mealPlan };
