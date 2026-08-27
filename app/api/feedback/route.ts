@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createId } from "@/lib/repositories/in-memory-store";
+import { createId, nowIso, store } from "@/lib/repositories/in-memory-store";
 import { feedbackRequestSchema } from "@/lib/shared/schemas";
 
 export async function POST(request: Request) {
@@ -13,8 +13,19 @@ export async function POST(request: Request) {
     );
   }
 
+  const feedbackId = createId("feedback");
+
+  store.feedbackEvents.push({
+    feedbackId,
+    mealPlanId: parsed.data.mealPlanId,
+    memberId: parsed.data.memberId,
+    rating: parsed.data.rating,
+    notes: parsed.data.notes,
+    createdAt: nowIso(),
+  });
+
   return NextResponse.json({
-    feedbackId: createId("feedback"),
+    feedbackId,
     saved: true
   });
 }

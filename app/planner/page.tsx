@@ -23,6 +23,8 @@ const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
 const CULTURE_STORAGE_KEY = 'mamaai_culture_profile_v1';
 const LAST_PLAN_KEY = 'mamaai_last_successful_plan';
 const DAILY_PLAN_CACHE_KEY = 'mamaai_daily_meal_plan_cache_v1';
+const PANTRY_STORAGE_KEY = 'mamaai_pantry_items_v1';
+const FAMILY_LEARNING_KEY = 'mamaai_family_learning_signals_v1';
 
 type HouseholdMember = {
   id: string;
@@ -62,6 +64,14 @@ type CultureProfile = {
   preferredCuisines?: string[];
 };
 
+type PantryItem = {
+  id?: string;
+  name: string;
+  category?: string;
+  quantity: number;
+  unit: string;
+};
+
 const plannerCopy = {
   en: {
     title: "Plan Today's Family Meal",
@@ -79,6 +89,18 @@ const plannerCopy = {
     success: "Today's family food plan is ready.",
     noSubscription:
       'If payment or trial is not completed yet, choose a subscription first. Judges can use evaluator access from the subscription page.',
+    subscriptionSuccess: 'Subscription verified. You can now generate your family food plan.',
+    pantryUsed: 'Pantry considered',
+    alreadyInPantry: 'Already in pantry',
+    sabsewaTitle: 'Support Your Local Vendor',
+    sabsewaText: 'For Indian households, use this grocery list with your nearby shop. Future SabSewa Local handoff will connect ingredients to participating local vendors.',
+    sabsewaCta: 'Find on SabSewa Local',
+    sabsewaInvite: "Can't find your favourite local shop? Invite them to join SabSewa Local.",
+    feedbackTitle: 'Help MAMAAI learn',
+    cooked: 'Cooked this',
+    liked: 'Liked it',
+    rejected: 'Do not suggest again',
+    feedbackSaved: 'Thanks. This signal was saved for future personalization.',
     commonMeal: "Today's Family Meal",
     portions: 'Member guidance',
     grocery: 'Grocery list',
@@ -91,13 +113,13 @@ const plannerCopy = {
     watchVideo: 'Watch How to Cook',
     videoLoading: 'Searching suitable cooking videos...',
     videoEmpty: "We couldn't find a suitable cooking video for this dish right now. Please use the written recipe.",
-    sponsoredVideo: 'Sponsored Recipe Video / Paid Promotion',
+    sponsoredVideo: 'प्रायोजित रेसिपी वीडियो / पेड प्रमोशन',
     videoMatch: {
       exact: 'exact',
       close: 'close',
       fallback: 'fallback',
-      approved: 'approved',
-      sponsored: 'sponsored',
+      approved: 'स्वीकृत',
+      sponsored: 'प्रायोजित',
       youtube: 'YouTube',
       fallback_search: 'fallback search',
     },
@@ -135,6 +157,18 @@ const plannerCopy = {
     success: 'आज का पारिवारिक भोजन तैयार है।',
     noSubscription:
       'अगर पेमेंट या ट्रायल पूरा नहीं है, तो पहले सब्सक्रिप्शन चुनें। जज सब्सक्रिप्शन पेज से evaluator access इस्तेमाल कर सकते हैं।',
+    subscriptionSuccess: 'सब्सक्रिप्शन सत्यापित हो गया है। अब आप अपने परिवार का भोजन प्लान बना सकते हैं।',
+    pantryUsed: 'पैंट्री को ध्यान में रखा गया',
+    alreadyInPantry: 'पैंट्री में पहले से है',
+    sabsewaTitle: 'अपने local vendor को support करें',
+    sabsewaText: 'भारतीय परिवार इस किराने की सूची को अपने नजदीकी दुकानदार के साथ इस्तेमाल कर सकते हैं। आगे SabSewa Local सामग्री को भाग लेने वाले स्थानीय विक्रेताओं से जोड़ सकेगा।',
+    sabsewaCta: 'SabSewa Local पर देखें',
+    sabsewaInvite: 'आपकी पसंदीदा स्थानीय दुकान नहीं दिख रही? उन्हें SabSewa Local से जुड़ने के लिए आमंत्रित करें।',
+    feedbackTitle: 'MAMAAI को सीखने में मदद करें',
+    cooked: 'यह बनाया',
+    liked: 'पसंद आया',
+    rejected: 'फिर न सुझाएं',
+    feedbackSaved: 'धन्यवाद। यह संकेत आगे की व्यक्तिगत योजना के लिए सेव हो गया।',
     commonMeal: 'आज का पारिवारिक भोजन',
     portions: 'सदस्य-विशेष मार्गदर्शन',
     grocery: 'किराने की सूची',
@@ -145,15 +179,15 @@ const plannerCopy = {
     lastSelected: 'पिछली बार चुना गया',
     recipe: 'रेसिपी',
     watchVideo: 'कैसे बनाएं वीडियो देखें',
-    videoLoading: 'Suitable cooking video खोज रहे हैं...',
-    videoEmpty: 'इस dish के लिए अभी suitable cooking video नहीं मिला। कृपया written recipe इस्तेमाल करें।',
-    sponsoredVideo: 'Sponsored Recipe Video / Paid Promotion',
+    videoLoading: 'उपयुक्त खाना बनाने का वीडियो खोज रहे हैं...',
+    videoEmpty: 'इस व्यंजन के लिए अभी उपयुक्त खाना बनाने का वीडियो नहीं मिला। कृपया लिखी हुई रेसिपी इस्तेमाल करें।',
+    sponsoredVideo: 'प्रायोजित रेसिपी वीडियो / पेड प्रमोशन',
     videoMatch: {
       exact: 'सटीक',
       close: 'निकट',
       fallback: 'वैकल्पिक खोज',
-      approved: 'approved',
-      sponsored: 'sponsored',
+      approved: 'स्वीकृत',
+      sponsored: 'प्रायोजित',
       youtube: 'YouTube',
       fallback_search: 'वैकल्पिक खोज',
     },
@@ -191,6 +225,18 @@ const plannerCopy = {
     success: 'ಇಂದಿನ ಕುಟುಂಬದ ಊಟ ಸಿದ್ಧವಾಗಿದೆ.',
     noSubscription:
       'ಪಾವತಿ ಅಥವಾ ಟ್ರಯಲ್ ಪೂರ್ಣವಾಗಿರದಿದ್ದರೆ ಮೊದಲು ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಆಯ್ಕೆಮಾಡಿ. ಜಡ್ಜ್‌ಗಳು ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಪೇಜ್‌ನಿಂದ evaluator access ಬಳಸಬಹುದು.',
+    subscriptionSuccess: 'ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಪರಿಶೀಲಿಸಲಾಗಿದೆ. ಈಗ ನಿಮ್ಮ ಕುಟುಂಬದ ಊಟದ ಯೋಜನೆ ರಚಿಸಬಹುದು.',
+    pantryUsed: 'ಪ್ಯಾಂಟ್ರಿಯನ್ನು ಪರಿಗಣಿಸಲಾಗಿದೆ',
+    alreadyInPantry: 'ಈಗಾಗಲೇ ಪ್ಯಾಂಟ್ರಿಯಲ್ಲಿದೆ',
+    sabsewaTitle: 'ನಿಮ್ಮ local vendor ಅನ್ನು support ಮಾಡಿ',
+    sabsewaText: 'ಭಾರತೀಯ ಕುಟುಂಬಗಳು ಈ ಕಿರಾಣಿ ಪಟ್ಟಿಯನ್ನು ಹತ್ತಿರದ ಅಂಗಡಿಯವರೊಂದಿಗೆ ಬಳಸಬಹುದು. ಮುಂದೆ SabSewa Local ಪದಾರ್ಥಗಳನ್ನು ಭಾಗವಹಿಸುವ ಸ್ಥಳೀಯ ಮಾರಾಟಗಾರರೊಂದಿಗೆ ಸಂಪರ್ಕಿಸಬಹುದು.',
+    sabsewaCta: 'SabSewa Local ನಲ್ಲಿ ನೋಡಿ',
+    sabsewaInvite: 'ನಿಮ್ಮ ಇಷ್ಟದ ಸ್ಥಳೀಯ ಅಂಗಡಿ ಕಾಣುತ್ತಿಲ್ಲವೇ? ಅವರನ್ನು SabSewa Local ಗೆ ಸೇರಲು ಆಹ್ವಾನಿಸಿ.',
+    feedbackTitle: 'MAMAAI ಕಲಿಯಲು ಸಹಾಯ ಮಾಡಿ',
+    cooked: 'ಇದನ್ನು ಅಡುಗೆ ಮಾಡಿದೆವು',
+    liked: 'ಇಷ್ಟವಾಯಿತು',
+    rejected: 'ಮತ್ತೆ ಸೂಚಿಸಬೇಡಿ',
+    feedbackSaved: 'ಧನ್ಯವಾದಗಳು. ಈ ಸೂಚನೆ ಮುಂದಿನ ವೈಯಕ್ತಿಕ ಯೋಜನೆಗಾಗಿ ಉಳಿಸಲಾಗಿದೆ.',
     commonMeal: 'ಇಂದಿನ ಕುಟುಂಬದ ಊಟ',
     portions: 'ಸದಸ್ಯರಿಗನುಗುಣ ಮಾರ್ಗದರ್ಶನ',
     grocery: 'ಕಿರಾಣಿ ಪಟ್ಟಿ',
@@ -201,15 +247,15 @@ const plannerCopy = {
     lastSelected: 'ಕೊನೆಯದಾಗಿ ಆಯ್ಕೆಮಾಡಿದದು',
     recipe: 'ರೆಸಿಪಿ',
     watchVideo: 'ಹೇಗೆ ಅಡುಗೆ ಮಾಡುವುದು ನೋಡಿ',
-    videoLoading: 'ಸೂಕ್ತ cooking video ಹುಡುಕಲಾಗುತ್ತಿದೆ...',
-    videoEmpty: 'ಈ dish ಗೆ ಈಗ suitable cooking video ಸಿಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು written recipe ಬಳಸಿ.',
-    sponsoredVideo: 'Sponsored Recipe Video / Paid Promotion',
+    videoLoading: 'ಸೂಕ್ತ ಅಡುಗೆ ವಿಡಿಯೋ ಹುಡುಕಲಾಗುತ್ತಿದೆ...',
+    videoEmpty: 'ಈ ತಿನಿಸಿಗೆ ಈಗ ಸೂಕ್ತ ಅಡುಗೆ ವಿಡಿಯೋ ಸಿಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಬರಹದ ರೆಸಿಪಿ ಬಳಸಿ.',
+    sponsoredVideo: 'ಪ್ರಾಯೋಜಿತ ರೆಸಿಪಿ ವಿಡಿಯೋ / ಪೇಡ್ ಪ್ರಮೋಶನ್',
     videoMatch: {
       exact: 'ಸರಿಯಾಗಿ ಹೊಂದಿದೆ',
       close: 'ಹತ್ತಿರದ ಹೊಂದಾಣಿಕೆ',
       fallback: 'ಪರ್ಯಾಯ ಹುಡುಕಾಟ',
-      approved: 'approved',
-      sponsored: 'sponsored',
+      approved: 'ಅನುಮೋದಿತ',
+      sponsored: 'ಪ್ರಾಯೋಜಿತ',
       youtube: 'YouTube',
       fallback_search: 'ಪರ್ಯಾಯ ಹುಡುಕಾಟ',
     },
@@ -391,6 +437,89 @@ function difficultyLabel(value: FamilyMealPlan['commonMeal']['difficulty'], labe
   return labels[value] ?? value;
 }
 
+function normalizeName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9 ]/gi, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function normalizeUnit(value: string) {
+  const unit = value.toLowerCase().trim();
+  const unitMap: Record<string, string> = {
+    cups: 'cup',
+    cup: 'cup',
+    कप: 'cup',
+    ಕಪ್: 'cup',
+    bowls: 'bowl',
+    bowl: 'bowl',
+    कटोरी: 'bowl',
+    ಬೌಲ್: 'bowl',
+    g: 'g',
+    gram: 'g',
+    grams: 'g',
+    ग्राम: 'g',
+    ಗ್ರಾಂ: 'g',
+    kg: 'kg',
+    किलो: 'kg',
+    ಕೆಜಿ: 'kg',
+    pieces: 'piece',
+    piece: 'piece',
+    नग: 'piece',
+    ನಗ: 'piece',
+    tsp: 'tsp',
+    'छोटा चम्मच': 'tsp',
+    'ಚಿಕ್ಕ ಚಮಚ': 'tsp',
+  };
+  return unitMap[unit] ?? unit;
+}
+
+function parseQuantity(value: string) {
+  const match = value.match(/(\d+(?:\.\d+)?)\s*([^\d\s+]+)/u);
+  if (!match) return null;
+  return { amount: Number(match[1]), unit: normalizeUnit(match[2]) };
+}
+
+function pantrySummary(items: PantryItem[]) {
+  return items
+    .filter((item) => item.name && Number(item.quantity) > 0)
+    .slice(0, 20)
+    .map((item) => `${item.name}: ${item.quantity} ${item.unit}`)
+    .join('; ');
+}
+
+function adjustGroceryForPantry(plan: FamilyMealPlan, pantryItems: PantryItem[], alreadyInPantryLabel = 'Already in pantry'): FamilyMealPlan {
+  if (!pantryItems.length) return plan;
+  const adjustedItems = plan.groceryItems.map((item) => {
+    const required = parseQuantity(item.quantityToPurchase || item.quantity);
+    if (!required) return item;
+    const match = pantryItems.find((pantryItem) => {
+      const pantryName = normalizeName(pantryItem.name);
+      const groceryName = normalizeName(item.name);
+      return (
+        pantryName &&
+        groceryName &&
+        (pantryName.includes(groceryName) || groceryName.includes(pantryName)) &&
+        normalizeUnit(pantryItem.unit) === required.unit
+      );
+    });
+    if (!match) return item;
+    const remaining = Math.max(0, required.amount - Number(match.quantity || 0));
+    return {
+      ...item,
+      pantryQuantity: `${match.quantity} ${match.unit}`,
+      quantityToPurchase: remaining === 0 ? `0 - ${alreadyInPantryLabel}` : `${Math.round(remaining * 100) / 100} ${required.unit}`,
+    };
+  });
+
+  return {
+    ...plan,
+    groceryItems: adjustedItems,
+  };
+}
+
+function isIndiaLike(culture: CultureProfile) {
+  const country = normalizeName(culture.country || '');
+  return !country || country.includes('india') || country.includes('bharat');
+}
+
 function stableContextSignature(input: {
   members: HouseholdMember[];
   customer: CustomerAccount;
@@ -456,12 +585,28 @@ function writeCachedMealPlan(cacheKey: string, mealPlan: FamilyMealPlan) {
   }
 }
 
+function saveLocalLearningSignal(signal: {
+  mealName: string;
+  mealTime: MealTime;
+  outcome: 'cooked' | 'liked' | 'rejected';
+  createdAt: string;
+}) {
+  try {
+    const raw = window.localStorage.getItem(FAMILY_LEARNING_KEY);
+    const existing = raw ? (JSON.parse(raw) as typeof signal[]) : [];
+    window.localStorage.setItem(FAMILY_LEARNING_KEY, JSON.stringify([...existing.slice(-30), signal]));
+  } catch {
+    // Learning signals are useful but should never block user flow.
+  }
+}
+
 export default function PlannerPage() {
   const { language } = useLanguage();
   const t = plannerCopy[language] ?? plannerCopy.en;
   const [members, setMembers] = useState<HouseholdMember[]>([]);
   const [customer, setCustomer] = useState<CustomerAccount>({});
   const [culture, setCulture] = useState<CultureProfile>({});
+  const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
   const [selectedMealTime, setSelectedMealTime] = useState<MealTime>('dinner');
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
@@ -470,6 +615,7 @@ export default function PlannerPage() {
   const [videoStatus, setVideoStatus] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [lastPlan, setLastPlan] = useState('');
+  const [feedbackStatus, setFeedbackStatus] = useState('');
 
   useEffect(() => {
     try {
@@ -486,6 +632,14 @@ export default function PlannerPage() {
 
       const savedCulture = window.localStorage.getItem(CULTURE_STORAGE_KEY);
       if (savedCulture) setCulture(JSON.parse(savedCulture));
+
+      const savedPantry = window.localStorage.getItem(PANTRY_STORAGE_KEY);
+      if (savedPantry) {
+        const parsedPantry = JSON.parse(savedPantry);
+        if (Array.isArray(parsedPantry)) {
+          setPantryItems(parsedPantry.filter((item) => item?.name));
+        }
+      }
 
       setLastPlan(window.localStorage.getItem(LAST_PLAN_KEY) ?? '');
     } catch {
@@ -514,11 +668,11 @@ export default function PlannerPage() {
     try {
       const userId = customer.userId || `customer_${Date.now()}`;
       const targetDate = todayLocalDate();
-      const signature = stableContextSignature({ members, customer, culture, language });
+      const signature = `${stableContextSignature({ members, customer, culture, language })}|pantry:${pantrySummary(pantryItems)}`;
       const cacheKey = dailyPlanCacheKey({ userId, targetDate, mealTime: selectedMealTime, signature });
       const cachedMealPlan = readCachedMealPlan(cacheKey);
       if (cachedMealPlan) {
-        setMealPlan(cachedMealPlan);
+        setMealPlan(adjustGroceryForPantry(cachedMealPlan, pantryItems, t.alreadyInPantry));
         setStatus(t.success);
         setIsGenerating(false);
         return;
@@ -551,6 +705,9 @@ export default function PlannerPage() {
               ...mealTypePreferenceNotes(customer, selectedMealTime),
               ...recentMealHistoryNotes(customer, selectedMealTime),
               ...weeklyRoutineNotes(customer, selectedMealTime, targetDate),
+              ...(pantryItems.length
+                ? [`Saved pantry stock available: ${pantrySummary(pantryItems)}. Prefer using available pantry items where safe and practical, and only list missing quantities in grocery guidance.`]
+                : []),
               ...(customer.nonVegPreferredFoods?.length
                 ? [`Explicit family non-vegetarian food preferences: ${customer.nonVegPreferredFoods.join(', ')}. Do not add other meat categories unless the family requested them.`]
                 : []),
@@ -660,8 +817,9 @@ export default function PlannerPage() {
         throw new Error(mealData.error?.message || 'Unable to generate family food plan.');
       }
 
-      setMealPlan(mealData.mealPlan);
-      writeCachedMealPlan(cacheKey, mealData.mealPlan);
+      const pantryAdjustedPlan = adjustGroceryForPantry(mealData.mealPlan, pantryItems, t.alreadyInPantry);
+      setMealPlan(pantryAdjustedPlan);
+      writeCachedMealPlan(cacheKey, pantryAdjustedPlan);
       window.localStorage.setItem(LAST_PLAN_KEY, suggestedPlan);
       setLastPlan(suggestedPlan);
       trackAnalyticsEvent('meal_plan_generated', {
@@ -706,6 +864,27 @@ export default function PlannerPage() {
     }
     setVideoSearch(data);
     setVideoStatus(data.results?.length ? data.note : t.videoEmpty);
+  };
+
+  const submitMealFeedback = async (outcome: 'cooked' | 'liked' | 'rejected') => {
+    if (!mealPlan) return;
+    const rating = outcome === 'liked' ? 'loved' : outcome === 'rejected' ? 'dont_suggest_again' : 'good';
+    await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mealPlanId: mealPlan.mealPlanId,
+        rating,
+        notes: `${outcome}: ${mealPlan.commonMeal.name}`,
+      }),
+    });
+    saveLocalLearningSignal({
+      mealName: mealPlan.commonMeal.name,
+      mealTime: mealPlan.commonMeal.mealTime,
+      outcome,
+      createdAt: new Date().toISOString(),
+    });
+    setFeedbackStatus(t.feedbackSaved);
   };
 
   return (
@@ -851,6 +1030,34 @@ export default function PlannerPage() {
                       </div>
                     ) : null}
                   </div>
+
+                  <div className="mt-6 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                    <h3 className="text-sm font-black text-slate-950">{t.feedbackTitle}</h3>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => submitMealFeedback('cooked')}
+                        className="rounded-full bg-white px-4 py-2 text-xs font-black text-slate-700 ring-1 ring-slate-200"
+                      >
+                        {t.cooked}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => submitMealFeedback('liked')}
+                        className="rounded-full bg-emerald-700 px-4 py-2 text-xs font-black text-white"
+                      >
+                        {t.liked}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => submitMealFeedback('rejected')}
+                        className="rounded-full bg-white px-4 py-2 text-xs font-black text-red-700 ring-1 ring-red-100"
+                      >
+                        {t.rejected}
+                      </button>
+                    </div>
+                    {feedbackStatus ? <p className="mt-3 text-xs font-semibold text-emerald-800">{feedbackStatus}</p> : null}
+                  </div>
                 </article>
 
                 <div className="grid gap-6">
@@ -869,14 +1076,39 @@ export default function PlannerPage() {
 
                   <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                     <h3 className="text-lg font-bold text-slate-950">{t.grocery}</h3>
+                    {pantryItems.length ? (
+                      <p className="mt-2 text-xs font-bold uppercase tracking-wide text-emerald-700">
+                        {t.pantryUsed}: {pantryItems.length}
+                      </p>
+                    ) : null}
                     <div className="mt-4 grid gap-3">
                       {mealPlan.groceryItems.slice(0, 8).map((item) => (
                         <div key={item.itemId} className="flex items-start justify-between gap-3 rounded-2xl bg-emerald-50 p-3 text-sm">
                           <span className="font-bold text-emerald-950">{item.name}</span>
-                          <span className="text-right text-emerald-800">{item.quantityToPurchase}</span>
+                          <span className="text-right text-emerald-800">
+                            {item.quantityToPurchase}
+                            {item.pantryQuantity ? (
+                              <small className="block text-[11px] text-emerald-700">{t.pantryUsed}: {item.pantryQuantity}</small>
+                            ) : null}
+                          </span>
                         </div>
                       ))}
                     </div>
+                    {isIndiaLike(culture) ? (
+                      <div className="mt-5 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
+                        <h4 className="text-sm font-black text-amber-950">{t.sabsewaTitle}</h4>
+                        <p className="mt-2 text-xs leading-5 text-amber-900">{t.sabsewaText}</p>
+                        <a
+                          href="https://www.sabsewa.in"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-3 inline-flex rounded-full bg-amber-600 px-4 py-2 text-xs font-black text-white"
+                        >
+                          {t.sabsewaCta}
+                        </a>
+                        <p className="mt-3 text-xs font-semibold text-amber-900">{t.sabsewaInvite}</p>
+                      </div>
+                    ) : null}
                   </article>
 
                   <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
@@ -908,3 +1140,10 @@ function InfoTile({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+
+
+
+
+
+

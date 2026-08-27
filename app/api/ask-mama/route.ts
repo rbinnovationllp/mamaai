@@ -11,10 +11,23 @@ interface RequestPayload {
   profileContext?: {
     householdFoodPreference?: string;
     cookingHabit?: string;
+    mealTypePreferences?: Partial<Record<"breakfast" | "lunch" | "snacks" | "dinner", string[]>>;
+    recentMealHistory?: Array<Record<string, string>>;
+    weeklyFoodRoutine?: Array<Record<string, unknown>>;
+    nonVegPreferredFoods?: string[];
+    pantryItems?: Array<{
+      name?: string;
+      quantity?: number;
+      unit?: string;
+      expiryDate?: string;
+    }>;
     members?: Array<{
       name?: string;
       relation?: string;
+      age?: number;
       foodPreference?: string;
+      nonVegFrequency?: string;
+      nonVegAvoidDays?: string[];
       allergies?: string[];
       doctorAdvisedRestrictions?: string[];
       dislikes?: string[];
@@ -23,7 +36,7 @@ interface RequestPayload {
 }
 
 function isCookingQuestion(message: string) {
-  return /(cook|meal|dinner|lunch|breakfast|frozen|ready|family|खाना|भोजन|पक|अंडा|शाकाहारी|ಊಟ|ಅಡುಗೆ|ತಿಂಡಿ)/i.test(message);
+  return /(cook|meal|dinner|lunch|breakfast|snack|high tea|pantry|grocery|ingredient|frozen|ready|family|खाना|भोजन|पक|अंडा|शाकाहारी|पैंट्री|किराना|ಊಟ|ಅಡುಗೆ|ತಿಂಡಿ|ಪ್ಯಾಂಟ್ರಿ|ಕಿರಾಣಿ)/i.test(message);
 }
 
 function localizedProfileValue(kind: "food" | "cooking", value: string | undefined, language: AppLanguage) {
@@ -100,18 +113,26 @@ function profileAwareAnswer(message: string, context: RequestPayload["profileCon
   const food = localizedProfileValue("food", context.householdFoodPreference, language);
   const cooking = localizedProfileValue("cooking", context.cookingHabit, language);
   const memberSummary = members
-    .map((member) => `${member.name}: ${localizedProfileValue("food", member.foodPreference, language)}`)
+    .map((member) => `${member.name}: ${localizedProfileValue("food", member.foodPreference, language)}${member.age ? `, age ${member.age}` : ""}`)
     .join(", ");
+  const pantryItems = context.pantryItems?.filter((item) => item.name).slice(0, 8) ?? [];
+  const pantrySummary = pantryItems
+    .map((item) => `${item.name}${item.quantity ? ` ${item.quantity}${item.unit ? ` ${item.unit}` : ""}` : ""}`)
+    .join(", ");
+  const mealPreferences = Object.entries(context.mealTypePreferences ?? {})
+    .filter(([, values]) => Array.isArray(values) && values.length)
+    .map(([slot, values]) => `${slot}: ${(values as string[]).join(", ")}`)
+    .join("; ");
 
   if (language === "hi") {
-    return `आपकी सेव की हुई प्रोफाइल के अनुसार परिवार की भोजन पसंद: ${food}; खाना बनाने की आदत: ${cooking}. सदस्य: ${memberSummary || "सदस्यों की भोजन पसंद अभी नहीं जोड़ी गई है"}. MAMAAI इसी आधार पर साझा पारिवारिक भोजन सुझाएगा और एलर्जी/डॉक्टर की पाबंदियों को सख्त नियम मानेगा। वीगन पसंद होने पर मांस, मछली, अंडा, दूध, पनीर, मक्खन, घी और डेयरी नहीं सुझाई जाएगी। अगला कदम: Meal Planner में "आज का पारिवारिक भोजन प्लान करें" दबाएं।`;
+    return `आपकी सेव की हुई प्रोफाइल के अनुसार परिवार की भोजन पसंद: ${food}; खाना बनाने की आदत: ${cooking}. सदस्य: ${memberSummary || "सदस्यों की भोजन पसंद अभी नहीं जोड़ी गई है"}. ${mealPreferences ? `Meal-wise पसंद: ${mealPreferences}. ` : ""}${pantrySummary ? `Pantry में अभी: ${pantrySummary}. पहले इन्हें use करने वाला plan बनाएं और missing items ही grocery में जोड़ें. ` : ""}MAMAAI इसी आधार पर साझा पारिवारिक भोजन सुझाएगा और एलर्जी/डॉक्टर की पाबंदियों को सख्त नियम मानेगा। अगला कदम: Meal Planner में "आज का पारिवारिक भोजन प्लान करें" दबाएं।`;
   }
 
   if (language === "kn") {
-    return `ನಿಮ್ಮ ಉಳಿಸಿದ ಪ್ರೊಫೈಲ್ ಪ್ರಕಾರ ಕುಟುಂಬದ ಆಹಾರ ಇಷ್ಟ: ${food}; ಅಡುಗೆ ಪದ್ಧತಿ: ${cooking}. ಸದಸ್ಯರು: ${memberSummary || "ಸದಸ್ಯರ ಆಹಾರ ಇಷ್ಟಗಳು ಇನ್ನೂ ಸೇರಿಲ್ಲ"}. MAMAAI ಇದನ್ನೇ ಆಧಾರ ಮಾಡಿಕೊಂಡು ಸಾಮಾನ್ಯ ಕುಟುಂಬದ ಊಟವನ್ನು ಸೂಚಿಸುತ್ತದೆ ಮತ್ತು ಅಲರ್ಜಿ/ವೈದ್ಯರ ನಿರ್ಬಂಧಗಳನ್ನು ಕಡ್ಡಾಯ ನಿಯಮಗಳಾಗಿ ನೋಡುತ್ತದೆ. ವೀಗನ್ ಆಯ್ಕೆಯಿದ್ದರೆ ಮಾಂಸ, ಮೀನು, ಮೊಟ್ಟೆ, ಹಾಲು, ಪನೀರ್, ಬೆಣ್ಣೆ, ತುಪ್ಪ ಮತ್ತು ಡೈರಿ ಪದಾರ್ಥಗಳನ್ನು ಸೂಚಿಸುವುದಿಲ್ಲ. ಮುಂದಿನ ಹಂತ: Meal Planner ನಲ್ಲಿ "ಇಂದಿನ ಕುಟುಂಬದ ಊಟವನ್ನು ಯೋಜಿಸಿ" ಒತ್ತಿ.`;
+    return `ನಿಮ್ಮ ಉಳಿಸಿದ ಪ್ರೊಫೈಲ್ ಪ್ರಕಾರ ಕುಟುಂಬದ ಆಹಾರ ಇಷ್ಟ: ${food}; ಅಡುಗೆ ಪದ್ಧತಿ: ${cooking}. ಸದಸ್ಯರು: ${memberSummary || "ಸದಸ್ಯರ ಆಹಾರ ಇಷ್ಟಗಳು ಇನ್ನೂ ಸೇರಿಲ್ಲ"}. ${mealPreferences ? `Meal-wise ಇಷ್ಟಗಳು: ${mealPreferences}. ` : ""}${pantrySummary ? `Pantry ನಲ್ಲಿ ಈಗಿದೆ: ${pantrySummary}. ಮೊದಲು ಇವುಗಳನ್ನು ಬಳಸುವ plan ಮಾಡಿ, missing items ಮಾತ್ರ grocery ಗೆ ಸೇರಿಸಿ. ` : ""}MAMAAI ಇದನ್ನೇ ಆಧಾರ ಮಾಡಿಕೊಂಡು ಸಾಮಾನ್ಯ ಕುಟುಂಬದ ಊಟವನ್ನು ಸೂಚಿಸುತ್ತದೆ ಮತ್ತು ಅಲರ್ಜಿ/ವೈದ್ಯರ ನಿರ್ಬಂಧಗಳನ್ನು ಕಡ್ಡಾಯ ನಿಯಮಗಳಾಗಿ ನೋಡುತ್ತದೆ. ಮುಂದಿನ ಹಂತ: Meal Planner ನಲ್ಲಿ "ಇಂದಿನ ಕುಟುಂಬದ ಊಟವನ್ನು ಯೋಜಿಸಿ" ಒತ್ತಿ.`;
   }
 
-  return `Using your saved profile: household food preference is ${food}; cooking habit is ${cooking}. Members: ${memberSummary || "member food preferences are still missing"}. MAMAAI will use this to suggest a practical common family meal while treating allergies and doctor restrictions as hard rules. If Vegan is selected, it avoids meat, fish, eggs, milk, paneer, butter, ghee and other dairy. Next step: open Meal Planner and tap "Plan Today's Family Meal."`;
+  return `Using your saved profile: household food preference is ${food}; cooking habit is ${cooking}. Members: ${memberSummary || "member food preferences are still missing"}. ${mealPreferences ? `Meal-wise preferences: ${mealPreferences}. ` : ""}${pantrySummary ? `Current pantry: ${pantrySummary}. Prefer a plan that uses these first and adds only missing quantities to groceries. ` : ""}MAMAAI will use this to suggest a practical common family meal while treating allergies and doctor restrictions as hard rules. Next step: open Meal Planner and tap "Plan Today's Family Meal."`;
 }
 
 function localizedSuggestions(language: AppLanguage) {
