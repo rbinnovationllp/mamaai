@@ -42,6 +42,14 @@ export interface DayWiseFoodRoutinePreference {
 
 export type MealTypePreferenceProfile = Partial<Record<MealSlot, string[]>>;
 
+export interface RecentMealHistoryDay {
+  day: string;
+  breakfast?: string;
+  lunch?: string;
+  snacks?: string;
+  dinner?: string;
+}
+
 export interface CulturalFoodProfile {
   country?: string;
   region?: string;
@@ -225,6 +233,7 @@ export interface Family {
   weeklyFoodRoutineStatus?: WeeklyFoodRoutineStatus;
   weeklyFoodRoutine?: DayWiseFoodRoutinePreference[];
   mealTypePreferences?: MealTypePreferenceProfile;
+  recentMealHistory?: RecentMealHistoryDay[];
   nonVegPreferredFoods?: string[];
   cultureProfile?: CulturalFoodProfile;
   budget: BudgetProfile;
@@ -531,6 +540,7 @@ export interface CreateFamilyInput {
   weeklyFoodRoutineStatus?: WeeklyFoodRoutineStatus;
   weeklyFoodRoutine?: DayWiseFoodRoutinePreference[];
   mealTypePreferences?: MealTypePreferenceProfile;
+  recentMealHistory?: RecentMealHistoryDay[];
   nonVegPreferredFoods?: string[];
   cultureProfile?: CulturalFoodProfile;
   budget: BudgetProfile;

@@ -135,6 +135,17 @@ const familyProfileSchema = z.object({
         dinner: z.array(z.string()).default([]),
       })
       .default({ breakfast: [], lunch: [], snacks: [], dinner: [] }),
+    recentMealHistory: z
+      .array(
+        z.object({
+          day: z.string().min(1),
+          breakfast: z.string().trim().optional().or(z.literal("")),
+          lunch: z.string().trim().optional().or(z.literal("")),
+          snacks: z.string().trim().optional().or(z.literal("")),
+          dinner: z.string().trim().optional().or(z.literal("")),
+        })
+      )
+      .default([]),
     nonVegPreferredFoods: z.array(z.string()).default([]),
   }),
   members: z.array(memberSchema).min(1),
@@ -216,6 +227,15 @@ export async function POST(request: Request) {
             }))
           : [],
       mealTypePreferences: customer.mealTypePreferences,
+      recentMealHistory: customer.recentMealHistory
+        .map((entry) => ({
+          day: entry.day,
+          breakfast: entry.breakfast || undefined,
+          lunch: entry.lunch || undefined,
+          snacks: entry.snacks || undefined,
+          dinner: entry.dinner || undefined,
+        }))
+        .filter((entry) => entry.breakfast || entry.lunch || entry.snacks || entry.dinner),
       nonVegPreferredFoods: customer.nonVegPreferredFoods,
     });
     const familyProfile = await repository.saveFamilyProfile({ userId, members });

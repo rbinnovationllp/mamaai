@@ -10,6 +10,7 @@ import type {
   DayFoodPreference,
   DayWiseFoodRoutinePreference,
   MealSlot,
+  RecentMealHistoryDay,
   WeeklyFoodRoutineStatus,
 } from '@/lib/shared/contracts';
 
@@ -34,6 +35,7 @@ type CookingHabit = 'fresh_home_cooked' | 'ready_frozen' | 'fresh_ready_mix' | '
 type NonVegFrequency = NonNullable<FamilyMemberProfile['nonVegFrequency']>;
 type MealPreferenceInputs = Record<MealSlot, string>;
 type NonVegFoodOption = 'chicken' | 'fish' | 'eggs' | 'mutton_goat' | 'seafood';
+type RecentMealHistoryStatus = 'add' | 'skip';
 
 const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
 const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
@@ -97,6 +99,15 @@ const copy = {
     },
     usualFoodTitle: 'What kinds of food does your family usually prefer?',
     usualFoodHelp: 'Optional but recommended. Write examples your family actually likes; location is only supporting context.',
+    recentHistoryTitle: 'Optional: what did your family eat in the last 7 days?',
+    recentHistoryQuestion: 'Would you like MAMAAI to avoid repeating recent meals?',
+    recentHistoryHelp:
+      'Add only what you remember. This is used as a short planning signal, not as a permanent rule.',
+    recentHistoryOptions: {
+      add: 'Yes, add recent meals',
+      skip: 'Skip for now',
+    },
+    recentHistoryPlaceholder: 'Example: dal rice, dosa, pasta, chicken curry',
     mealPreferenceHints: {
       breakfast: 'Example: idli, poha, eggs, oats, toast',
       lunch: 'Example: North Indian, Bengali, pasta, rice bowl, mixed',
@@ -235,6 +246,15 @@ const copy = {
     },
     usualFoodTitle: 'आपका परिवार आम तौर पर किस तरह का खाना पसंद करता है?',
     usualFoodHelp: 'Optional but recommended. परिवार की वास्तविक पसंद लिखें; location केवल context है.',
+    recentHistoryTitle: 'वैकल्पिक: पिछले 7 दिनों में परिवार ने क्या खाया?',
+    recentHistoryQuestion: 'क्या MAMAAI हाल के meals को repeat करने से बचाए?',
+    recentHistoryHelp:
+      'जो याद हो वही लिखें. यह planning का छोटा signal है, कोई permanent rule नहीं.',
+    recentHistoryOptions: {
+      add: 'हाँ, हाल के meals जोड़ें',
+      skip: 'अभी skip करें',
+    },
+    recentHistoryPlaceholder: 'उदाहरण: दाल-चावल, डोसा, पास्ता, चिकन करी',
     mealPreferenceHints: {
       breakfast: 'Example: idli, poha, eggs, oats, toast',
       lunch: 'Example: North Indian, Bengali, pasta, rice bowl, mixed',
@@ -373,6 +393,15 @@ const copy = {
     },
     usualFoodTitle: 'ನಿಮ್ಮ ಕುಟುಂಬ ಸಾಮಾನ್ಯವಾಗಿ ಯಾವ ರೀತಿಯ ಆಹಾರ ಇಷ್ಟಪಡುತ್ತದೆ?',
     usualFoodHelp: 'Optional but recommended. ಕುಟುಂಬದ ನಿಜವಾದ ಇಷ್ಟಗಳನ್ನು ಬರೆಯಿರಿ; location ಕೇವಲ context.',
+    recentHistoryTitle: 'ಐಚ್ಛಿಕ: ಕಳೆದ 7 ದಿನಗಳಲ್ಲಿ ಕುಟುಂಬ ಏನು ತಿಂದಿದೆ?',
+    recentHistoryQuestion: 'MAMAAI ಇತ್ತೀಚಿನ meals repeat ಆಗದಂತೆ ನೋಡಿಕೊಳ್ಳಬೇಕೇ?',
+    recentHistoryHelp:
+      'ನಿಮಗೆ ನೆನಪಿರುವುದನ್ನು ಮಾತ್ರ ಬರೆಯಿರಿ. ಇದು planning signal ಮಾತ್ರ, permanent rule ಅಲ್ಲ.',
+    recentHistoryOptions: {
+      add: 'ಹೌದು, ಇತ್ತೀಚಿನ meals ಸೇರಿಸಿ',
+      skip: 'ಈಗ skip ಮಾಡಿ',
+    },
+    recentHistoryPlaceholder: 'ಉದಾಹರಣೆ: ದಾಲ್-ಅಕ್ಕಿ, ದೋಸೆ, ಪಾಸ್ತಾ, ಚಿಕನ್ ಕರಿ',
     mealPreferenceHints: {
       breakfast: 'Example: idli, poha, eggs, oats, toast',
       lunch: 'Example: North Indian, Bengali, pasta, rice bowl, mixed',
@@ -507,6 +536,42 @@ function cleanMealTypePreferences(inputs: MealPreferenceInputs) {
   );
 }
 
+function defaultRecentMealHistory(): RecentMealHistoryDay[] {
+  return weekdayOptions.map((day) => ({
+    day,
+    breakfast: '',
+    lunch: '',
+    snacks: '',
+    dinner: '',
+  }));
+}
+
+function mergeRecentMealHistory(saved: unknown): RecentMealHistoryDay[] {
+  const savedEntries = Array.isArray(saved) ? saved : [];
+  return weekdayOptions.map((day) => {
+    const match = savedEntries.find((entry) => entry?.day === day);
+    return {
+      day,
+      breakfast: typeof match?.breakfast === 'string' ? match.breakfast : '',
+      lunch: typeof match?.lunch === 'string' ? match.lunch : '',
+      snacks: typeof match?.snacks === 'string' ? match.snacks : '',
+      dinner: typeof match?.dinner === 'string' ? match.dinner : '',
+    };
+  });
+}
+
+function cleanRecentMealHistory(entries: RecentMealHistoryDay[]) {
+  return entries
+    .map((entry) => ({
+      day: entry.day,
+      breakfast: entry.breakfast?.trim() || undefined,
+      lunch: entry.lunch?.trim() || undefined,
+      snacks: entry.snacks?.trim() || undefined,
+      dinner: entry.dinner?.trim() || undefined,
+    }))
+    .filter((entry) => entry.breakfast || entry.lunch || entry.snacks || entry.dinner);
+}
+
 function defaultWeeklyRoutine(): DayWiseFoodRoutinePreference[] {
   return weekdayOptions.map((day) => ({
     day,
@@ -568,6 +633,10 @@ export default function FamilyProfilePage() {
     useState<DayWiseFoodRoutinePreference[]>(() => defaultWeeklyRoutine());
   const [mealPreferenceInputs, setMealPreferenceInputs] =
     useState<MealPreferenceInputs>(() => defaultMealPreferenceInputs());
+  const [recentMealHistoryStatus, setRecentMealHistoryStatus] =
+    useState<RecentMealHistoryStatus>('skip');
+  const [recentMealHistory, setRecentMealHistory] =
+    useState<RecentMealHistoryDay[]>(() => defaultRecentMealHistory());
   const [nonVegPreferredFoods, setNonVegPreferredFoods] = useState<string[]>([]);
   const [otherNonVegInput, setOtherNonVegInput] = useState('');
   const [nonVegFrequency, setNonVegFrequency] = useState<NonVegFrequency>('occasionally');
@@ -601,6 +670,8 @@ export default function FamilyProfilePage() {
         setWeeklyFoodRoutineStatus(parsedCustomer.weeklyFoodRoutineStatus ?? 'skip');
         setWeeklyFoodRoutine(mergeWeeklyRoutine(parsedCustomer.weeklyFoodRoutine));
         setMealPreferenceInputs(mealPreferenceInputsFromSaved(parsedCustomer.mealTypePreferences));
+        setRecentMealHistoryStatus(Array.isArray(parsedCustomer.recentMealHistory) && parsedCustomer.recentMealHistory.length ? 'add' : 'skip');
+        setRecentMealHistory(mergeRecentMealHistory(parsedCustomer.recentMealHistory));
         setNonVegPreferredFoods(Array.isArray(parsedCustomer.nonVegPreferredFoods) ? parsedCustomer.nonVegPreferredFoods : []);
       }
 
@@ -620,6 +691,8 @@ export default function FamilyProfilePage() {
         setWeeklyFoodRoutineStatus(draft.weeklyFoodRoutineStatus ?? 'skip');
         setWeeklyFoodRoutine(mergeWeeklyRoutine(draft.weeklyFoodRoutine));
         setMealPreferenceInputs(draft.mealPreferenceInputs ?? defaultMealPreferenceInputs());
+        setRecentMealHistoryStatus(draft.recentMealHistoryStatus === 'add' ? 'add' : 'skip');
+        setRecentMealHistory(mergeRecentMealHistory(draft.recentMealHistory));
         setNonVegPreferredFoods(Array.isArray(draft.nonVegPreferredFoods) ? draft.nonVegPreferredFoods : []);
         setOtherNonVegInput(String(draft.otherNonVegInput ?? ''));
         setNonVegFrequency(draft.nonVegFrequency ?? 'occasionally');
@@ -663,6 +736,8 @@ export default function FamilyProfilePage() {
           weeklyFoodRoutineStatus,
           weeklyFoodRoutine,
           mealPreferenceInputs,
+          recentMealHistoryStatus,
+          recentMealHistory,
           nonVegPreferredFoods,
           otherNonVegInput,
           nonVegFrequency,
@@ -691,6 +766,8 @@ export default function FamilyProfilePage() {
     weeklyFoodRoutineStatus,
     weeklyFoodRoutine,
     mealPreferenceInputs,
+    recentMealHistoryStatus,
+    recentMealHistory,
     nonVegPreferredFoods,
     otherNonVegInput,
     nonVegFrequency,
@@ -751,11 +828,6 @@ export default function FamilyProfilePage() {
     setNonVegAvoidDays([]);
     setNonVegCustomRule('');
     setMealStrategy('common');
-    try {
-      window.localStorage.removeItem(FAMILY_PROFILE_DRAFT_KEY);
-    } catch {
-      // Ignore draft cleanup failures.
-    }
   };
 
   const handleRemoveMember = (memberId: string) => {
@@ -806,6 +878,12 @@ export default function FamilyProfilePage() {
     setMealPreferenceInputs((current) => ({ ...current, [slot]: value }));
   };
 
+  const updateRecentMealHistory = (day: string, slot: MealSlot, value: string) => {
+    setRecentMealHistory((current) =>
+      current.map((entry) => (entry.day === day ? { ...entry, [slot]: value } : entry))
+    );
+  };
+
   const toggleNonVegPreferredFood = (food: string) => {
     setNonVegPreferredFoods((current) =>
       current.includes(food) ? current.filter((item) => item !== food) : [...current, food]
@@ -849,6 +927,8 @@ export default function FamilyProfilePage() {
         weeklyFoodRoutineStatus,
         weeklyFoodRoutine: weeklyFoodRoutineStatus === 'add' ? cleanWeeklyRoutine(weeklyFoodRoutine) : [],
         mealTypePreferences: cleanMealTypePreferences(mealPreferenceInputs),
+        recentMealHistory:
+          recentMealHistoryStatus === 'add' ? cleanRecentMealHistory(recentMealHistory) : [],
         nonVegPreferredFoods,
       };
       const response = await fetch('/api/customer/family-profile', {
@@ -1000,6 +1080,55 @@ export default function FamilyProfilePage() {
                   ))}
                 </div>
               ) : null}
+            </div>
+          ) : null}
+        </section>
+
+        <section className="mb-8 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-emerald-100 sm:p-6">
+          <div className="mb-5">
+            <h2 className="text-2xl font-bold tracking-tight text-slate-950">{t.recentHistoryTitle}</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{t.recentHistoryHelp}</p>
+          </div>
+
+          <label className="grid gap-2">
+            <span className="text-sm font-semibold text-slate-700">{t.recentHistoryQuestion}</span>
+            <select
+              value={recentMealHistoryStatus}
+              onChange={(event) => setRecentMealHistoryStatus(event.target.value as RecentMealHistoryStatus)}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            >
+              <option value="add">{t.recentHistoryOptions.add}</option>
+              <option value="skip">{t.recentHistoryOptions.skip}</option>
+            </select>
+          </label>
+
+          {recentMealHistoryStatus === 'add' ? (
+            <div className="mt-5 grid gap-4">
+              {recentMealHistory.map((entry) => (
+                <article
+                  key={`recent-${entry.day}`}
+                  className="grid gap-4 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100"
+                >
+                  <h3 className="text-base font-black text-slate-950">
+                    {t.weekdays[entry.day as keyof typeof t.weekdays]}
+                  </h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {mealSlotOptions.map((slot) => (
+                      <label key={`${entry.day}-${slot}-recent`} className="grid gap-1">
+                        <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                          {t.mealSlots[slot]}
+                        </span>
+                        <VoiceTextInput
+                          value={entry[slot] ?? ''}
+                          onValueChange={(value) => updateRecentMealHistory(entry.day, slot, value)}
+                          placeholder={t.recentHistoryPlaceholder}
+                          inputClassName={inputClassName}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </article>
+              ))}
             </div>
           ) : null}
         </section>
