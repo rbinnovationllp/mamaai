@@ -438,7 +438,15 @@ function difficultyLabel(value: FamilyMealPlan['commonMeal']['difficulty'], labe
 }
 
 function normalizeName(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9 ]/gi, ' ').replace(/\s+/g, ' ').trim();
+  return value
+    .toLowerCase()
+    .replace(/mung dal/g, 'moong dal')
+    .replace(/tomatoes/g, 'tomato')
+    .replace(/potatoes/g, 'potato')
+    .replace(/onions/g, 'onion')
+    .replace(/[^a-z0-9 ]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function normalizeUnit(value: string) {
@@ -452,6 +460,16 @@ function normalizeUnit(value: string) {
     bowl: 'bowl',
     कटोरी: 'bowl',
     ಬೌಲ್: 'bowl',
+    l: 'l',
+    litre: 'l',
+    liter: 'l',
+    litres: 'l',
+    liters: 'l',
+    लीटर: 'l',
+    ಲೀಟರ್: 'l',
+    ml: 'ml',
+    मिली: 'ml',
+    ಮಿಲಿ: 'ml',
     g: 'g',
     gram: 'g',
     grams: 'g',
@@ -477,6 +495,22 @@ function parseQuantity(value: string) {
   return { amount: Number(match[1]), unit: normalizeUnit(match[2]) };
 }
 
+function toComparableQuantity(amount: number, unit: string) {
+  const normalized = normalizeUnit(unit);
+  if (normalized === 'kg') return { amount: amount * 1000, unit: 'g', displayUnit: 'g' };
+  if (normalized === 'g') return { amount, unit: 'g', displayUnit: 'g' };
+  if (normalized === 'l') return { amount: amount * 1000, unit: 'ml', displayUnit: 'ml' };
+  if (normalized === 'ml') return { amount, unit: 'ml', displayUnit: 'ml' };
+  return { amount, unit: normalized, displayUnit: normalized };
+}
+
+function formatComparableQuantity(amount: number, unit: string) {
+  const rounded = Math.round(amount * 100) / 100;
+  if (unit === 'g' && rounded >= 1000) return `${Math.round((rounded / 1000) * 100) / 100} kg`;
+  if (unit === 'ml' && rounded >= 1000) return `${Math.round((rounded / 1000) * 100) / 100} l`;
+  return `${rounded} ${unit}`;
+}
+
 function pantrySummary(items: PantryItem[]) {
   return items
     .filter((item) => item.name && Number(item.quantity) > 0)
@@ -490,22 +524,25 @@ function adjustGroceryForPantry(plan: FamilyMealPlan, pantryItems: PantryItem[],
   const adjustedItems = plan.groceryItems.map((item) => {
     const required = parseQuantity(item.quantityToPurchase || item.quantity);
     if (!required) return item;
+    const requiredComparable = toComparableQuantity(required.amount, required.unit);
     const match = pantryItems.find((pantryItem) => {
       const pantryName = normalizeName(pantryItem.name);
       const groceryName = normalizeName(item.name);
+      const pantryComparable = toComparableQuantity(Number(pantryItem.quantity || 0), pantryItem.unit);
       return (
         pantryName &&
         groceryName &&
         (pantryName.includes(groceryName) || groceryName.includes(pantryName)) &&
-        normalizeUnit(pantryItem.unit) === required.unit
+        pantryComparable.unit === requiredComparable.unit
       );
     });
     if (!match) return item;
-    const remaining = Math.max(0, required.amount - Number(match.quantity || 0));
+    const pantryComparable = toComparableQuantity(Number(match.quantity || 0), match.unit);
+    const remaining = Math.max(0, requiredComparable.amount - pantryComparable.amount);
     return {
       ...item,
       pantryQuantity: `${match.quantity} ${match.unit}`,
-      quantityToPurchase: remaining === 0 ? `0 - ${alreadyInPantryLabel}` : `${Math.round(remaining * 100) / 100} ${required.unit}`,
+      quantityToPurchase: remaining === 0 ? `0 - ${alreadyInPantryLabel}` : formatComparableQuantity(remaining, requiredComparable.displayUnit),
     };
   });
 
@@ -647,6 +684,37 @@ export default function PlannerPage() {
     }
   }, []);
 
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadServerPantry() {
+      try {
+        const response = await fetch('/api/pantry', { cache: 'no-store' });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (cancelled || !Array.isArray(data.items) || !data.items.length) return;
+        const serverItems = data.items
+          .map((item: PantryItem & { ingredientName?: string }) => ({
+            id: item.id,
+            name: item.name || item.ingredientName || '',
+            category: item.category,
+            quantity: Number(item.quantity || 0),
+            unit: item.unit || 'unit',
+          }))
+          .filter((item: PantryItem) => item.name);
+        setPantryItems(serverItems);
+        window.localStorage.setItem(PANTRY_STORAGE_KEY, JSON.stringify(serverItems));
+      } catch {
+        // Local pantry fallback is already loaded above.
+      }
+    }
+
+    loadServerPantry();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const suggestedPlan = useMemo(() => planFromMemberCount(members.length), [members.length]);
   const canGenerate = members.length > 0;
   const membersMissingAge = members.filter((member) => typeof member.age !== 'number' || Number.isNaN(member.age));
@@ -873,7 +941,11 @@ export default function PlannerPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        userId: customer.userId,
         mealPlanId: mealPlan.mealPlanId,
+        mealName: mealPlan.commonMeal.name,
+        mealTime: mealPlan.commonMeal.mealTime,
+        outcome,
         rating,
         notes: `${outcome}: ${mealPlan.commonMeal.name}`,
       }),
@@ -1140,6 +1212,8 @@ function InfoTile({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+
 
 
 
