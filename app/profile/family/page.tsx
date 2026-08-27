@@ -32,6 +32,8 @@ export interface FamilyMemberProfile {
 type HouseholdFoodPreference = 'vegetarian' | 'eggetarian' | 'non_vegetarian' | 'semi_vegetarian' | 'vegan' | 'mixed' | 'other';
 type CookingHabit = 'fresh_home_cooked' | 'ready_frozen' | 'fresh_ready_mix' | 'takeaway_prepared' | 'other';
 type NonVegFrequency = NonNullable<FamilyMemberProfile['nonVegFrequency']>;
+type MealPreferenceInputs = Record<MealSlot, string>;
+type NonVegFoodOption = 'chicken' | 'fish' | 'eggs' | 'mutton_goat' | 'seafood';
 
 const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
 const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
@@ -93,6 +95,26 @@ const copy = {
       no_preference: 'No particular preference',
       custom: 'Custom preference',
     },
+    usualFoodTitle: 'What kinds of food does your family usually prefer?',
+    usualFoodHelp: 'Optional but recommended. Write examples your family actually likes; location is only supporting context.',
+    mealPreferenceHints: {
+      breakfast: 'Example: idli, poha, eggs, oats, toast',
+      lunch: 'Example: North Indian, Bengali, pasta, rice bowl, mixed',
+      dinner: 'Example: light vegetarian, dal-rice, chicken curry, soup',
+      snacks: 'Example: fruit, chilla, sandwich, high tea, takeaway',
+    },
+    nonVegFoodTitle: 'Which non-vegetarian foods do you prefer?',
+    nonVegFoodHelp: 'Select only what your family actually eats. Sensitive/custom foods can be added under Other.',
+    nonVegFoodOptions: {
+      chicken: 'Chicken',
+      fish: 'Fish',
+      eggs: 'Eggs',
+      mutton_goat: 'Mutton / Goat',
+      seafood: 'Seafood',
+    },
+    otherNonVeg: 'Other preferred non-vegetarian foods',
+    otherNonVegPlaceholder: 'Example: duck, shellfish, or another family preference',
+    addOtherFood: '+ Add another food item',
     commonMeal: 'Prefer One Common Family Meal',
     separateMeal: 'Allow Separate / Alternative Meal',
     foodOptions: {
@@ -211,6 +233,26 @@ const copy = {
       no_preference: 'No particular preference',
       custom: 'Custom preference',
     },
+    usualFoodTitle: 'आपका परिवार आम तौर पर किस तरह का खाना पसंद करता है?',
+    usualFoodHelp: 'Optional but recommended. परिवार की वास्तविक पसंद लिखें; location केवल context है.',
+    mealPreferenceHints: {
+      breakfast: 'Example: idli, poha, eggs, oats, toast',
+      lunch: 'Example: North Indian, Bengali, pasta, rice bowl, mixed',
+      dinner: 'Example: light vegetarian, dal-rice, chicken curry, soup',
+      snacks: 'Example: fruit, chilla, sandwich, high tea, takeaway',
+    },
+    nonVegFoodTitle: 'आप कौन से non-vegetarian foods prefer करते हैं?',
+    nonVegFoodHelp: 'केवल वही चुनें जो परिवार सच में खाता है. Sensitive/custom foods Other में जोड़ें.',
+    nonVegFoodOptions: {
+      chicken: 'Chicken',
+      fish: 'Fish',
+      eggs: 'Eggs',
+      mutton_goat: 'Mutton / Goat',
+      seafood: 'Seafood',
+    },
+    otherNonVeg: 'Other preferred non-vegetarian foods',
+    otherNonVegPlaceholder: 'Example: duck, shellfish, or another family preference',
+    addOtherFood: '+ Add another food item',
     commonMeal: 'Prefer One Common Family Meal',
     separateMeal: 'Allow Separate / Alternative Meal',
     foodOptions: {
@@ -329,6 +371,26 @@ const copy = {
       no_preference: 'No particular preference',
       custom: 'Custom preference',
     },
+    usualFoodTitle: 'ನಿಮ್ಮ ಕುಟುಂಬ ಸಾಮಾನ್ಯವಾಗಿ ಯಾವ ರೀತಿಯ ಆಹಾರ ಇಷ್ಟಪಡುತ್ತದೆ?',
+    usualFoodHelp: 'Optional but recommended. ಕುಟುಂಬದ ನಿಜವಾದ ಇಷ್ಟಗಳನ್ನು ಬರೆಯಿರಿ; location ಕೇವಲ context.',
+    mealPreferenceHints: {
+      breakfast: 'Example: idli, poha, eggs, oats, toast',
+      lunch: 'Example: North Indian, Bengali, pasta, rice bowl, mixed',
+      dinner: 'Example: light vegetarian, dal-rice, chicken curry, soup',
+      snacks: 'Example: fruit, chilla, sandwich, high tea, takeaway',
+    },
+    nonVegFoodTitle: 'ನೀವು ಯಾವ non-vegetarian foods prefer ಮಾಡುತ್ತೀರಿ?',
+    nonVegFoodHelp: 'ಕುಟುಂಬ ನಿಜವಾಗಿ ತಿನ್ನುವುದನ್ನೇ ಆಯ್ಕೆಮಾಡಿ. Sensitive/custom foods ಅನ್ನು Other ನಲ್ಲಿ ಸೇರಿಸಿ.',
+    nonVegFoodOptions: {
+      chicken: 'Chicken',
+      fish: 'Fish',
+      eggs: 'Eggs',
+      mutton_goat: 'Mutton / Goat',
+      seafood: 'Seafood',
+    },
+    otherNonVeg: 'Other preferred non-vegetarian foods',
+    otherNonVegPlaceholder: 'Example: duck, shellfish, or another family preference',
+    addOtherFood: '+ Add another food item',
     commonMeal: 'Prefer One Common Family Meal',
     separateMeal: 'Allow Separate / Alternative Meal',
     foodOptions: {
@@ -423,6 +485,27 @@ const routinePreferenceOptions: DayFoodPreference[] = [
   'custom',
 ];
 const mealSlotOptions: MealSlot[] = ['breakfast', 'lunch', 'snacks', 'dinner'];
+const nonVegFoodOptions: NonVegFoodOption[] = ['chicken', 'fish', 'eggs', 'mutton_goat', 'seafood'];
+
+function defaultMealPreferenceInputs(): MealPreferenceInputs {
+  return { breakfast: '', lunch: '', snacks: '', dinner: '' };
+}
+
+function mealPreferenceInputsFromSaved(saved: unknown): MealPreferenceInputs {
+  const source = saved && typeof saved === 'object' ? (saved as Record<string, unknown>) : {};
+  return {
+    breakfast: Array.isArray(source.breakfast) ? source.breakfast.join(', ') : '',
+    lunch: Array.isArray(source.lunch) ? source.lunch.join(', ') : '',
+    snacks: Array.isArray(source.snacks) ? source.snacks.join(', ') : '',
+    dinner: Array.isArray(source.dinner) ? source.dinner.join(', ') : '',
+  };
+}
+
+function cleanMealTypePreferences(inputs: MealPreferenceInputs) {
+  return Object.fromEntries(
+    mealSlotOptions.map((slot) => [slot, splitCsv(inputs[slot])])
+  );
+}
 
 function defaultWeeklyRoutine(): DayWiseFoodRoutinePreference[] {
   return weekdayOptions.map((day) => ({
@@ -483,6 +566,10 @@ export default function FamilyProfilePage() {
     useState<WeeklyFoodRoutineStatus>('skip');
   const [weeklyFoodRoutine, setWeeklyFoodRoutine] =
     useState<DayWiseFoodRoutinePreference[]>(() => defaultWeeklyRoutine());
+  const [mealPreferenceInputs, setMealPreferenceInputs] =
+    useState<MealPreferenceInputs>(() => defaultMealPreferenceInputs());
+  const [nonVegPreferredFoods, setNonVegPreferredFoods] = useState<string[]>([]);
+  const [otherNonVegInput, setOtherNonVegInput] = useState('');
   const [nonVegFrequency, setNonVegFrequency] = useState<NonVegFrequency>('occasionally');
   const [nonVegAvoidDays, setNonVegAvoidDays] = useState<string[]>([]);
   const [nonVegCustomRule, setNonVegCustomRule] = useState('');
@@ -513,6 +600,8 @@ export default function FamilyProfilePage() {
         setCustomerEmail(String(parsedCustomer.email ?? ''));
         setWeeklyFoodRoutineStatus(parsedCustomer.weeklyFoodRoutineStatus ?? 'skip');
         setWeeklyFoodRoutine(mergeWeeklyRoutine(parsedCustomer.weeklyFoodRoutine));
+        setMealPreferenceInputs(mealPreferenceInputsFromSaved(parsedCustomer.mealTypePreferences));
+        setNonVegPreferredFoods(Array.isArray(parsedCustomer.nonVegPreferredFoods) ? parsedCustomer.nonVegPreferredFoods : []);
       }
 
       const savedDraft = window.localStorage.getItem(FAMILY_PROFILE_DRAFT_KEY);
@@ -530,6 +619,9 @@ export default function FamilyProfilePage() {
         setCookingHabit(draft.cookingHabit ?? 'fresh_home_cooked');
         setWeeklyFoodRoutineStatus(draft.weeklyFoodRoutineStatus ?? 'skip');
         setWeeklyFoodRoutine(mergeWeeklyRoutine(draft.weeklyFoodRoutine));
+        setMealPreferenceInputs(draft.mealPreferenceInputs ?? defaultMealPreferenceInputs());
+        setNonVegPreferredFoods(Array.isArray(draft.nonVegPreferredFoods) ? draft.nonVegPreferredFoods : []);
+        setOtherNonVegInput(String(draft.otherNonVegInput ?? ''));
         setNonVegFrequency(draft.nonVegFrequency ?? 'occasionally');
         setNonVegAvoidDays(Array.isArray(draft.nonVegAvoidDays) ? draft.nonVegAvoidDays : []);
         setNonVegCustomRule(String(draft.nonVegCustomRule ?? ''));
@@ -570,6 +662,9 @@ export default function FamilyProfilePage() {
           cookingHabit,
           weeklyFoodRoutineStatus,
           weeklyFoodRoutine,
+          mealPreferenceInputs,
+          nonVegPreferredFoods,
+          otherNonVegInput,
           nonVegFrequency,
           nonVegAvoidDays,
           nonVegCustomRule,
@@ -595,6 +690,9 @@ export default function FamilyProfilePage() {
     cookingHabit,
     weeklyFoodRoutineStatus,
     weeklyFoodRoutine,
+    mealPreferenceInputs,
+    nonVegPreferredFoods,
+    otherNonVegInput,
     nonVegFrequency,
     nonVegAvoidDays,
     nonVegCustomRule,
@@ -704,6 +802,23 @@ export default function FamilyProfilePage() {
     );
   };
 
+  const updateMealPreferenceInput = (slot: MealSlot, value: string) => {
+    setMealPreferenceInputs((current) => ({ ...current, [slot]: value }));
+  };
+
+  const toggleNonVegPreferredFood = (food: string) => {
+    setNonVegPreferredFoods((current) =>
+      current.includes(food) ? current.filter((item) => item !== food) : [...current, food]
+    );
+  };
+
+  const addOtherNonVegFood = () => {
+    const values = splitCsv(otherNonVegInput);
+    if (!values.length) return;
+    setNonVegPreferredFoods((current) => Array.from(new Set([...current, ...values])));
+    setOtherNonVegInput('');
+  };
+
   const handleSaveFamily = async () => {
     const cleanCustomerName = customerName.trim() || members[0]?.name?.trim();
     const cleanMobile = customerMobile.trim();
@@ -733,6 +848,8 @@ export default function FamilyProfilePage() {
         cookingHabit,
         weeklyFoodRoutineStatus,
         weeklyFoodRoutine: weeklyFoodRoutineStatus === 'add' ? cleanWeeklyRoutine(weeklyFoodRoutine) : [],
+        mealTypePreferences: cleanMealTypePreferences(mealPreferenceInputs),
+        nonVegPreferredFoods,
       };
       const response = await fetch('/api/customer/family-profile', {
         method: 'POST',
@@ -807,6 +924,84 @@ export default function FamilyProfilePage() {
               </select>
             </label>
           </div>
+        </section>
+
+        <section className="mb-8 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-emerald-100 sm:p-6">
+          <div className="mb-5">
+            <h2 className="text-2xl font-bold tracking-tight text-slate-950">{t.usualFoodTitle}</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{t.usualFoodHelp}</p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {mealSlotOptions.map((slot) => (
+              <label key={slot} className="grid gap-2">
+                <span className="text-sm font-semibold text-slate-700">{t.mealSlots[slot]}</span>
+                <VoiceTextInput
+                  value={mealPreferenceInputs[slot]}
+                  onValueChange={(value) => updateMealPreferenceInput(slot, value)}
+                  placeholder={t.mealPreferenceHints[slot]}
+                  inputClassName={inputClassName}
+                />
+              </label>
+            ))}
+          </div>
+
+          {nonVegFoodPreferences.has(householdFoodPreference) ? (
+            <div className="mt-6 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
+              <h3 className="text-base font-bold text-amber-950">{t.nonVegFoodTitle}</h3>
+              <p className="mt-1 text-sm leading-6 text-amber-900">{t.nonVegFoodHelp}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {nonVegFoodOptions.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => toggleNonVegPreferredFood(option)}
+                    className={`rounded-full px-3 py-2 text-sm font-bold ${
+                      nonVegPreferredFoods.includes(option)
+                        ? 'bg-emerald-700 text-white'
+                        : 'bg-white text-amber-950 ring-1 ring-amber-200'
+                    }`}
+                  >
+                    {t.nonVegFoodOptions[option]}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                <label className="grid gap-2">
+                  <span className="text-sm font-semibold text-amber-950">{t.otherNonVeg}</span>
+                  <VoiceTextInput
+                    value={otherNonVegInput}
+                    onValueChange={setOtherNonVegInput}
+                    placeholder={t.otherNonVegPlaceholder}
+                    inputClassName={inputClassName}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={addOtherNonVegFood}
+                  className="rounded-2xl bg-amber-700 px-4 py-3 text-sm font-bold text-white"
+                >
+                  {t.addOtherFood}
+                </button>
+              </div>
+
+              {nonVegPreferredFoods.length ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {nonVegPreferredFoods.map((food) => (
+                    <button
+                      key={food}
+                      type="button"
+                      onClick={() => toggleNonVegPreferredFood(food)}
+                      className="rounded-full bg-white px-3 py-2 text-xs font-bold text-amber-900 ring-1 ring-amber-200"
+                    >
+                      {t.nonVegFoodOptions[food as NonVegFoodOption] ?? food} ×
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </section>
 
         <section className="mb-8 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-emerald-100 sm:p-6">

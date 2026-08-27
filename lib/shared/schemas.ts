@@ -169,6 +169,24 @@ export const createFamilyInputSchema = z.object({
       })
     )
     .optional(),
+  mealTypePreferences: z
+    .object({
+      breakfast: z.array(z.string()).optional(),
+      lunch: z.array(z.string()).optional(),
+      snacks: z.array(z.string()).optional(),
+      dinner: z.array(z.string()).optional(),
+    })
+    .optional(),
+  nonVegPreferredFoods: z.array(z.string()).optional(),
+  cultureProfile: z
+    .object({
+      country: z.string().optional(),
+      region: z.string().optional(),
+      city: z.string().optional(),
+      cookingStyle: z.string().optional(),
+      preferredCuisines: z.array(z.string()).optional(),
+    })
+    .optional(),
   budget: budgetProfileSchema,
   kitchenProfile: kitchenProfileSchema,
   subscriptionPlan: anyPlanTierSchema,

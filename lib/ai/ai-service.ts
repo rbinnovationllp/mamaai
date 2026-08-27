@@ -218,6 +218,16 @@ function weeklyRoutinePreferenceFor(input: GeneratePlanInput): DayFoodPreference
   return mealPreference && mealPreference !== "no_preference" ? mealPreference : entry.preference;
 }
 
+function statedMealPreferencesFor(input: GeneratePlanInput, mealTime: MealTime) {
+  const slot = mealSlotForMealTime(mealTime);
+  return input.family.mealTypePreferences?.[slot]?.map((item) => item.toLowerCase()) ?? [];
+}
+
+function preferenceIncludes(input: GeneratePlanInput, mealTime: MealTime, patterns: string[]) {
+  const text = statedMealPreferencesFor(input, mealTime).join(" ");
+  return patterns.some((pattern) => text.includes(pattern));
+}
+
 function weeklyRoutinePrefersVegetarianBase(input: GeneratePlanInput) {
   const preference = weeklyRoutinePreferenceFor(input);
   return (
@@ -574,7 +584,11 @@ function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
   const mealTime = input.mealTime ?? "lunch";
   const localContext = input.mealTimeContext?.timeZone ? `, timed for ${input.mealTimeContext.timeZone}` : "";
   const cuisineFit = input.family.cuisinePreferences.length ? ` with ${input.family.cuisinePreferences.join(", ")} food-culture fit` : "";
-  const regionFit = `${input.family.city}, ${input.family.state}, ${input.family.country} friendly${cuisineFit}${localContext}`;
+  const statedPreferences = statedMealPreferencesFor(input, mealTime);
+  const preferenceFit = statedPreferences.length
+    ? `. Explicit family ${mealSlotForMealTime(mealTime)} preferences: ${statedPreferences.join(", ")}. Family choice overrides regional assumptions`
+    : "";
+  const regionFit = `${input.family.city}, ${input.family.state}, ${input.family.country} friendly${cuisineFit}${localContext}${preferenceFit}`;
 
   if (mealTime === "high_tea" || mealTime === "evening_snack" || mealTime === "snack") {
     if (input.family.dietPreference === "vegan") {
@@ -624,6 +638,20 @@ function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
   }
 
   if (mealTime === "breakfast") {
+    if (preferenceIncludes(input, mealTime, ["dosa", "idli", "sambar", "south indian"])) {
+      return completeMeal({
+        mealId,
+        name: "Ragi Dosa with Vegetable Sambar and Curd",
+        mealTime,
+        description: "A familiar South Indian family meal with millet base, vegetable sambar, curd, and optional paneer support.",
+        ingredients: milletDosaIngredients(),
+        prepTimeMinutes: 35,
+        difficulty: "medium",
+        regionFit,
+        nutritionIntent: "Selected because the family explicitly listed South Indian breakfast-style preferences, not because of location alone.",
+        nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime)
+      });
+    }
     return completeMeal({
       mealId,
       name: "Vegetable Poha with Curd and Fruit",
@@ -633,7 +661,9 @@ function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
       prepTimeMinutes: 20,
       difficulty: "easy",
       regionFit,
-      nutritionIntent: "Light family breakfast with vegetables, curd, and member-specific portions.",
+      nutritionIntent: statedPreferences.length
+        ? "Breakfast was selected using the family's stated breakfast preferences before applying regional context."
+        : "Light family breakfast with vegetables, curd, and member-specific portions.",
       nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime)
     });
   }

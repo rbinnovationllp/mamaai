@@ -19,6 +19,7 @@ import { trackAnalyticsEvent } from '@/lib/shared/client-analytics';
 
 const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
 const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
+const CULTURE_STORAGE_KEY = 'mamaai_culture_profile_v1';
 const LAST_PLAN_KEY = 'mamaai_last_successful_plan';
 
 type HouseholdMember = {
@@ -46,6 +47,16 @@ type CustomerAccount = {
   cookingHabit?: 'fresh_home_cooked' | 'ready_frozen' | 'fresh_ready_mix' | 'takeaway_prepared' | 'other';
   weeklyFoodRoutineStatus?: WeeklyFoodRoutineStatus;
   weeklyFoodRoutine?: DayWiseFoodRoutinePreference[];
+  mealTypePreferences?: Partial<Record<MealSlot, string[]>>;
+  nonVegPreferredFoods?: string[];
+};
+
+type CultureProfile = {
+  country?: string;
+  region?: string;
+  city?: string;
+  cookingStyle?: string;
+  preferredCuisines?: string[];
 };
 
 const plannerCopy = {
@@ -298,6 +309,28 @@ function weeklyRoutineNotes(customer: CustomerAccount, selectedMealTime: MealTim
   return notes;
 }
 
+function mealTypePreferenceNotes(customer: CustomerAccount, selectedMealTime: MealTime) {
+  const slot = mealSlotForMealTime(selectedMealTime);
+  const values = customer.mealTypePreferences?.[slot]?.filter(Boolean) ?? [];
+  if (!values.length) return [];
+  return [
+    `Explicit family ${slot} preferences: ${values.join(', ')}. Family choice should override regional assumptions.`,
+  ];
+}
+
+function cultureNotes(culture: CultureProfile) {
+  const notes = [
+    'Use country and region only as supporting food-culture context. Do not stereotype the family from location.',
+  ];
+  if (culture.cookingStyle) {
+    notes.push(`Saved culture cooking style: ${culture.cookingStyle}.`);
+  }
+  if (culture.preferredCuisines?.length) {
+    notes.push(`Saved preferred cuisines: ${culture.preferredCuisines.join(', ')}.`);
+  }
+  return notes;
+}
+
 function nonVegNotes(member: HouseholdMember, selectedMealTime: MealTime) {
   const notes: string[] = [];
   const label = member.name || 'This member';
@@ -335,6 +368,7 @@ export default function PlannerPage() {
   const t = plannerCopy[language] ?? plannerCopy.en;
   const [members, setMembers] = useState<HouseholdMember[]>([]);
   const [customer, setCustomer] = useState<CustomerAccount>({});
+  const [culture, setCulture] = useState<CultureProfile>({});
   const [selectedMealTime, setSelectedMealTime] = useState<MealTime>('dinner');
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
@@ -356,6 +390,9 @@ export default function PlannerPage() {
 
       const savedCustomer = window.localStorage.getItem(CUSTOMER_STORAGE_KEY);
       if (savedCustomer) setCustomer(JSON.parse(savedCustomer));
+
+      const savedCulture = window.localStorage.getItem(CULTURE_STORAGE_KEY);
+      if (savedCulture) setCulture(JSON.parse(savedCulture));
 
       setLastPlan(window.localStorage.getItem(LAST_PLAN_KEY) ?? '');
     } catch {
@@ -384,6 +421,16 @@ export default function PlannerPage() {
     try {
       const userId = customer.userId || `customer_${Date.now()}`;
       const targetDate = todayLocalDate();
+      const country = culture.country?.trim() || 'India';
+      const region = culture.region?.trim() || 'Karnataka';
+      const city = culture.city?.trim() || region;
+      const cuisinePreferences = Array.from(
+        new Set([
+          ...(culture.preferredCuisines?.filter(Boolean) ?? []),
+          ...(Object.values(customer.mealTypePreferences ?? {}).flat().filter(Boolean) as string[]),
+          customer.cookingHabit ?? 'fresh_home_cooked',
+        ])
+      ).slice(0, 12);
       const familyResponse = await fetch('/api/families', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -391,17 +438,31 @@ export default function PlannerPage() {
           userId,
           family: {
             name: `${customer.name || members[0]?.name || 'MAMAAI'} Household`,
-            country: 'India',
-            state: 'Karnataka',
-            city: 'Bengaluru',
+            country,
+            state: region,
+            city,
             dietPreference: familyDietPreferenceFor(customer, members),
-            cuisinePreferences: ['Indian', 'Home-style', customer.cookingHabit ?? 'fresh_home_cooked'],
+            cuisinePreferences: cuisinePreferences.length ? cuisinePreferences : ['Home-style'],
             localIngredientAvailabilityNotes: [
+              ...cultureNotes(culture),
               ...cookingHabitNotes(customer.cookingHabit),
+              ...mealTypePreferenceNotes(customer, selectedMealTime),
               ...weeklyRoutineNotes(customer, selectedMealTime, targetDate),
+              ...(customer.nonVegPreferredFoods?.length
+                ? [`Explicit family non-vegetarian food preferences: ${customer.nonVegPreferredFoods.join(', ')}. Do not add other meat categories unless the family requested them.`]
+                : []),
             ],
             weeklyFoodRoutineStatus: customer.weeklyFoodRoutineStatus ?? 'skip',
             weeklyFoodRoutine: customer.weeklyFoodRoutine ?? [],
+            mealTypePreferences: customer.mealTypePreferences ?? {},
+            nonVegPreferredFoods: customer.nonVegPreferredFoods ?? [],
+            cultureProfile: {
+              country,
+              region,
+              city,
+              cookingStyle: culture.cookingStyle,
+              preferredCuisines: culture.preferredCuisines ?? [],
+            },
             budget: {
               type: 'none',
               currency: 'INR',
@@ -518,10 +579,10 @@ export default function PlannerPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         dishName: mealPlan.commonMeal.recipe.title || mealPlan.commonMeal.name,
-        country: 'India',
-        region: 'Karnataka',
+        country: culture.country?.trim() || 'India',
+        region: culture.region?.trim() || 'Karnataka',
         preferredLanguage: language,
-        cuisine: ['Indian', 'Home-style'],
+        cuisine: culture.preferredCuisines?.length ? culture.preferredCuisines : ['Home-style'],
         dietaryPreference: familyDietPreferenceFor(customer, members),
         healthyPreparation: true,
         familyRequirements: mealPlan.memberCustomizations.flatMap((customization) => customization.safetyNotes),
