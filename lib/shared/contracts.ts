@@ -40,6 +40,16 @@ export interface DayWiseFoodRoutinePreference {
   meals?: Partial<Record<MealSlot, DayFoodPreference>>;
 }
 
+export type MealTypePreferenceProfile = Partial<Record<MealSlot, string[]>>;
+
+export interface CulturalFoodProfile {
+  country?: string;
+  region?: string;
+  city?: string;
+  cookingStyle?: string;
+  preferredCuisines?: string[];
+}
+
 export type PlanType = "daily" | "weekly" | "monthly";
 
 export type MealTime = "breakfast" | "lunch" | "dinner" | "snack" | "evening_snack" | "high_tea";
@@ -214,6 +224,9 @@ export interface Family {
   localIngredientAvailabilityNotes?: string[];
   weeklyFoodRoutineStatus?: WeeklyFoodRoutineStatus;
   weeklyFoodRoutine?: DayWiseFoodRoutinePreference[];
+  mealTypePreferences?: MealTypePreferenceProfile;
+  nonVegPreferredFoods?: string[];
+  cultureProfile?: CulturalFoodProfile;
   budget: BudgetProfile;
   kitchenProfile: KitchenProfile;
   subscriptionPlan: SubscriptionPlan;
@@ -517,6 +530,9 @@ export interface CreateFamilyInput {
   cuisinePreferences: string[];
   weeklyFoodRoutineStatus?: WeeklyFoodRoutineStatus;
   weeklyFoodRoutine?: DayWiseFoodRoutinePreference[];
+  mealTypePreferences?: MealTypePreferenceProfile;
+  nonVegPreferredFoods?: string[];
+  cultureProfile?: CulturalFoodProfile;
   budget: BudgetProfile;
   kitchenProfile: KitchenProfile;
   subscriptionPlan: SubscriptionPlan;

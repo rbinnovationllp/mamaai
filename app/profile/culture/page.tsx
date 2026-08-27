@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CookingStyle } from '@/lib/types';
 import { AppPageNav } from '@/components/AppPageNav';
 import { LanguageSelector, useLanguage } from '@/components/LanguageProvider';
@@ -12,6 +12,9 @@ const cultureCopy = {
     subtitle: 'Tailor MAMAAI to your region and actual eating habits.',
     country: 'Country of Residence',
     region: 'State / Province / Region',
+    city: 'City / Local Area',
+    cuisines: 'Preferred cuisines or food styles',
+    cuisinesHint: 'Example: Punjabi, South Indian, British, Mediterranean, Mixed',
     eating: 'How does your family usually eat?',
     save: 'Save Culture Profile',
     saved: 'Global food culture profile saved!',
@@ -22,6 +25,9 @@ const cultureCopy = {
     subtitle: 'MAMAAI को अपने region और eating habits के अनुसार सेट करें.',
     country: 'Country of Residence',
     region: 'State / Province / Region',
+    city: 'City / Local Area',
+    cuisines: 'Preferred cuisines or food styles',
+    cuisinesHint: 'Example: Punjabi, South Indian, British, Mediterranean, Mixed',
     eating: 'आपका परिवार आम तौर पर कैसे खाता है?',
     save: 'Culture Profile Save करें',
     saved: 'Global food culture profile saved!',
@@ -32,6 +38,9 @@ const cultureCopy = {
     subtitle: 'ನಿಮ್ಮ region ಮತ್ತು eating habits ಗೆ MAMAAI ಹೊಂದಿಸಿ.',
     country: 'Country of Residence',
     region: 'State / Province / Region',
+    city: 'City / Local Area',
+    cuisines: 'Preferred cuisines or food styles',
+    cuisinesHint: 'Example: Punjabi, South Indian, British, Mediterranean, Mixed',
     eating: 'ನಿಮ್ಮ ಕುಟುಂಬ ಸಾಮಾನ್ಯವಾಗಿ ಹೇಗೆ ಊಟ ಮಾಡುತ್ತದೆ?',
     save: 'Culture Profile Save ಮಾಡಿ',
     saved: 'Global food culture profile saved!',
@@ -44,11 +53,31 @@ export default function CultureProfilePage() {
   const t = cultureCopy[language];
   const [country, setCountry] = useState('United Kingdom');
   const [region, setRegion] = useState('London');
+  const [city, setCity] = useState('London');
   const [cookingStyle, setCookingStyle] = useState<CookingStyle>('MIX_FRESH_FROZEN');
-  const [selectedCuisines, setSelectedCuisines] = useState<string[]>(['Indian', 'British']);
+  const [cuisinesInput, setCuisinesInput] = useState('Indian, British');
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem('mamaai_culture_profile_v1');
+      if (!saved) return;
+      const profile = JSON.parse(saved);
+      setCountry(String(profile.country ?? 'United Kingdom'));
+      setRegion(String(profile.region ?? 'London'));
+      setCity(String(profile.city ?? profile.region ?? 'London'));
+      setCookingStyle((profile.cookingStyle ?? 'MIX_FRESH_FROZEN') as CookingStyle);
+      setCuisinesInput(Array.isArray(profile.preferredCuisines) ? profile.preferredCuisines.join(', ') : 'Indian, British');
+    } catch {
+      // Keep defaults if saved culture profile is unavailable.
+    }
+  }, []);
 
   const handleSave = async () => {
-    const profile = { country, region, cookingStyle, preferredCuisines: selectedCuisines };
+    const preferredCuisines = cuisinesInput
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const profile = { country, region, city, cookingStyle, preferredCuisines };
     window.localStorage.setItem('mamaai_culture_profile_v1', JSON.stringify(profile));
     alert(t.saved);
   };
@@ -84,6 +113,27 @@ export default function CultureProfilePage() {
                 type="text"
                 value={region}
                 onValueChange={setRegion}
+                inputClassName="w-full border rounded-lg p-2"
+              />
+            </div>
+
+            <div>
+              <label className="block font-medium mb-1">{t.city}</label>
+              <VoiceTextInput
+                type="text"
+                value={city}
+                onValueChange={setCity}
+                inputClassName="w-full border rounded-lg p-2"
+              />
+            </div>
+
+            <div>
+              <label className="block font-medium mb-1">{t.cuisines}</label>
+              <VoiceTextInput
+                type="text"
+                value={cuisinesInput}
+                onValueChange={setCuisinesInput}
+                placeholder={t.cuisinesHint}
                 inputClassName="w-full border rounded-lg p-2"
               />
             </div>
