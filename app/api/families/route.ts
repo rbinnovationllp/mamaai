@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = new FamilyService().createFamily(parsed.data);
+    const result = await new FamilyService().createFamily(parsed.data);
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     return NextResponse.json(

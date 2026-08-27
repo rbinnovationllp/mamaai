@@ -16,7 +16,7 @@ export async function POST(request: Request, context: { params: Promise<{ mealPl
       );
     }
 
-    const result = new MealPlanningService().replace(params.mealPlanId, parsed.data as ReplaceMealRequest);
+    const result = await new MealPlanningService().replace(params.mealPlanId, parsed.data as ReplaceMealRequest);
     return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json(

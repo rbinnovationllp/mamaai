@@ -1,4 +1,5 @@
 import { store } from "@/lib/repositories/in-memory-store";
+import { FamilyMealRepository } from "@/lib/repositories/family-meal-repository";
 import { AIService } from "@/lib/ai/ai-service";
 import { SafetyValidationService } from "@/lib/ai/safety-validation-service";
 import type { CreateMealPlanRequest, ReplaceMealRequest } from "@/lib/shared/contracts";
@@ -12,11 +13,12 @@ export class MealPlanningService {
   private readonly aiService = new AIService();
   private readonly safetyValidationService = new SafetyValidationService();
   private readonly mealRetentionService = new MealRetentionService();
+  private readonly repository = new FamilyMealRepository();
 
-  generate(request: CreateMealPlanRequest) {
+  async generate(request: CreateMealPlanRequest) {
     this.mealRetentionService.removeExpiredDetailedMealPlans();
 
-    const familyContext = this.familyService.getFamilyWithMembers(request.familyId);
+    const familyContext = await this.familyService.getFamilyWithMembers(request.familyId);
     if (!familyContext) {
       throw new Error("Family not found.");
     }
@@ -42,18 +44,31 @@ export class MealPlanningService {
     const mealPlan = this.aiService.localizeFamilyMealPlan(generatedMealPlan, request.mealTimeContext?.locale);
 
     store.mealPlans.push(mealPlan);
+    try {
+      await this.repository.saveMealPlan(mealPlan);
+    } catch (error) {
+      if (process.env.NODE_ENV === "production") throw error;
+      console.warn("Meal plan DynamoDB save failed; using in-memory fallback:", error);
+    }
+
     return { nutritionContexts, mealPlan };
   }
 
-  replace(mealPlanId: string, _request: ReplaceMealRequest) {
+  async replace(mealPlanId: string, _request: ReplaceMealRequest) {
     this.mealRetentionService.removeExpiredDetailedMealPlans();
 
-    const existing = store.mealPlans.find((plan) => plan.mealPlanId === mealPlanId);
+    let existing = await this.repository.getMealPlan(mealPlanId).catch((error) => {
+      if (process.env.NODE_ENV === "production") throw error;
+      console.warn("Meal plan DynamoDB read failed; using in-memory fallback:", error);
+      return undefined;
+    });
+
+    existing = existing ?? store.mealPlans.find((plan) => plan.mealPlanId === mealPlanId);
     if (!existing) {
       throw new Error("Meal plan not found.");
     }
 
-    const familyContext = this.familyService.getFamilyWithMembers(existing.familyId);
+    const familyContext = await this.familyService.getFamilyWithMembers(existing.familyId);
     if (!familyContext) {
       throw new Error("Family not found.");
     }
@@ -80,7 +95,15 @@ export class MealPlanningService {
     }
 
     const index = store.mealPlans.findIndex((plan) => plan.mealPlanId === mealPlanId);
-    store.mealPlans[index] = mealPlan;
+    if (index >= 0) store.mealPlans[index] = mealPlan;
+    else store.mealPlans.push(mealPlan);
+
+    try {
+      await this.repository.saveMealPlan(mealPlan);
+    } catch (error) {
+      if (process.env.NODE_ENV === "production") throw error;
+      console.warn("Replacement DynamoDB save failed; using in-memory fallback:", error);
+    }
 
     return { mealPlan };
   }

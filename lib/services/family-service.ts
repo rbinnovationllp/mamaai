@@ -1,12 +1,14 @@
 import { createId, nowIso, store } from "@/lib/repositories/in-memory-store";
+import { FamilyMealRepository } from "@/lib/repositories/family-meal-repository";
 import type { Family, FamilyMember } from "@/lib/shared/contracts";
 import type { CreateFamilyRequest } from "@/lib/shared/schemas";
 import { SubscriptionService } from "./subscription-service";
 
 export class FamilyService {
   private readonly subscriptionService = new SubscriptionService();
+  private readonly repository = new FamilyMealRepository();
 
-  createFamily(request: CreateFamilyRequest): { family: Family; members: FamilyMember[] } {
+  async createFamily(request: CreateFamilyRequest): Promise<{ family: Family; members: FamilyMember[] }> {
     this.subscriptionService.assertMemberLimit(
       request.family.subscriptionPlan,
       request.members.length
@@ -30,10 +32,25 @@ export class FamilyService {
     store.families.push(family);
     store.members.push(...members);
 
+    try {
+      await this.repository.saveFamilyContext({ family, members });
+    } catch (error) {
+      if (process.env.NODE_ENV === "production") throw error;
+      console.warn("Family DynamoDB save failed; using in-memory fallback:", error);
+    }
+
     return { family, members };
   }
 
-  getFamilyWithMembers(familyId: string) {
+  async getFamilyWithMembers(familyId: string) {
+    try {
+      const persisted = await this.repository.getFamilyContext(familyId);
+      if (persisted) return persisted;
+    } catch (error) {
+      if (process.env.NODE_ENV === "production") throw error;
+      console.warn("Family DynamoDB read failed; using in-memory fallback:", error);
+    }
+
     const family = store.families.find((item) => item.familyId === familyId);
     if (!family) {
       return null;

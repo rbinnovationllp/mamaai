@@ -127,7 +127,7 @@ function localText(language: "en" | "hi" | "kn", key: string, fallback: string) 
   if (language === "en") return fallback;
   const hi: Record<string, string> = {
     thirdPartyDisclaimer:
-      "बाहरी recipe videos third-party content हैं। जब तक reviewed mark न हो, MAMAAI ने video को medical या nutrition रूप से verify नहीं किया है।",
+      "बाहरी रेसिपी वीडियो तीसरे पक्ष की सामग्री हैं। जब तक समीक्षा किया हुआ साफ न लिखा हो, MAMAAI ने उस वीडियो को चिकित्सा या पोषण के रूप में सत्यापित नहीं किया है।",
     approvedDisclaimer:
       "MAMAAI का स्वीकृत रेसिपी-वीडियो मिलान। खाना बनाने से पहले सामग्री को अपनी सेव की हुई पारिवारिक पाबंदियों से जरूर मिलाकर जांचें।",
     sponsoredDisclaimer:
@@ -148,7 +148,7 @@ function localText(language: "en" | "hi" | "kn", key: string, fallback: string) 
   };
   const kn: Record<string, string> = {
     thirdPartyDisclaimer:
-      "ಹೊರಗಿನ recipe videos third-party content ಆಗಿವೆ. Reviewed ಎಂದು ಸ್ಪಷ್ಟವಾಗಿ ಗುರುತಿಸದಿದ್ದರೆ MAMAAI ಆ video ಅನ್ನು medical ಅಥವಾ nutrition ದೃಷ್ಟಿಯಿಂದ verify ಮಾಡಿಲ್ಲ.",
+      "ಹೊರಗಿನ ರೆಸಿಪಿ ವಿಡಿಯೋಗಳು ಮೂರನೇ ಪಕ್ಷದ ವಿಷಯವಾಗಿವೆ. ಪರಿಶೀಲಿಸಲಾಗಿದೆ ಎಂದು ಸ್ಪಷ್ಟವಾಗಿ ಗುರುತಿಸದಿದ್ದರೆ, MAMAAI ಆ ವಿಡಿಯೋವನ್ನು ವೈದ್ಯಕೀಯ ಅಥವಾ ಪೋಷಣೆಯ ದೃಷ್ಟಿಯಿಂದ ದೃಢೀಕರಿಸಿಲ್ಲ.",
     approvedDisclaimer:
       "MAMAAI ಅನುಮೋದಿತ ರೆಸಿಪಿ-ವಿಡಿಯೋ ಹೊಂದಾಣಿಕೆ. ಅಡುಗೆ ಮಾಡುವ ಮೊದಲು ಪದಾರ್ಥಗಳನ್ನು ನಿಮ್ಮ ಉಳಿಸಿದ ಕುಟುಂಬ ನಿರ್ಬಂಧಗಳೊಂದಿಗೆ ಪರಿಶೀಲಿಸಿ.",
     sponsoredDisclaimer:

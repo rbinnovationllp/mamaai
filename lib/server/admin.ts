@@ -11,16 +11,26 @@ export class AdminAuthError extends Error {
   }
 }
 
+function isAuthorizedAdmin(request: Request, configuredSecret: string) {
+  const authHeader = request.headers.get("authorization");
+  const cookieHeader = request.headers.get("cookie") ?? "";
+  const adminCookie = cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith("mama_admin_session="))
+    ?.slice("mama_admin_session=".length);
+
+  return authHeader === `Bearer ${configuredSecret}` || adminCookie === configuredSecret;
+}
+
 export function requireAdmin(request: Request): AdminActor {
   const configuredSecret = process.env.ADMIN_SECRET_KEY;
-  const authHeader = request.headers.get("authorization");
-  const hasAdminCookie = request.headers.get("cookie")?.includes("mama_admin_session=");
 
   if (!configuredSecret) {
     throw new AdminAuthError("Admin access is not configured.");
   }
 
-  if (!hasAdminCookie && authHeader !== `Bearer ${configuredSecret}`) {
+  if (!isAuthorizedAdmin(request, configuredSecret)) {
     throw new AdminAuthError();
   }
 
@@ -39,4 +49,3 @@ export function adminErrorResponse(error: unknown) {
   }
   return undefined;
 }
-
