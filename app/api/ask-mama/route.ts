@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { answerAskMama } from "@/lib/ask-mama/knowledge-base";
 import { type AppLanguage, isAppLanguage } from "@/lib/i18n";
 import { AskMamaService } from "@/lib/services/ask-mama-service";
+import { getSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,7 @@ interface RequestPayload {
   message?: string;
   isJudgeMode?: boolean;
   language?: AppLanguage;
+  history?: Array<{ role: string; parts: string }>;
   profileContext?: {
     householdFoodPreference?: string;
     cookingHabit?: string;
@@ -36,11 +38,13 @@ interface RequestPayload {
   };
 }
 
-function isCookingQuestion(message: string) {
-  return /(cook|meal|dinner|lunch|breakfast|snack|high tea|pantry|grocery|ingredient|frozen|ready|family|खाना|भोजन|पक|अंडा|शाकाहारी|पैंट्री|किराना|ಊಟ|ಅಡುಗೆ|ತಿಂಡಿ|ಪ್ಯಾಂಟ್ರಿ|ಕಿರಾಣಿ)/i.test(message);
+function isCookingQuestion(message: string): boolean {
+  return /(cook|meal|dinner|lunch|breakfast|snack|high tea|pantry|grocery|ingredient|frozen|ready|family|recipe|substitute|dish|खाना|भोजन|पक|अंडा|शाकाहारी|पैंट्री|किराना|ಊಟ|ಅಡುಗೆ|ತಿಂಡಿ|ಪ್ಯಾಂಟ್ರಿ|ಕಿರಾಣಿ)/i.test(
+    message
+  );
 }
 
-function localizedProfileValue(kind: "food" | "cooking", value: string | undefined, language: AppLanguage) {
+function localizedProfileValue(kind: "food" | "cooking", value: string | undefined, language: AppLanguage): string {
   const fallback = {
     en: "not yet selected",
     hi: "अभी नहीं चुना गया",
@@ -48,7 +52,7 @@ function localizedProfileValue(kind: "food" | "cooking", value: string | undefin
   }[language];
   if (!value) return fallback;
 
-  const food = {
+  const food: Record<string, string> = ({
     en: {
       vegetarian: "Vegetarian",
       eggetarian: "Eggetarian",
@@ -76,9 +80,9 @@ function localizedProfileValue(kind: "food" | "cooking", value: string | undefin
       mixed: "ಕುಟುಂಬದಲ್ಲಿ ವಿಭಿನ್ನ ಆಹಾರ ಇಷ್ಟಗಳು",
       other: "ಕಸ್ಟಮ್ ಇಷ್ಟ",
     },
-  }[language] as Record<string, string>;
+  }[language] as Record<string, string>) || {};
 
-  const cooking = {
+  const cooking: Record<string, string> = ({
     en: {
       fresh_home_cooked: "mostly fresh home-cooked meals",
       ready_frozen: "mostly ready-made or frozen cooked meals",
@@ -100,12 +104,12 @@ function localizedProfileValue(kind: "food" | "cooking", value: string | undefin
       takeaway_prepared: "ಹೆಚ್ಚಾಗಿ ಹೊರಗಿನ prepared meals ಅಥವಾ takeaway",
       other: "ಕಸ್ಟಮ್ cooking habit",
     },
-  }[language] as Record<string, string>;
+  }[language] as Record<string, string>) || {};
 
   return (kind === "food" ? food[value] : cooking[value]) ?? value;
 }
 
-function profileAwareAnswer(message: string, context: RequestPayload["profileContext"], language: AppLanguage) {
+function profileAwareAnswer(message: string, context: RequestPayload["profileContext"], language: AppLanguage): string | null {
   if (!context || !isCookingQuestion(message)) return null;
 
   const members = context.members?.filter((member) => member.name) ?? [];
@@ -136,7 +140,7 @@ function profileAwareAnswer(message: string, context: RequestPayload["profileCon
   return `Using your saved profile: household food preference is ${food}; cooking habit is ${cooking}. Members: ${memberSummary || "member food preferences are still missing"}. ${mealPreferences ? `Meal-wise preferences: ${mealPreferences}. ` : ""}${pantrySummary ? `Current pantry: ${pantrySummary}. Prefer a plan that uses these first and adds only missing quantities to groceries. ` : ""}MAMAAI will use this to suggest a practical common family meal while treating allergies and doctor restrictions as hard rules. Next step: open Meal Planner and tap "Plan Today's Family Meal."`;
 }
 
-function localizedSuggestions(language: AppLanguage) {
+function localizedSuggestions(language: AppLanguage): string[] {
   if (language === "hi") {
     return ["Meal Planner खोलें", "Family Profile पूरी करें", "Subscription plans दिखाएं"];
   }
@@ -148,6 +152,7 @@ function localizedSuggestions(language: AppLanguage) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
     const body = (await request.json()) as RequestPayload;
     const message = body.message?.trim();
 
@@ -159,16 +164,16 @@ export async function POST(request: Request) {
     }
 
     const language = isAppLanguage(body.language) ? body.language : "en";
+    const isJudgeMode = Boolean(body.isJudgeMode || session?.role === "admin" || session?.entitlement === "judge");
 
+    // Route 1: Culinary / Ingredient / Meal Planning reasoning via Gemini Service
     if (isCookingQuestion(message)) {
       const askMamaService = new AskMamaService();
       const response = await askMamaService.ask({
         message,
         language,
         profileContext: body.profileContext,
-        history: Array.isArray((body as { history?: unknown }).history)
-          ? ((body as { history?: Array<{ role: string; parts: string }> }).history ?? [])
-          : [],
+        history: Array.isArray(body.history) ? body.history : [],
       });
 
       return NextResponse.json({
@@ -181,6 +186,7 @@ export async function POST(request: Request) {
       });
     }
 
+    // Route 2: Profile overview & prompt guidance
     const contextualAnswer = profileAwareAnswer(message, body.profileContext, language);
     if (contextualAnswer) {
       return NextResponse.json({
@@ -193,7 +199,8 @@ export async function POST(request: Request) {
       });
     }
 
-    const answer = answerAskMama(message, Boolean(body.isJudgeMode), language);
+    // Route 3: Deterministic Knowledge Base (Subscriptions, Tiers, Navigation)
+    const answer = answerAskMama(message, isJudgeMode, language);
 
     return NextResponse.json({
       success: true,
@@ -217,5 +224,3 @@ export async function POST(request: Request) {
     );
   }
 }
-
-
