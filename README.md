@@ -28,6 +28,8 @@ Launch recommendation:
 
 MAMA AI is an AI-powered Family Food Operating System for household meal planning. It is designed around a practical family reality: most homes do not want to cook five separate meals, but different family members often need different portions, adjustments, fruits, hydration, and health-aware guidance.
 
+Latest personalization updates include mixed-diet joint-family planning and optional family budget preference. MAMAAI can now plan a common base meal with vegetarian, eggetarian, vegan, or non-vegetarian add-ons only for the members who need them, while using the saved budget level to guide ingredient choice, grocery recommendations, substitutions, and frequency of premium ingredients.
+
 ## Core Idea
 
 MAMA AI generates:
@@ -37,7 +39,9 @@ MAMA AI generates:
 3. Member-specific modifications.
 4. Fruit and hydration recommendations.
 5. Grocery list updates when a meal is replaced.
-6. A visual MAMA Family Table for quick family-level understanding.
+6. Optional dietary components for mixed vegetarian, semi-vegetarian, eggetarian, vegan, and non-vegetarian households.
+7. Budget-aware grocery and ingredient guidance.
+8. A visual MAMA Family Table for quick family-level understanding.
 
 The product is not intended to diagnose disease, prescribe medicine, or replace medical advice.
 

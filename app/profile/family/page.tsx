@@ -32,6 +32,7 @@ export interface FamilyMemberProfile {
 
 type HouseholdFoodPreference = 'vegetarian' | 'eggetarian' | 'non_vegetarian' | 'semi_vegetarian' | 'vegan' | 'mixed' | 'other';
 type CookingHabit = 'fresh_home_cooked' | 'ready_frozen' | 'fresh_ready_mix' | 'takeaway_prepared' | 'other';
+type BudgetPreference = 'economical' | 'moderate' | 'flexible' | 'no_specific_limit' | 'custom_monthly';
 type NonVegFrequency = NonNullable<FamilyMemberProfile['nonVegFrequency']>;
 type MealPreferenceInputs = Record<MealSlot, string>;
 type NonVegFoodOption = 'chicken' | 'fish' | 'eggs' | 'mutton_goat' | 'seafood';
@@ -61,6 +62,10 @@ const copy = {
     memberFood: 'Member food preference',
     householdFood: 'Household food preference',
     cookingHabit: 'How does your family usually prepare meals?',
+    budgetQuestion: 'What budget level should MAMAAI consider while planning meals?',
+    budgetHelp: 'Optional. This guides ingredient choice, substitutions and grocery suggestions; it is not an exact bill promise.',
+    customBudget: 'Approximate monthly food budget',
+    customBudgetPlaceholder: 'Example: 12000',
     nonVegFrequency: 'How often does this member prefer non-vegetarian food?',
     nonVegAvoidDays: 'Days this member avoids non-vegetarian food',
     nonVegCustomRule: 'Other non-veg rule',
@@ -137,6 +142,13 @@ const copy = {
       mixed: 'Mixed household preferences',
       other: 'Other / Custom Preference',
     },
+    budgetOptions: {
+      economical: 'Economical - affordable everyday ingredients',
+      moderate: 'Moderate - balance cost, variety and nutrition',
+      flexible: 'Flexible - occasional premium ingredients are okay',
+      no_specific_limit: 'No Specific Limit - prioritize preference and convenience',
+      custom_monthly: 'Custom Monthly Food Budget',
+    },
     cookingOptions: {
       fresh_home_cooked: 'Mostly cook fresh meals at home',
       ready_frozen: 'Mostly use ready-made / frozen cooked meals',
@@ -207,7 +219,11 @@ const copy = {
     strategy: 'Meal Strategy Preference',
     memberFood: 'Member food preference',
     householdFood: 'Household food preference',
-    cookingHabit: 'आपका परिवार आम तौर पर meals कैसे prepare करता है?',
+    cookingHabit: 'आपका परिवार आम तौर पर भोजन कैसे बनाता है?',
+    budgetQuestion: 'भोजन योजना बनाते समय MAMAAI कौन सा बजट स्तर ध्यान में रखे?',
+    budgetHelp: 'वैकल्पिक। इससे सामग्री, विकल्प और किराने के सुझाव तय होते हैं; यह बिल की सटीक गारंटी नहीं है।',
+    customBudget: 'लगभग मासिक भोजन बजट',
+    customBudgetPlaceholder: 'उदाहरण: 12000',
     nonVegFrequency: 'यह member सामान्य रूप से non-veg कितनी बार पसंद करता है?',
     nonVegAvoidDays: 'कौन से दिन यह member non-veg avoid करता है?',
     nonVegCustomRule: 'अन्य non-veg rule',
@@ -284,6 +300,13 @@ const copy = {
       mixed: 'घर में अलग-अलग food preferences',
       other: 'Other / Custom Preference',
     },
+    budgetOptions: {
+      economical: 'किफायती - रोजमर्रा की सस्ती सामग्री प्राथमिकता',
+      moderate: 'मध्यम - लागत, विविधता और पोषण का संतुलन',
+      flexible: 'लचीला - कभी-कभी प्रीमियम सामग्री ठीक है',
+      no_specific_limit: 'कोई खास सीमा नहीं - पसंद, विविधता और सुविधा प्राथमिकता',
+      custom_monthly: 'कस्टम मासिक भोजन बजट',
+    },
     cookingOptions: {
       fresh_home_cooked: 'ज्यादातर ताजा घर का खाना',
       ready_frozen: 'ज्यादातर ready-made / frozen cooked meals',
@@ -354,7 +377,11 @@ const copy = {
     strategy: 'Meal Strategy Preference',
     memberFood: 'Member food preference',
     householdFood: 'Household food preference',
-    cookingHabit: 'ನಿಮ್ಮ ಕುಟುಂಬ ಸಾಮಾನ್ಯವಾಗಿ meals ಹೇಗೆ prepare ಮಾಡುತ್ತದೆ?',
+    cookingHabit: 'ನಿಮ್ಮ ಕುಟುಂಬ ಸಾಮಾನ್ಯವಾಗಿ ಊಟವನ್ನು ಹೇಗೆ ತಯಾರಿಸುತ್ತದೆ?',
+    budgetQuestion: 'ಊಟ ಯೋಜಿಸುವಾಗ MAMAAI ಯಾವ ಬಜೆಟ್ ಮಟ್ಟವನ್ನು ಗಮನದಲ್ಲಿಡಬೇಕು?',
+    budgetHelp: 'ಐಚ್ಛಿಕ. ಇದು ಪದಾರ್ಥ, ಪರ್ಯಾಯಗಳು ಮತ್ತು ಕಿರಾಣಿ ಸಲಹೆಗಳಿಗೆ ಮಾರ್ಗದರ್ಶನ; ನಿಖರ ಬಿಲ್ ಭರವಸೆ ಅಲ್ಲ.',
+    customBudget: 'ಅಂದಾಜು ಮಾಸಿಕ ಆಹಾರ ಬಜೆಟ್',
+    customBudgetPlaceholder: 'ಉದಾಹರಣೆ: 12000',
     nonVegFrequency: 'ಈ member ಸಾಮಾನ್ಯವಾಗಿ non-veg ಎಷ್ಟು ಬಾರಿ ಇಷ್ಟಪಡುತ್ತಾರೆ?',
     nonVegAvoidDays: 'ಈ member non-veg ತಪ್ಪಿಸುವ ದಿನಗಳು',
     nonVegCustomRule: 'ಇತರೆ non-veg rule',
@@ -430,6 +457,13 @@ const copy = {
       vegan: 'Vegan - meat, egg, milk ಅಥವಾ dairy ಇಲ್ಲ',
       mixed: 'ಮನೆಯಲ್ಲಿ ಬೇರೆ ಬೇರೆ food preferences',
       other: 'Other / Custom Preference',
+    },
+    budgetOptions: {
+      economical: 'ಮಿತವ್ಯಯ - ದೈನಂದಿನ ಕೈಗೆಟುಕುವ ಪದಾರ್ಥಗಳಿಗೆ ಆದ್ಯತೆ',
+      moderate: 'ಮಧ್ಯಮ - ವೆಚ್ಚ, ವೈವಿಧ್ಯ ಮತ್ತು ಪೋಷಣೆಯ ಸಮತೋಲನ',
+      flexible: 'ಲವಚಿಕ - ಕೆಲವೊಮ್ಮೆ ಪ್ರೀಮಿಯಂ ಪದಾರ್ಥಗಳು ಸರಿ',
+      no_specific_limit: 'ನಿರ್ದಿಷ್ಟ ಮಿತಿ ಇಲ್ಲ - ಇಷ್ಟ, ವೈವಿಧ್ಯ ಮತ್ತು ಅನುಕೂಲತೆಗೆ ಆದ್ಯತೆ',
+      custom_monthly: 'ಕಸ್ಟಮ್ ಮಾಸಿಕ ಆಹಾರ ಬಜೆಟ್',
     },
     cookingOptions: {
       fresh_home_cooked: 'ಹೆಚ್ಚಾಗಿ ತಾಜಾ ಮನೆಯಲ್ಲಿ ಅಡುಗೆ',
@@ -627,6 +661,8 @@ export default function FamilyProfilePage() {
   const [householdFoodPreference, setHouseholdFoodPreference] =
     useState<HouseholdFoodPreference>('vegetarian');
   const [cookingHabit, setCookingHabit] = useState<CookingHabit>('fresh_home_cooked');
+  const [budgetPreference, setBudgetPreference] = useState<BudgetPreference>('moderate');
+  const [customMonthlyFoodBudget, setCustomMonthlyFoodBudget] = useState('');
   const [weeklyFoodRoutineStatus, setWeeklyFoodRoutineStatus] =
     useState<WeeklyFoodRoutineStatus>('skip');
   const [weeklyFoodRoutine, setWeeklyFoodRoutine] =
@@ -673,6 +709,8 @@ export default function FamilyProfilePage() {
         setRecentMealHistoryStatus(Array.isArray(parsedCustomer.recentMealHistory) && parsedCustomer.recentMealHistory.length ? 'add' : 'skip');
         setRecentMealHistory(mergeRecentMealHistory(parsedCustomer.recentMealHistory));
         setNonVegPreferredFoods(Array.isArray(parsedCustomer.nonVegPreferredFoods) ? parsedCustomer.nonVegPreferredFoods : []);
+        setBudgetPreference(parsedCustomer.budgetPreference ?? 'moderate');
+        setCustomMonthlyFoodBudget(parsedCustomer.customMonthlyFoodBudget ? String(parsedCustomer.customMonthlyFoodBudget) : '');
       }
 
       const savedDraft = window.localStorage.getItem(FAMILY_PROFILE_DRAFT_KEY);
@@ -688,6 +726,8 @@ export default function FamilyProfilePage() {
         setMemberFoodPreference(draft.memberFoodPreference ?? 'vegetarian');
         setHouseholdFoodPreference(draft.householdFoodPreference ?? 'vegetarian');
         setCookingHabit(draft.cookingHabit ?? 'fresh_home_cooked');
+        setBudgetPreference(draft.budgetPreference ?? 'moderate');
+        setCustomMonthlyFoodBudget(String(draft.customMonthlyFoodBudget ?? ''));
         setWeeklyFoodRoutineStatus(draft.weeklyFoodRoutineStatus ?? 'skip');
         setWeeklyFoodRoutine(mergeWeeklyRoutine(draft.weeklyFoodRoutine));
         setMealPreferenceInputs(draft.mealPreferenceInputs ?? defaultMealPreferenceInputs());
@@ -733,6 +773,8 @@ export default function FamilyProfilePage() {
           memberFoodPreference,
           householdFoodPreference,
           cookingHabit,
+          budgetPreference,
+          customMonthlyFoodBudget,
           weeklyFoodRoutineStatus,
           weeklyFoodRoutine,
           mealPreferenceInputs,
@@ -763,6 +805,8 @@ export default function FamilyProfilePage() {
     memberFoodPreference,
     householdFoodPreference,
     cookingHabit,
+    budgetPreference,
+    customMonthlyFoodBudget,
     weeklyFoodRoutineStatus,
     weeklyFoodRoutine,
     mealPreferenceInputs,
@@ -924,6 +968,8 @@ export default function FamilyProfilePage() {
         preferredLanguage: language,
         householdFoodPreference,
         cookingHabit,
+        budgetPreference,
+        customMonthlyFoodBudget: budgetPreference === 'custom_monthly' && customMonthlyFoodBudget ? Number(customMonthlyFoodBudget) : undefined,
         weeklyFoodRoutineStatus,
         weeklyFoodRoutine: weeklyFoodRoutineStatus === 'add' ? cleanWeeklyRoutine(weeklyFoodRoutine) : [],
         mealTypePreferences: cleanMealTypePreferences(mealPreferenceInputs),
@@ -1003,6 +1049,37 @@ export default function FamilyProfilePage() {
                 <option value="other">{t.cookingOptions.other}</option>
               </select>
             </label>
+          </div>
+
+          <div className="mt-5 grid gap-4 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100">
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-slate-700">{t.budgetQuestion}</span>
+              <select
+                value={budgetPreference}
+                onChange={(event) => setBudgetPreference(event.target.value as BudgetPreference)}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              >
+                <option value="economical">{t.budgetOptions.economical}</option>
+                <option value="moderate">{t.budgetOptions.moderate}</option>
+                <option value="flexible">{t.budgetOptions.flexible}</option>
+                <option value="no_specific_limit">{t.budgetOptions.no_specific_limit}</option>
+                <option value="custom_monthly">{t.budgetOptions.custom_monthly}</option>
+              </select>
+            </label>
+            {budgetPreference === 'custom_monthly' ? (
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold text-slate-700">{t.customBudget}</span>
+                <input
+                  type="number"
+                  min="1"
+                  value={customMonthlyFoodBudget}
+                  onChange={(event) => setCustomMonthlyFoodBudget(event.target.value)}
+                  placeholder={t.customBudgetPlaceholder}
+                  className={inputClassName}
+                />
+              </label>
+            ) : null}
+            <p className="text-xs font-semibold leading-5 text-emerald-900">{t.budgetHelp}</p>
           </div>
         </section>
 

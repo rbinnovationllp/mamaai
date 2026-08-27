@@ -41,6 +41,10 @@ const familyProfileSchema = z.object({
     cookingHabit: z
       .enum(["fresh_home_cooked", "ready_frozen", "fresh_ready_mix", "takeaway_prepared", "other"])
       .default("fresh_home_cooked"),
+    budgetPreference: z
+      .enum(["economical", "moderate", "flexible", "no_specific_limit", "custom_monthly"])
+      .default("moderate"),
+    customMonthlyFoodBudget: z.number().positive().optional(),
     weeklyFoodRoutineStatus: z.enum(["add", "no_fixed_routine", "skip"]).default("skip"),
     weeklyFoodRoutine: z
       .array(
@@ -216,6 +220,8 @@ export async function POST(request: Request) {
       preferredLanguage: customer.preferredLanguage,
       householdFoodPreference: customer.householdFoodPreference,
       cookingHabit: customer.cookingHabit,
+      budgetPreference: customer.budgetPreference,
+      customMonthlyFoodBudget: customer.customMonthlyFoodBudget,
       weeklyFoodRoutineStatus: customer.weeklyFoodRoutineStatus,
       weeklyFoodRoutine:
         customer.weeklyFoodRoutineStatus === "add"

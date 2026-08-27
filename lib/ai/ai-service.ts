@@ -9,6 +9,7 @@ import type {
   HighTeaPreference,
   Ingredient,
   MealAttendanceEntry,
+  MealComponent,
   MealSlot,
   MealTime,
   MealTimeContext,
@@ -187,6 +188,155 @@ function veganHighTeaIngredients(): Ingredient[] {
   ];
 }
 
+function component(componentId: string, label: string, role: MealComponent["role"], memberIds: string[], ingredients: Ingredient[], notes: string[]): MealComponent {
+  return { componentId, label, role, memberIds, ingredients, notes };
+}
+
+function isNonVegDiet(member: FamilyMember) {
+  return member.dietType === "non_vegetarian";
+}
+
+function isEggDiet(member: FamilyMember) {
+  return member.dietType === "eggitarian" || member.dietType === "non_vegetarian";
+}
+
+function isVegetarianCompatibleDiet(member: FamilyMember) {
+  return member.dietType === "vegetarian" || member.dietType === "jain" || member.dietType === "satvik" || member.dietType === "eggitarian" || member.dietType === "other";
+}
+
+function memberAvoidsNonVegOn(member: FamilyMember, targetDate: string) {
+  const weekday = localWeekday(targetDate);
+  return member.nonVegAvoidDays?.map((day) => day.toLowerCase()).includes(weekday) ?? false;
+}
+
+function nonVegFrequencyAllowsToday(member: FamilyMember) {
+  return member.nonVegFrequency !== "occasionally";
+}
+
+function eligibleNonVegMembers(input: GeneratePlanInput) {
+  if (avoidsNonVegToday(input)) return [];
+  return input.members.filter((member) => isNonVegDiet(member) && !memberAvoidsNonVegOn(member, input.targetDate) && nonVegFrequencyAllowsToday(member));
+}
+
+function eligibleEggMembers(input: GeneratePlanInput) {
+  if (avoidsNonVegToday(input)) return [];
+  return input.members.filter((member) => isEggDiet(member) && !memberAvoidsNonVegOn(member, input.targetDate));
+}
+
+function vegetarianOptionMembers(input: GeneratePlanInput, nonVegMemberIds: Set<string>) {
+  return input.members.filter((member) => !nonVegMemberIds.has(member.memberId) && member.dietType !== "vegan");
+}
+
+function dietDistributionText(input: GeneratePlanInput) {
+  const counts = input.members.reduce<Record<string, number>>((acc, member) => {
+    const key = member.dietType === "eggitarian" ? "eggetarian" : member.dietType;
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
+  return Object.entries(counts).map(([key, count]) => `${key}: ${count}`).join(", ");
+}
+
+function budgetPrefersEconomical(input: GeneratePlanInput) {
+  return input.family.budget.preferLowCostMeals || (input.family.budget.type !== "none" && input.family.budget.priority === "strict");
+}
+function preferredNonVegIngredient(input: GeneratePlanInput, mealTime: MealTime): Ingredient {
+  if (mealTime === "breakfast" || budgetPrefersEconomical(input) || preferredNonVegIncludes(input, ["egg"])) {
+    return { name: "Eggs", quantity: "10 pieces", category: "protein", estimatedCost: money(100) };
+  }
+  if (!budgetPrefersEconomical(input) && preferredNonVegIncludes(input, ["fish", "seafood"])) {
+    return { name: "Fish", quantity: "650 g", category: "protein", estimatedCost: money(260) };
+  }
+  if (!budgetPrefersEconomical(input) && preferredNonVegIncludes(input, ["mutton", "goat"])) {
+    return { name: "Mutton or goat", quantity: "650 g", category: "protein", estimatedCost: money(420) };
+  }
+  return { name: "Chicken", quantity: "650 g", category: "protein", estimatedCost: money(210) };
+}
+
+function mixedDietComponents(input: GeneratePlanInput, mealTime: MealTime): MealComponent[] {
+  const allMemberIds = input.members.map((member) => member.memberId);
+  const eggMembers = eligibleEggMembers(input);
+  const nonVegMembers = eligibleNonVegMembers(input);
+  const useEggOnly = mealTime === "breakfast" || (eggMembers.length > nonVegMembers.length && preferredNonVegIncludes(input, ["egg"]));
+  const proteinMembers = useEggOnly ? eggMembers : nonVegMembers;
+  const proteinMemberIds = new Set(proteinMembers.map((member) => member.memberId));
+  const vegMembers = vegetarianOptionMembers(input, proteinMemberIds);
+
+  const commonBase = mealTime === "breakfast"
+    ? [
+        { name: "Poha", quantity: "3 cups", category: "grains" as const, estimatedCost: money(55) },
+        { name: "Onion and peas", quantity: "2 cups", category: "vegetables" as const, estimatedCost: money(55) },
+        { name: "Lemon and coriander", quantity: "1 small bunch", category: "other" as const, estimatedCost: money(20) }
+      ]
+    : [
+        { name: "Whole wheat flour", quantity: "3 cups", category: "grains" as const, estimatedCost: money(55) },
+        { name: "Masoor dal", quantity: "1.5 cups", category: "pulses" as const, estimatedCost: money(65) },
+        { name: "Seasonal vegetable sabzi", quantity: "4 cups", category: "vegetables" as const, estimatedCost: money(120) },
+        { name: "Basic spices", quantity: "2 tsp", category: "spices" as const, estimatedCost: money(15) }
+      ];
+
+  const components = [
+    component(
+      "common-base",
+      mealTime === "breakfast" ? "Common breakfast base for everyone" : "Common family base for everyone",
+      "common_base",
+      allMemberIds,
+      commonBase,
+      ["Prepare once for the full household; keep optional proteins separate."]
+    )
+  ];
+
+  if (vegMembers.length) {
+    components.push(
+      component(
+        "veg-option",
+        mealTime === "breakfast" ? "Vegetarian protein/side option" : "Vegetarian or semi-vegetarian option",
+        "vegetarian_option",
+        vegMembers.map((member) => member.memberId),
+        mealTime === "breakfast"
+          ? [{ name: "Peanuts", quantity: "0.75 cup", category: "protein" as const, estimatedCost: money(50) }, { name: "Curd", quantity: "500 g", category: "dairy" as const, estimatedCost: money(60) }]
+          : [{ name: "Paneer", quantity: "350 g", category: "protein" as const, estimatedCost: money(155) }, { name: "Curd", quantity: "750 g", category: "dairy" as const, estimatedCost: money(80) }],
+        ["Serve only to members who eat and tolerate dairy/vegetarian protein; skip dairy for vegan members."]
+      )
+    );
+  }
+
+  if (proteinMembers.length) {
+    const protein = preferredNonVegIngredient(input, mealTime);
+    components.push(
+      component(
+        useEggOnly ? "egg-option" : "non-veg-option",
+        useEggOnly ? "Egg option for eligible members" : `${protein.name} option for non-vegetarian members`,
+        useEggOnly ? "eggetarian_option" : "non_vegetarian_option",
+        proteinMembers.map((member) => member.memberId),
+        [protein, { name: "Onion tomato masala", quantity: "2 cups", category: "vegetables" as const, estimatedCost: money(60) }],
+        ["Calculate this protein only for assigned members, not for the whole family.", "Do not serve to vegetarian or vegan members."]
+      )
+    );
+  }
+
+  return components;
+}
+
+function mixedFamilyIngredientsFromComponents(components: MealComponent[]) {
+  return components.flatMap((item) => item.ingredients);
+}
+
+function componentGuidanceForMember(commonMeal: CommonMeal, member: FamilyMember) {
+  const assigned = commonMeal.components?.filter((item) => item.memberIds.includes(member.memberId)) ?? [];
+  if (!assigned.length) return "";
+  const labels = assigned.map((item) => item.label).join(" + ");
+  return ` Meal structure for this member: ${labels}.`;
+}
+function shouldUseMixedComponentStrategy(input: GeneratePlanInput, mealTime: MealTime) {
+  const hasVegetarianSide = input.members.some((member) => isVegetarianCompatibleDiet(member) || member.dietType === "vegan");
+  const hasNonVegOrEggSide = input.members.some((member) => isEggDiet(member) || isNonVegDiet(member));
+  return (
+    hasVegetarianSide &&
+    hasNonVegOrEggSide &&
+    !weeklyRoutinePrefersVegetarianBase(input) &&
+    (mealTime !== "breakfast" || eligibleEggMembers(input).length > 0)
+  );
+}
 function nutritionEstimate(values: Omit<NutritionEstimate, "basis" | "dataSource" | "confidence">, basis: string): NutritionEstimate {
   return {
     ...values,
@@ -551,6 +701,27 @@ function mealForDiet(input: GeneratePlanInput, mealId: string, mealTime: MealTim
     };
   }
 
+  if (shouldUseMixedComponentStrategy(input, mealTime)) {
+    const components = mixedDietComponents(input, mealTime);
+    const nonCommonLabels = components.filter((item) => item.role !== "common_base").map((item) => item.label);
+    return {
+      mealId,
+      name: mealTime === "breakfast"
+        ? "Common Breakfast Base with Optional Egg or Vegetarian Protein"
+        : "Common Family Base with Vegetarian and Non-Vegetarian Options",
+      mealTime,
+      description: mealTime === "breakfast"
+        ? "A practical mixed-diet breakfast: one common base for everyone, with egg only for eligible members and vegetarian protein for others."
+        : "A joint-family meal that keeps rice/roti, dal, vegetables and sides common while adding only the required vegetarian and non-vegetarian protein options.",
+      ingredients: mixedFamilyIngredientsFromComponents(components),
+      components,
+      prepTimeMinutes: mealTime === "breakfast" ? 30 : 45,
+      difficulty: nonCommonLabels.length > 1 ? "medium" : "easy",
+      regionFit: `${regionFit}. Diet distribution: ${dietDistributionText(input)}. Preferred structure: common base plus small dietary variations, not fully separate meals.`,
+      nutritionIntent: `Maximize the common family meal, respect individual diet choices, and calculate optional proteins only for members who will eat them. Budget mode: ${input.family.budget.preferLowCostMeals ? "prefer affordable everyday ingredients and avoid premium proteins unless requested" : input.family.budget.type === "none" ? "no specific limit, but avoid waste" : "balance budget, variety and nutrition"}.`,
+      nutritionEstimate: estimateForDiet("mixed", mealTime)
+    };
+  }
   if ((dietPreference === "non_vegetarian" || dietPreference === "eggetarian") && avoidsNonVegToday(input)) {
     return {
       mealId,
@@ -582,7 +753,7 @@ function mealForDiet(input: GeneratePlanInput, mealId: string, mealTime: MealTim
   }
 
   if (dietPreference === "non_vegetarian") {
-    if (preferredNonVegIncludes(input, ["fish", "seafood"])) {
+    if (!budgetPrefersEconomical(input) && preferredNonVegIncludes(input, ["fish", "seafood"])) {
       return {
         mealId,
         name: "Fish Dal Rice Plate with Vegetables and Curd",
@@ -873,6 +1044,8 @@ const mealNameTranslations = {
     "Fish Dal Rice Plate with Vegetables and Curd": "सब्जियों और दही के साथ मछली-दाल-चावल प्लेट",
     "Egg Curry with Roti, Seasonal Sabzi and Curd": "रोटी, मौसमी सब्जी और दही के साथ अंडा करी",
     "Family Dal-Roti-Sabzi with Optional Egg or Chicken Add-On": "वैकल्पिक अंडा या चिकन के साथ पारिवारिक दाल-रोटी-सब्जी",
+    "Common Breakfast Base with Optional Egg or Vegetarian Protein": "वैकल्पिक अंडा या शाकाहारी प्रोटीन के साथ साझा नाश्ता",
+    "Common Family Base with Vegetarian and Non-Vegetarian Options": "शाकाहारी और नॉन-वेज विकल्पों के साथ साझा पारिवारिक भोजन",
     "Vegan Dal, Millet-Rice and Seasonal Sabzi Plate": "वीगन दाल, मिलेट-चावल और मौसमी सब्जी की थाली",
     "Vegan High Tea: Vegetable Chilla with Peanut Chutney and Fruit": "वीगन हाई टी: मूंगफली चटनी और फल के साथ सब्जी चीला",
     "High Tea: Vegetable Chilla with Curd, Fruit and Unsweetened Tea": "हाई टी: दही, फल और बिना चीनी वाली चाय के साथ सब्जी चीला",
@@ -888,6 +1061,8 @@ const mealNameTranslations = {
     "Fish Dal Rice Plate with Vegetables and Curd": "ತರಕಾರಿ ಮತ್ತು ಮೊಸರು ಜೊತೆಗೆ ಮೀನು-ದಾಲ್-ಅಕ್ಕಿ ತಟ್ಟೆ",
     "Egg Curry with Roti, Seasonal Sabzi and Curd": "ರೊಟ್ಟಿ, ಋತುಮಾನ ತರಕಾರಿ ಮತ್ತು ಮೊಸರು ಜೊತೆಗೆ ಮೊಟ್ಟೆ ಕರಿ",
     "Family Dal-Roti-Sabzi with Optional Egg or Chicken Add-On": "ಐಚ್ಛಿಕ ಮೊಟ್ಟೆ ಅಥವಾ ಚಿಕನ್ ಜೊತೆ ಕುಟುಂಬದ ದಾಲ್-ರೊಟ್ಟಿ-ತರಕಾರಿ",
+    "Common Breakfast Base with Optional Egg or Vegetarian Protein": "ಐಚ್ಛಿಕ ಮೊಟ್ಟೆ ಅಥವಾ ಸಸ್ಯಾಹಾರಿ ಪ್ರೋಟೀನ್ ಜೊತೆ ಸಾಮಾನ್ಯ ಉಪಹಾರ",
+    "Common Family Base with Vegetarian and Non-Vegetarian Options": "ಸಸ್ಯಾಹಾರಿ ಮತ್ತು ನಾನ್-ವೆಜ್ ಆಯ್ಕೆಗಳೊಂದಿಗೆ ಸಾಮಾನ್ಯ ಕುಟುಂಬದ ಊಟ",
     "Vegan Dal, Millet-Rice and Seasonal Sabzi Plate": "ವೀಗನ್ ದಾಲ್, ಮಿಲ್ಲೆಟ್-ಅಕ್ಕಿ ಮತ್ತು ಋತುಮಾನ ತರಕಾರಿ ತಟ್ಟೆ",
     "Vegan High Tea: Vegetable Chilla with Peanut Chutney and Fruit": "ವೀಗನ್ ಹೈ ಟೀ: ಕಡಲೆಕಾಯಿ ಚಟ್ನಿ ಮತ್ತು ಹಣ್ಣು ಜೊತೆಗೆ ತರಕಾರಿ ಚಿಲ್ಲಾ",
     "High Tea: Vegetable Chilla with Curd, Fruit and Unsweetened Tea": "ಹೈ ಟೀ: ಮೊಸರು, ಹಣ್ಣು ಮತ್ತು ಸಕ್ಕರೆರಹಿತ ಚಹಾ ಜೊತೆಗೆ ತರಕಾರಿ ಚಿಲ್ಲಾ",
@@ -925,6 +1100,7 @@ const ingredientTranslations = {
     "Eggs": "अंडे",
     "Onion tomato masala": "प्याज-टमाटर मसाला",
     "Chicken": "चिकन",
+    "Mutton or goat": "मटन या बकरी का मांस",
     "Fish": "मछली",
     "Eggs or chicken add-on": "अंडा या चिकन ऐड-ऑन",
     "Brown rice or millet": "ब्राउन राइस या मिलेट",
@@ -958,6 +1134,7 @@ const ingredientTranslations = {
     "Eggs": "ಮೊಟ್ಟೆಗಳು",
     "Onion tomato masala": "ಈರುಳ್ಳಿ-ಟೊಮೇಟೊ ಮಸಾಲೆ",
     "Chicken": "ಚಿಕನ್",
+    "Mutton or goat": "ಮಟನ್ ಅಥವಾ ಮೇಕೆ ಮಾಂಸ",
     "Fish": "ಮೀನು",
     "Eggs or chicken add-on": "ಮೊಟ್ಟೆ ಅಥವಾ ಚಿಕನ್ ಐಚ್ಛಿಕ ಸೇರಿಕೆ",
     "Brown rice or millet": "ಬ್ರೌನ್ ರೈಸ್ ಅಥವಾ ಮಿಲ್ಲೆಟ್",
@@ -1147,6 +1324,19 @@ function translateCommonText(text: string, language: Exclude<OutputLanguage, "en
           [/Use the MAMA Family Table portions for each member\./g, "हर सदस्य के लिए MAMA Family Table वाले हिस्से इस्तेमाल करें।"],
           [/Do not serve any listed allergy or never-include ingredient to the affected member\./g, "जिस सदस्य को एलर्जी या सख्त परहेज है, उसे वह सामग्री बिल्कुल न दें।"],
           [/Keep curd, paneer, egg, chicken, and other optional protein add-ons separate when family preferences differ\./g, "जब परिवार की पसंद अलग-अलग हो, तो दही, पनीर, अंडा, चिकन और अन्य वैकल्पिक प्रोटीन अलग रखें।"],
+          [/Common breakfast base for everyone/g, "सबके लिए साझा नाश्ते का आधार"],
+          [/Common family base for everyone/g, "सबके लिए साझा पारिवारिक आधार"],
+          [/Vegetarian protein\/side option/g, "शाकाहारी प्रोटीन/साइड विकल्प"],
+          [/Vegetarian or semi-vegetarian option/g, "शाकाहारी या सेमी-शाकाहारी विकल्प"],
+          [/Egg option for eligible members/g, "पात्र सदस्यों के लिए अंडे का विकल्प"],
+          [/([A-Za-z ]+) option for non-vegetarian members/g, "नॉन-वेज खाने वाले सदस्यों के लिए $1 विकल्प"],
+          [/Prepare once for the full household; keep optional proteins separate\./g, "पूरे परिवार के लिए एक बार तैयार करें; वैकल्पिक प्रोटीन अलग रखें।"],
+          [/Serve only to members who eat and tolerate dairy\/vegetarian protein; skip dairy for vegan members\./g, "केवल उन सदस्यों को दें जो डेयरी/शाकाहारी प्रोटीन खाते और सहन करते हैं; वीगन सदस्यों के लिए डेयरी छोड़ें।"],
+          [/Calculate this protein only for assigned members, not for the whole family\./g, "इस प्रोटीन की मात्रा केवल चुने गए सदस्यों के लिए गिनें, पूरे परिवार के लिए नहीं।"],
+          [/Do not serve to vegetarian or vegan members\./g, "इसे शाकाहारी या वीगन सदस्यों को न परोसें।"],
+          [/Meal structure for this member:/g, "इस सदस्य के लिए भोजन संरचना:"],
+          [/Diet distribution:/g, "भोजन-पसंद वितरण:"],
+          [/Preferred structure: common base plus small dietary variations, not fully separate meals\./g, "पसंदीदा तरीका: साझा आधार और छोटे भोजन-भेद, पूरी तरह अलग-अलग भोजन नहीं।"],
           [/Rice can be replaced with millet, roti, or extra vegetables depending on the meal\./g, "भोजन के अनुसार चावल की जगह मिलेट, रोटी या अतिरिक्त सब्जियां ली जा सकती हैं।"],
           [/Paneer can be replaced with dal, soy, curd, egg, or chicken based on the family food pattern\./g, "परिवार के भोजन पैटर्न के अनुसार पनीर की जगह दाल, सोया, दही, अंडा या चिकन लिया जा सकता है।"],
           [/Curd can be skipped or replaced with a tolerated side when dairy is unsuitable\./g, "यदि डेयरी उपयुक्त नहीं है, तो दही छोड़ा जा सकता है या सहन होने वाली साइड डिश से बदला जा सकता है।"],
@@ -1212,6 +1402,19 @@ function translateCommonText(text: string, language: Exclude<OutputLanguage, "en
           [/Use the MAMA Family Table portions for each member\./g, "ಪ್ರತಿ ಸದಸ್ಯರಿಗೆ MAMA Family Table ಭಾಗಗಳನ್ನು ಬಳಸಿ."],
           [/Do not serve any listed allergy or never-include ingredient to the affected member\./g, "ಅಲರ್ಜಿ ಅಥವಾ ಎಂದಿಗೂ ಸೇರಿಸಬಾರದ ಪದಾರ್ಥವನ್ನು ಸಂಬಂಧಿತ ಸದಸ್ಯರಿಗೆ ಕೊಡಬೇಡಿ."],
           [/Keep curd, paneer, egg, chicken, and other optional protein add-ons separate when family preferences differ\./g, "ಕುಟುಂಬದ ಇಷ್ಟಗಳು ಬೇರೆಬೇರೆಯಾಗಿದ್ದರೆ ಮೊಸರು, ಪನೀರ್, ಮೊಟ್ಟೆ, ಚಿಕನ್ ಮತ್ತು ಇತರ ಐಚ್ಛಿಕ ಪ್ರೋಟೀನ್ ಸೇರಿಕೆಗಳನ್ನು ಪ್ರತ್ಯೇಕವಾಗಿ ಇಡಿ."],
+          [/Common breakfast base for everyone/g, "ಎಲ್ಲರಿಗೂ ಸಾಮಾನ್ಯ ಉಪಹಾರ ಬೇಸ್"],
+          [/Common family base for everyone/g, "ಎಲ್ಲರಿಗೂ ಸಾಮಾನ್ಯ ಕುಟುಂಬದ ಬೇಸ್"],
+          [/Vegetarian protein\/side option/g, "ಸಸ್ಯಾಹಾರಿ ಪ್ರೋಟೀನ್/ಸೈಡ್ ಆಯ್ಕೆ"],
+          [/Vegetarian or semi-vegetarian option/g, "ಸಸ್ಯಾಹಾರಿ ಅಥವಾ ಸೆಮಿ-ಸಸ್ಯಾಹಾರಿ ಆಯ್ಕೆ"],
+          [/Egg option for eligible members/g, "ಅರ್ಹ ಸದಸ್ಯರಿಗೆ ಮೊಟ್ಟೆ ಆಯ್ಕೆ"],
+          [/([A-Za-z ]+) option for non-vegetarian members/g, "ನಾನ್-ವೆಜ್ ತಿನ್ನುವ ಸದಸ್ಯರಿಗೆ $1 ಆಯ್ಕೆ"],
+          [/Prepare once for the full household; keep optional proteins separate\./g, "ಪೂರ್ಣ ಕುಟುಂಬಕ್ಕೆ ಒಂದೇ ಬಾರಿ ತಯಾರಿಸಿ; ಐಚ್ಛಿಕ ಪ್ರೋಟೀನ್‌ಗಳನ್ನು ಪ್ರತ್ಯೇಕವಾಗಿ ಇಡಿ."],
+          [/Serve only to members who eat and tolerate dairy\/vegetarian protein; skip dairy for vegan members\./g, "ಡೈರಿ/ಸಸ್ಯಾಹಾರಿ ಪ್ರೋಟೀನ್ ತಿನ್ನುವ ಮತ್ತು ಸಹಿಸುವ ಸದಸ್ಯರಿಗೆ ಮಾತ್ರ ನೀಡಿ; ವೀಗನ್ ಸದಸ್ಯರಿಗೆ ಡೈರಿ ಬಿಡಿ."],
+          [/Calculate this protein only for assigned members, not for the whole family\./g, "ಈ ಪ್ರೋಟೀನ್ ಪ್ರಮಾಣವನ್ನು ನಿಯೋಜಿಸಿದ ಸದಸ್ಯರಿಗೆ ಮಾತ್ರ ಲೆಕ್ಕಿಸಿ, ಪೂರ್ಣ ಕುಟುಂಬಕ್ಕೆ ಅಲ್ಲ."],
+          [/Do not serve to vegetarian or vegan members\./g, "ಇದನ್ನು ಸಸ್ಯಾಹಾರಿ ಅಥವಾ ವೀಗನ್ ಸದಸ್ಯರಿಗೆ ನೀಡಬೇಡಿ."],
+          [/Meal structure for this member:/g, "ಈ ಸದಸ್ಯರ ಊಟದ ರಚನೆ:"],
+          [/Diet distribution:/g, "ಆಹಾರ-ಪಸಂದಿನ ಹಂಚಿಕೆ:"],
+          [/Preferred structure: common base plus small dietary variations, not fully separate meals\./g, "ಆದ್ಯತೆ: ಸಾಮಾನ್ಯ ಬೇಸ್ ಮತ್ತು ಸಣ್ಣ ಆಹಾರ ವ್ಯತ್ಯಾಸಗಳು, ಸಂಪೂರ್ಣ ಬೇರೆಬೇರೆ ಊಟವಲ್ಲ."],
           [/Rice can be replaced with millet, roti, or extra vegetables depending on the meal\./g, "ಊಟಕ್ಕೆ ಅನುಗುಣವಾಗಿ ಅಕ್ಕಿಗೆ ಬದಲು ಮಿಲ್ಲೆಟ್, ರೊಟ್ಟಿ ಅಥವಾ ಹೆಚ್ಚುವರಿ ತರಕಾರಿಗಳನ್ನು ಬಳಸಬಹುದು."],
           [/Paneer can be replaced with dal, soy, curd, egg, or chicken based on the family food pattern\./g, "ಕುಟುಂಬದ ಆಹಾರ ಪದ್ಧತಿಗೆ ಅನುಗುಣವಾಗಿ ಪನೀರ್‌ಗೆ ಬದಲು ದಾಲ್, ಸೋಯಾ, ಮೊಸರು, ಮೊಟ್ಟೆ ಅಥವಾ ಚಿಕನ್ ಬಳಸಬಹುದು."],
           [/Curd can be skipped or replaced with a tolerated side when dairy is unsuitable\./g, "ಡೈರಿ ಸೂಕ್ತವಲ್ಲದಿದ್ದರೆ ಮೊಸರನ್ನು ಬಿಡಬಹುದು ಅಥವಾ ಸಹಿಸುವ ಸೈಡ್ ಡಿಶ್‌ನಿಂದ ಬದಲಾಯಿಸಬಹುದು."],
@@ -1300,6 +1503,12 @@ export class AIService {
         regionFit: translateText(plan.commonMeal.regionFit, language) ?? plan.commonMeal.regionFit,
         nutritionIntent: translateText(plan.commonMeal.nutritionIntent, language) ?? plan.commonMeal.nutritionIntent,
         ingredients: plan.commonMeal.ingredients.map((ingredient) => localizeIngredient(ingredient, language)),
+        components: plan.commonMeal.components?.map((component) => ({
+          ...component,
+          label: translateText(component.label, language) ?? component.label,
+          ingredients: component.ingredients.map((ingredient) => localizeIngredient(ingredient, language)),
+          notes: component.notes.map((note) => translateText(note, language) ?? note)
+        })),
         nutritionEstimate: {
           ...plan.commonMeal.nutritionEstimate,
           basis: translateText(plan.commonMeal.nutritionEstimate.basis, language) ?? plan.commonMeal.nutritionEstimate.basis,
@@ -1384,12 +1593,19 @@ export class AIService {
     const mealId = createId(input.replacement ? "replacement-meal" : "meal");
     const commonMeal = mealForTime(input, mealId);
     const attendance = mealAttendanceFor(input, commonMeal.mealTime);
-    const mealIngredientRequirements = quantityPlanningService.mealRequirements(
-      commonMeal.mealTime,
-      commonMeal.ingredients,
-      attendance,
-      input.members
-    );
+    const mealIngredientRequirements = commonMeal.components?.length
+      ? quantityPlanningService.componentMealRequirements(
+          commonMeal.mealTime,
+          commonMeal.components,
+          attendance,
+          input.members
+        )
+      : quantityPlanningService.mealRequirements(
+          commonMeal.mealTime,
+          commonMeal.ingredients,
+          attendance,
+          input.members
+        );
     const fastingMealRequirements = quantityPlanningService.fastingRequirements(commonMeal.mealTime, attendance, input.members);
     const dailyGroceryRequirements = quantityPlanningService.consolidate(mealIngredientRequirements);
     const groceryItems = quantityPlanningService.groceryFromRequirements(dailyGroceryRequirements);
@@ -1446,6 +1662,7 @@ export class AIService {
     const isSenior = member.age > 65 || member.specialStatuses.some((status) => status.toLowerCase().includes("senior"));
     const highActivity = member.activityLevel === "heavy" || member.activityLevel === "athlete";
     const ageActivityPortion = memberPortionLabel(member);
+    const componentGuidance = componentGuidanceForMember(commonMeal, member);
     const nonVegRuleNote =
       member.dietType === "non_vegetarian" || member.dietType === "eggitarian"
         ? ` Saved non-veg pattern: ${member.nonVegFrequency?.replaceAll("_", " ") ?? "not specified"}${
@@ -1472,7 +1689,7 @@ export class AIService {
         modification: hardConflicts.length
           ? `Do not serve the conflicting item(s): ${conflicts}. Use a safe dal, roti, vegetable, curd-free, egg-free, or protein alternative based on the specific restriction.`
           : softDislikeGuidance,
-        portionGuidance: `Serve a ${ageActivityPortion} only after the conflicting item is removed or replaced.${nonVegRuleNote}`,
+        portionGuidance: `Serve a ${ageActivityPortion} only after the conflicting item is removed or replaced.${componentGuidance}${nonVegRuleNote}`,
         safetyNotes
       };
     }
@@ -1482,7 +1699,7 @@ export class AIService {
         memberId: member.memberId,
         memberName: member.name,
         modification: replacement ? "Use more sambar vegetables, moderate dosa count, and avoid sweet beverages." : "Keep khichdi grain portion controlled and add extra vegetables and curd.",
-        portionGuidance: replacement ? `2 medium dosas with 1.5 cups sambar and unsweetened curd; adjust as a ${ageActivityPortion}.` : `1 medium bowl khichdi, 1 cup vegetables, and 0.5 cup curd; adjust as a ${ageActivityPortion}.`,
+        portionGuidance: replacement ? `2 medium dosas with 1.5 cups sambar and unsweetened curd; adjust as a ${ageActivityPortion}.${componentGuidance}` : `1 medium bowl khichdi, 1 cup vegetables, and 0.5 cup curd; adjust as a ${ageActivityPortion}.${componentGuidance}`,
         safetyNotes: ["Diabetes-aware portion guidance; follow doctor-provided carbohydrate instructions if stricter.", ...safetyNotes]
       };
     }
@@ -1492,7 +1709,7 @@ export class AIService {
         memberId: member.memberId,
         memberName: member.name,
         modification: replacement ? "Serve dosa softer with extra sambar, less spice, and small pieces." : "Cook khichdi softer with mild spices and extra moisture.",
-        portionGuidance: replacement ? `1 soft dosa with 1 cup sambar, served warm and easy to chew; ${ageActivityPortion}.` : `1 small soft bowl with curd if tolerated; ${ageActivityPortion}.`,
+        portionGuidance: replacement ? `1 soft dosa with 1 cup sambar, served warm and easy to chew; ${ageActivityPortion}.${componentGuidance}` : `1 small soft bowl with curd if tolerated; ${ageActivityPortion}.${componentGuidance}`,
         safetyNotes: ["Watch chewing comfort and digestion.", ...safetyNotes]
       };
     }
@@ -1502,7 +1719,7 @@ export class AIService {
         memberId: member.memberId,
         memberName: member.name,
         modification: replacement ? "Add paneer side and extra sambar dal for protein support." : "Add paneer or extra dal topping for protein support.",
-        portionGuidance: replacement ? `3 dosas, 2 cups sambar, and paneer side; ${ageActivityPortion}.` : `Larger serving of the common meal with extra dal or suitable protein side; ${ageActivityPortion}.`,
+        portionGuidance: replacement ? `3 dosas, 2 cups sambar, and paneer side; ${ageActivityPortion}.${componentGuidance}` : `Larger serving of the common meal with extra dal or suitable protein side; ${ageActivityPortion}.${componentGuidance}`,
         safetyNotes
       };
     }
@@ -1512,7 +1729,7 @@ export class AIService {
         memberId: member.memberId,
         memberName: member.name,
         modification: replacement ? "Serve smaller dosa pieces with mild sambar and curd." : "Serve mild khichdi with curd and colorful vegetables.",
-        portionGuidance: replacement ? `1 small dosa, 0.75 cup sambar, and curd; ${ageActivityPortion}.` : `Child-size serving of the common meal with curd if suitable; ${ageActivityPortion}.`,
+        portionGuidance: replacement ? `1 small dosa, 0.75 cup sambar, and curd; ${ageActivityPortion}.${componentGuidance}` : `Child-size serving of the common meal with curd if suitable; ${ageActivityPortion}.${componentGuidance}`,
         safetyNotes: ["Child nutrition needs are individualized; consult a pediatric professional for specific concerns.", ...safetyNotes]
       };
     }
@@ -1521,7 +1738,7 @@ export class AIService {
       memberId: member.memberId,
       memberName: member.name,
       modification: replacement ? "Regular family serving with balanced sambar and curd." : "Regular balanced portion with vegetables and curd.",
-      portionGuidance: replacement ? `2 dosas, 1.5 cups sambar, and 0.5 cup curd; ${ageActivityPortion}.${nonVegRuleNote}` : `Standard serving of the common meal with curd or suitable side; ${ageActivityPortion}.${nonVegRuleNote}`,
+      portionGuidance: replacement ? `2 dosas, 1.5 cups sambar, and 0.5 cup curd; ${ageActivityPortion}.${componentGuidance}${nonVegRuleNote}` : `Standard serving of the common meal with curd or suitable side; ${ageActivityPortion}.${componentGuidance}${nonVegRuleNote}`,
       safetyNotes
     };
   }
