@@ -521,11 +521,30 @@ export const mealTimeContextSchema = z.object({
   localHour: z.number().int().min(0).max(23).optional(),
 });
 
+const mealAttendanceEntrySchema = z.object({
+  mealTime: mealTimeSchema,
+  participatingMemberIds: z.array(z.string()),
+  absentMemberIds: z.array(z.string()).default([]),
+  fastingMemberIds: z.array(z.string()).default([]),
+  guestCount: z.number().int().nonnegative().default(0),
+  enabled: z.boolean().default(true),
+});
+
+const highTeaPreferenceSchema = z.object({
+  enabled: z.boolean(),
+  days: z.array(z.string()).default([]),
+  approximateTime: z.string().default("17:00"),
+  usualParticipantMemberIds: z.array(z.string()).default([]),
+  guestCount: z.number().int().nonnegative().default(0),
+});
+
 export const createMealPlanRequestSchema = z.object({
   familyId: z.string().min(1),
   planType: z.enum(["daily", "weekly", "monthly"]),
   mealTime: mealTimeSchema.optional(),
   mealTimeContext: mealTimeContextSchema.optional(),
+  mealAttendance: z.array(mealAttendanceEntrySchema).optional(),
+  highTeaPreference: highTeaPreferenceSchema.optional(),
   userPlanningMode: z
     .enum(["new_user_next_meal", "returning_user_weekly_editable"])
     .optional(),

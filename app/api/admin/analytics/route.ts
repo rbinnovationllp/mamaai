@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { adminErrorResponse, requireAdmin } from '@/lib/server/admin';
 
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.AWS_REGION || 'ap-south-1' }));
 
@@ -13,7 +14,10 @@ function round(value: number) {
   return Math.round(value * 100) / 100;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  try {
+    requireAdmin(request);
+
   const currentMonth = new Date().toISOString().slice(0, 7);
   const today = new Date().toISOString().split('T')[0];
 
@@ -79,4 +83,7 @@ export async function GET() {
       }
     }
   });
+  } catch (error) {
+    return adminErrorResponse(error);
+  }
 }

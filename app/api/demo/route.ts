@@ -6,19 +6,26 @@ import { store } from "@/lib/repositories/in-memory-store";
 
 export async function GET() {
   const nutritionContexts = new NutritionContextService().analyze(demoMembers);
+
+  if (!store.families.some((family) => family.familyId === demoFamily.familyId)) {
+    store.families.push(demoFamily);
+    store.members.push(...demoMembers);
+  }
+
   let mealPlan = store.mealPlans.find((plan) => plan.familyId === demoFamily.familyId);
 
   if (!mealPlan) {
-    mealPlan = new MealPlanningService().generate({
+    const generated = await new MealPlanningService().generate({
       familyId: demoFamily.familyId,
-      planType: "daily"
-    }).mealPlan;
+      planType: "daily",
+    });
+    mealPlan = generated.mealPlan;
   }
 
   return NextResponse.json({
     family: demoFamily,
     members: demoMembers,
     nutritionContexts,
-    mealPlan
+    mealPlan,
   });
 }

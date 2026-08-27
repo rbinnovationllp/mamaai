@@ -1,31 +1,83 @@
-// app/api/admin/metrics/route.ts
 import { NextResponse } from "next/server";
-import { docClient, TABLE_NAMES } from "@/lib/repositories/dynamo";
 import { ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { getMamaAiTableName, mamaAiDynamoDb } from "@/lib/repositories/dynamodb-client";
+import { adminErrorResponse, requireAdmin } from "@/lib/server/admin";
+import type { SubscriptionEntitlement } from "@/lib/shared/contracts";
 
-export async function GET() {
-    const [usersRes, plansRes, feedbackRes] = await Promise.all([
-        docClient.send(new ScanCommand({ TableName: TABLE_NAMES.USERS })),
-        docClient.send(new ScanCommand({ TableName: TABLE_NAMES.MEAL_PLANS, ProjectionExpression: "planId, createdAt" })),
-        docClient.send(new ScanCommand({ TableName: TABLE_NAMES.FEEDBACK, ProjectionExpression: "feedbackId, action" })),
-    ]);
+async function countByEntityType(entityType: string) {
+    const response = await mamaAiDynamoDb.send(
+        new ScanCommand({
+            TableName: getMamaAiTableName(),
+            Select: "COUNT",
+            FilterExpression: "entityType = :entityType",
+            ExpressionAttributeValues: {
+                ":entityType": entityType,
+            },
+        })
+    );
 
-    const users = usersRes.Items || [];
-    const now = new Date();
+    return response.Count ?? 0;
+}
 
-    const metrics = {
-        totalUsers: users.length,
-        activeTrials: users.filter(u => u.trialEndsAt && new Date(u.trialEndsAt) > now && u.subscriptionStatus !== "active").length,
-        expiredTrials: users.filter(u => u.trialEndsAt && new Date(u.trialEndsAt) <= now && u.subscriptionStatus !== "active").length,
-        subscribers: {
-            starter: users.filter(u => u.subscriptionStatus === "active" && u.subscriptionPlan === "starter").length,
-            premium: users.filter(u => u.subscriptionStatus === "active" && u.subscriptionPlan === "premium").length,
-            plus: users.filter(u => u.subscriptionStatus === "active" && u.subscriptionPlan === "plus").length,
-            cancelled: users.filter(u => u.subscriptionStatus === "cancelled").length,
-        },
-        mealPlansGenerated: plansRes.Count || 0,
-        feedbackActionsLogged: feedbackRes.Count || 0,
-    };
+async function listCurrentEntitlements() {
+    const response = await mamaAiDynamoDb.send(
+        new ScanCommand({
+            TableName: getMamaAiTableName(),
+            FilterExpression: "entityType = :entityType",
+            ExpressionAttributeValues: {
+                ":entityType": "current_entitlement",
+            },
+        })
+    );
 
-    return NextResponse.json(metrics);
+    return (response.Items ?? [])
+        .map((item) => item.record as SubscriptionEntitlement | undefined)
+        .filter((item): item is SubscriptionEntitlement => Boolean(item));
+}
+
+export async function GET(request: Request) {
+    try {
+        requireAdmin(request);
+
+        const [usersCount, plansCount, feedbackCount, entitlements] = await Promise.all([
+            countByEntityType("customer_account"),
+            countByEntityType("meal_plan"),
+            countByEntityType("family_learning_event"),
+            listCurrentEntitlements(),
+        ]);
+        const now = Date.now();
+        const isTrialing = (entitlement: SubscriptionEntitlement) =>
+            entitlement.status === "trialing" &&
+            (!entitlement.expiresAt || new Date(entitlement.expiresAt).getTime() > now);
+        const isExpiredTrial = (entitlement: SubscriptionEntitlement) =>
+            entitlement.status === "trialing" &&
+            Boolean(entitlement.expiresAt) &&
+            new Date(entitlement.expiresAt as string).getTime() <= now;
+        const isActivePlan = (entitlement: SubscriptionEntitlement, plan: string) =>
+            entitlement.isActive &&
+            entitlement.status === "active" &&
+            (entitlement.plan === plan || entitlement.plan === `family_${plan}`);
+
+        return NextResponse.json({
+            totalUsers: usersCount,
+            activeTrials: entitlements.filter(isTrialing).length,
+            expiredTrials: entitlements.filter(isExpiredTrial).length,
+            subscribers: {
+                starter: entitlements.filter((item) => isActivePlan(item, "starter")).length,
+                premium: entitlements.filter((item) => isActivePlan(item, "premium")).length,
+                plus: entitlements.filter((item) => isActivePlan(item, "plus") || item.plan === "family_plus").length,
+                cancelled: entitlements.filter((item) => item.status === "cancelled").length,
+            },
+            mealPlansGenerated: plansCount,
+            feedbackActionsLogged: feedbackCount,
+            storage: {
+                primaryDatabase: "DynamoDB single-table",
+                tableName: getMamaAiTableName(),
+                s3Active: false,
+                s3Note: "S3 environment references are reserved for future exports/media storage; core customer runtime uses DynamoDB.",
+            },
+        });
+    } catch (error) {
+        return adminErrorResponse(error);
+    }
 }

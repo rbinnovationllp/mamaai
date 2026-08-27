@@ -148,7 +148,7 @@ const plannerCopy = {
     missingTitle: 'पहले परिवार की प्रोफाइल पूरी करें',
     missingText:
       'कम से कम एक सदस्य, रिश्ता और कोई एलर्जी, डॉक्टर की पाबंदी या नापसंद जोड़ें। फिर भोजन योजना बनाने के लिए यहां लौटें।',
-    incompleteText: 'Portion-aware meal plan बनाने से पहले हर family member की उम्र पूरी करें।',
+    incompleteText: 'हिस्से के अनुसार भोजन योजना बनाने से पहले हर परिवार सदस्य की उम्र भरें।',
     completeProfile: 'परिवार प्रोफाइल पूरी करें',
     subscription: 'सब्सक्रिप्शन / ट्रायल चुनें',
     meal: 'कौन सा भोजन प्लान करना है',
@@ -156,7 +156,7 @@ const plannerCopy = {
     generating: 'पारिवारिक भोजन योजना बन रही है...',
     success: 'आज का पारिवारिक भोजन तैयार है।',
     noSubscription:
-      'अगर पेमेंट या ट्रायल पूरा नहीं है, तो पहले सब्सक्रिप्शन चुनें। जज सब्सक्रिप्शन पेज से evaluator access इस्तेमाल कर सकते हैं।',
+      'अगर भुगतान या ट्रायल पूरा नहीं है, तो पहले सब्सक्रिप्शन चुनें। जज सब्सक्रिप्शन पेज से मूल्यांकन एक्सेस इस्तेमाल कर सकते हैं।',
     subscriptionSuccess: 'सब्सक्रिप्शन सत्यापित हो गया है। अब आप अपने परिवार का भोजन प्लान बना सकते हैं।',
     pantryUsed: 'पैंट्री को ध्यान में रखा गया',
     alreadyInPantry: 'पैंट्री में पहले से है',
@@ -216,7 +216,7 @@ const plannerCopy = {
     missingTitle: 'ಮೊದಲು ಕುಟುಂಬದ ಪ್ರೊಫೈಲ್ ಪೂರ್ಣಗೊಳಿಸಿ',
     missingText:
       'ಕನಿಷ್ಠ ಒಬ್ಬ ಸದಸ್ಯ, ಸಂಬಂಧ ಮತ್ತು ಯಾವುದೇ ಅಲರ್ಜಿ, ವೈದ್ಯರ ನಿರ್ಬಂಧ ಅಥವಾ ಇಷ್ಟವಿಲ್ಲದ ಪದಾರ್ಥಗಳನ್ನು ಸೇರಿಸಿ. ನಂತರ ಊಟದ ಯೋಜನೆ ಮಾಡಲು ಇಲ್ಲಿ ಮರಳಿ ಬನ್ನಿ.',
-    incompleteText: 'Portion-aware meal plan ಮಾಡಲು ಮೊದಲು ಪ್ರತಿ family member ವಯಸ್ಸು ಪೂರ್ಣಗೊಳಿಸಿ.',
+    incompleteText: 'ಭಾಗಕ್ಕೆ ಅನುಗುಣವಾದ ಊಟದ ಯೋಜನೆ ಮಾಡಲು ಮೊದಲು ಪ್ರತಿ ಕುಟುಂಬ ಸದಸ್ಯರ ವಯಸ್ಸು ಭರ್ತಿ ಮಾಡಿ.',
     completeProfile: 'ಕುಟುಂಬದ ಪ್ರೊಫೈಲ್ ಪೂರ್ಣಗೊಳಿಸಿ',
     subscription: 'ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ / ಟ್ರಯಲ್ ಆಯ್ಕೆಮಾಡಿ',
     meal: 'ಯಾವ ಊಟವನ್ನು ಯೋಜಿಸಬೇಕು',
@@ -224,7 +224,7 @@ const plannerCopy = {
     generating: 'ಕುಟುಂಬದ ಊಟದ ಯೋಜನೆ ಸಿದ್ಧವಾಗುತ್ತಿದೆ...',
     success: 'ಇಂದಿನ ಕುಟುಂಬದ ಊಟ ಸಿದ್ಧವಾಗಿದೆ.',
     noSubscription:
-      'ಪಾವತಿ ಅಥವಾ ಟ್ರಯಲ್ ಪೂರ್ಣವಾಗಿರದಿದ್ದರೆ ಮೊದಲು ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಆಯ್ಕೆಮಾಡಿ. ಜಡ್ಜ್‌ಗಳು ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಪೇಜ್‌ನಿಂದ evaluator access ಬಳಸಬಹುದು.',
+      'ಪಾವತಿ ಅಥವಾ ಟ್ರಯಲ್ ಪೂರ್ಣವಾಗಿರದಿದ್ದರೆ ಮೊದಲು ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಆಯ್ಕೆಮಾಡಿ. ಜಡ್ಜ್‌ಗಳು ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಪೇಜ್‌ನಿಂದ ಮೌಲ್ಯಮಾಪನ ಪ್ರವೇಶ ಬಳಸಬಹುದು.',
     subscriptionSuccess: 'ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಪರಿಶೀಲಿಸಲಾಗಿದೆ. ಈಗ ನಿಮ್ಮ ಕುಟುಂಬದ ಊಟದ ಯೋಜನೆ ರಚಿಸಬಹುದು.',
     pantryUsed: 'ಪ್ಯಾಂಟ್ರಿಯನ್ನು ಪರಿಗಣಿಸಲಾಗಿದೆ',
     alreadyInPantry: 'ಈಗಾಗಲೇ ಪ್ಯಾಂಟ್ರಿಯಲ್ಲಿದೆ',
@@ -437,6 +437,16 @@ function difficultyLabel(value: FamilyMealPlan['commonMeal']['difficulty'], labe
   return labels[value] ?? value;
 }
 
+function videoLanguageLabel(value: string | undefined, language: string) {
+  if (!value) return '';
+  const labels: Record<string, Record<string, string>> = {
+    en: { en: 'English', hi: 'Hindi', kn: 'Kannada' },
+    hi: { en: 'अंग्रेजी', hi: 'हिन्दी', kn: 'कन्नड़' },
+    kn: { en: 'ಇಂಗ್ಲಿಷ್', hi: 'ಹಿಂದಿ', kn: 'ಕನ್ನಡ' },
+  };
+  return labels[language]?.[value] ?? value;
+}
+
 function normalizeName(value: string) {
   return value
     .toLowerCase()
@@ -504,11 +514,41 @@ function toComparableQuantity(amount: number, unit: string) {
   return { amount, unit: normalized, displayUnit: normalized };
 }
 
-function formatComparableQuantity(amount: number, unit: string) {
+function localizedUnit(unit: string, language: string) {
+  if (language === 'hi') {
+    return {
+      cup: 'कप',
+      bowl: 'कटोरी',
+      g: 'ग्राम',
+      kg: 'किलो',
+      ml: 'मिली',
+      l: 'लीटर',
+      piece: 'नग',
+      tsp: 'छोटा चम्मच',
+    }[unit] ?? unit;
+  }
+
+  if (language === 'kn') {
+    return {
+      cup: 'ಕಪ್',
+      bowl: 'ಬೌಲ್',
+      g: 'ಗ್ರಾಂ',
+      kg: 'ಕೆಜಿ',
+      ml: 'ಮಿಲಿ',
+      l: 'ಲೀಟರ್',
+      piece: 'ನಗ',
+      tsp: 'ಚಿಕ್ಕ ಚಮಚ',
+    }[unit] ?? unit;
+  }
+
+  return unit;
+}
+
+function formatComparableQuantity(amount: number, unit: string, language = 'en') {
   const rounded = Math.round(amount * 100) / 100;
-  if (unit === 'g' && rounded >= 1000) return `${Math.round((rounded / 1000) * 100) / 100} kg`;
-  if (unit === 'ml' && rounded >= 1000) return `${Math.round((rounded / 1000) * 100) / 100} l`;
-  return `${rounded} ${unit}`;
+  if (unit === 'g' && rounded >= 1000) return `${Math.round((rounded / 1000) * 100) / 100} ${localizedUnit('kg', language)}`;
+  if (unit === 'ml' && rounded >= 1000) return `${Math.round((rounded / 1000) * 100) / 100} ${localizedUnit('l', language)}`;
+  return `${rounded} ${localizedUnit(unit, language)}`;
 }
 
 function pantrySummary(items: PantryItem[]) {
@@ -519,7 +559,7 @@ function pantrySummary(items: PantryItem[]) {
     .join('; ');
 }
 
-function adjustGroceryForPantry(plan: FamilyMealPlan, pantryItems: PantryItem[], alreadyInPantryLabel = 'Already in pantry'): FamilyMealPlan {
+function adjustGroceryForPantry(plan: FamilyMealPlan, pantryItems: PantryItem[], alreadyInPantryLabel = 'Already in pantry', language = 'en'): FamilyMealPlan {
   if (!pantryItems.length) return plan;
   const adjustedItems = plan.groceryItems.map((item) => {
     const required = parseQuantity(item.quantityToPurchase || item.quantity);
@@ -541,8 +581,11 @@ function adjustGroceryForPantry(plan: FamilyMealPlan, pantryItems: PantryItem[],
     const remaining = Math.max(0, requiredComparable.amount - pantryComparable.amount);
     return {
       ...item,
-      pantryQuantity: `${match.quantity} ${match.unit}`,
-      quantityToPurchase: remaining === 0 ? `0 - ${alreadyInPantryLabel}` : formatComparableQuantity(remaining, requiredComparable.displayUnit),
+      pantryQuantity: `${match.quantity} ${localizedUnit(normalizeUnit(match.unit), language)}`,
+      quantityToPurchase:
+        remaining === 0
+          ? `0 - ${alreadyInPantryLabel}`
+          : formatComparableQuantity(remaining, requiredComparable.displayUnit, language),
     };
   });
 
@@ -740,7 +783,7 @@ export default function PlannerPage() {
       const cacheKey = dailyPlanCacheKey({ userId, targetDate, mealTime: selectedMealTime, signature });
       const cachedMealPlan = readCachedMealPlan(cacheKey);
       if (cachedMealPlan) {
-        setMealPlan(adjustGroceryForPantry(cachedMealPlan, pantryItems, t.alreadyInPantry));
+        setMealPlan(adjustGroceryForPantry(cachedMealPlan, pantryItems, t.alreadyInPantry, language));
         setStatus(t.success);
         setIsGenerating(false);
         return;
@@ -885,7 +928,7 @@ export default function PlannerPage() {
         throw new Error(mealData.error?.message || 'Unable to generate family food plan.');
       }
 
-      const pantryAdjustedPlan = adjustGroceryForPantry(mealData.mealPlan, pantryItems, t.alreadyInPantry);
+      const pantryAdjustedPlan = adjustGroceryForPantry(mealData.mealPlan, pantryItems, t.alreadyInPantry, language);
       setMealPlan(pantryAdjustedPlan);
       writeCachedMealPlan(cacheKey, pantryAdjustedPlan);
       window.localStorage.setItem(LAST_PLAN_KEY, suggestedPlan);
@@ -1091,7 +1134,7 @@ export default function PlannerPage() {
                             {video.sponsored ? <span className="mb-1 block text-xs uppercase text-amber-700">{t.sponsoredVideo}</span> : null}
                             <span>{video.title}</span>
                             <small className="mt-1 block text-slate-600">
-                              {video.channelTitle} {video.language ? `| ${video.language}` : ''} |{' '}
+                              {video.channelTitle} {video.language ? `| ${videoLanguageLabel(video.language, language)}` : ''} |{' '}
                               {t.videoMatch[(video.matchQuality ?? video.source) as keyof typeof t.videoMatch] ??
                                 video.matchQuality ??
                                 video.source}
