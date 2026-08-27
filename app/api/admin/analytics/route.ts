@@ -74,7 +74,7 @@ export async function GET() {
         currentPricesLockedUntil: '2026-09-15',
         marginTargetPercent: 50,
         assumptions:
-          'Early estimate from app events. Keep pricing unchanged before 15 September 2026; use fair-use controls and compact prompts if usage rises.',
+          'Early estimate from AI-generation events, not meal views. A heavy family may open 4 meals/day, but same-day cache should keep this closer to 30 main planning sessions/month unless replacements are requested. Keep pricing unchanged before 15 September 2026; use fair-use controls, compact prompts and cached plans if usage rises.',
         planEconomics,
       }
     }

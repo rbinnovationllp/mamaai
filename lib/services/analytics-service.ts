@@ -95,10 +95,10 @@ function unitEconomicsSnapshot(input: {
       recipeVideos: input.recipeVideos,
     },
     assumptions:
-      "Early-stage estimate from tracked app events. Replace with provider billing exports once Gemini, AWS, Vercel and Razorpay invoices accumulate.",
+      "Early-stage estimate from tracked AI-generation events, not simple page views. A heavy family may view 4 meals/day, but cached same-day meal plans should keep this closer to 30 main planning sessions/month unless they request replacements.",
     currentPricesLockedUntil: "2026-09-15",
     promptCostControls:
-      "Use compact family context, deterministic repetition/pantry/grocery/routine logic, cached recipe-video mappings, and regenerate only affected dishes.",
+      "Use compact Family Food Intelligence context, deterministic repetition/pantry/grocery/routine logic, same-day meal-plan cache, cached recipe-video mappings, and regenerate only affected dishes.",
     plans,
     scenarios: [
       {

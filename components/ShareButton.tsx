@@ -2,7 +2,7 @@
 
 export function ShareButton({ familyName }: { familyName: string }) {
   const shareText = encodeURIComponent(
-    `रोज़ 'आज क्या बनाएं?' सोचते हैं? मैंने MAMAAI इस्तेमाल किया — यह पूरे परिवार की पसंद और जरूरत देखकर एक smart family meal plan बनाता है. Try it free for 3 days: https://www.mamaai.in`
+    `रोज़ 'आज क्या बनाएं?' सोचते हैं? मैंने MAMAAI इस्तेमाल किया — यह पूरे परिवार की पसंद और जरूरत देखकर एक smart family meal plan बनाता है. Try it free for 3 days: https://www.mamaai.in | Community launch support: https://www.sabsewa.in`
   );
 
   return (

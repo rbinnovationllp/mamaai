@@ -22,6 +22,7 @@ const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
 const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
 const CULTURE_STORAGE_KEY = 'mamaai_culture_profile_v1';
 const LAST_PLAN_KEY = 'mamaai_last_successful_plan';
+const DAILY_PLAN_CACHE_KEY = 'mamaai_daily_meal_plan_cache_v1';
 
 type HouseholdMember = {
   id: string;
@@ -390,6 +391,71 @@ function difficultyLabel(value: FamilyMealPlan['commonMeal']['difficulty'], labe
   return labels[value] ?? value;
 }
 
+function stableContextSignature(input: {
+  members: HouseholdMember[];
+  customer: CustomerAccount;
+  culture: CultureProfile;
+  language: string;
+}) {
+  return JSON.stringify({
+    language: input.language,
+    members: input.members.map((member) => ({
+      name: member.name,
+      relation: member.relation,
+      age: member.age,
+      foodPreference: member.foodPreference,
+      allergies: member.allergies ?? [],
+      restrictions: member.doctorAdvisedRestrictions ?? [],
+      dislikes: member.dislikes ?? [],
+      nonVegFrequency: member.nonVegFrequency,
+      nonVegAvoidDays: member.nonVegAvoidDays ?? [],
+    })),
+    householdFoodPreference: input.customer.householdFoodPreference,
+    cookingHabit: input.customer.cookingHabit,
+    mealTypePreferences: input.customer.mealTypePreferences ?? {},
+    recentMealHistory: input.customer.recentMealHistory ?? [],
+    weeklyFoodRoutineStatus: input.customer.weeklyFoodRoutineStatus,
+    weeklyFoodRoutine: input.customer.weeklyFoodRoutine ?? [],
+    nonVegPreferredFoods: input.customer.nonVegPreferredFoods ?? [],
+    culture: input.culture,
+  });
+}
+
+function dailyPlanCacheKey(input: {
+  userId: string;
+  targetDate: string;
+  mealTime: MealTime;
+  signature: string;
+}) {
+  return `${input.userId}|${input.targetDate}|${input.mealTime}|${input.signature}`;
+}
+
+function readCachedMealPlan(cacheKey: string): FamilyMealPlan | null {
+  try {
+    const raw = window.localStorage.getItem(DAILY_PLAN_CACHE_KEY);
+    if (!raw) return null;
+    const cache = JSON.parse(raw) as Record<string, { savedAt: string; mealPlan: FamilyMealPlan }>;
+    const entry = cache[cacheKey];
+    if (!entry?.mealPlan) return null;
+    const ageMs = Date.now() - new Date(entry.savedAt).getTime();
+    return ageMs < 24 * 60 * 60 * 1000 ? entry.mealPlan : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedMealPlan(cacheKey: string, mealPlan: FamilyMealPlan) {
+  try {
+    const raw = window.localStorage.getItem(DAILY_PLAN_CACHE_KEY);
+    const cache = raw ? (JSON.parse(raw) as Record<string, { savedAt: string; mealPlan: FamilyMealPlan }>) : {};
+    const nextCache = Object.fromEntries(Object.entries(cache).slice(-24));
+    nextCache[cacheKey] = { savedAt: new Date().toISOString(), mealPlan };
+    window.localStorage.setItem(DAILY_PLAN_CACHE_KEY, JSON.stringify(nextCache));
+  } catch {
+    // Caching saves cost but should never block meal planning.
+  }
+}
+
 export default function PlannerPage() {
   const { language } = useLanguage();
   const t = plannerCopy[language] ?? plannerCopy.en;
@@ -448,6 +514,15 @@ export default function PlannerPage() {
     try {
       const userId = customer.userId || `customer_${Date.now()}`;
       const targetDate = todayLocalDate();
+      const signature = stableContextSignature({ members, customer, culture, language });
+      const cacheKey = dailyPlanCacheKey({ userId, targetDate, mealTime: selectedMealTime, signature });
+      const cachedMealPlan = readCachedMealPlan(cacheKey);
+      if (cachedMealPlan) {
+        setMealPlan(cachedMealPlan);
+        setStatus(t.success);
+        setIsGenerating(false);
+        return;
+      }
       const country = culture.country?.trim() || 'India';
       const region = culture.region?.trim() || 'Karnataka';
       const city = culture.city?.trim() || region;
@@ -586,6 +661,13 @@ export default function PlannerPage() {
       }
 
       setMealPlan(mealData.mealPlan);
+      writeCachedMealPlan(cacheKey, mealData.mealPlan);
+      window.localStorage.setItem(LAST_PLAN_KEY, suggestedPlan);
+      setLastPlan(suggestedPlan);
+      trackAnalyticsEvent('meal_plan_generated', {
+        category: suggestedPlan,
+        label: selectedMealTime,
+      });
       setStatus(t.success);
     } catch (err) {
       setStatus('');
