@@ -39,6 +39,14 @@ interface StoreState {
   subscriptionRecords: SubscriptionRecord[];
   paymentTransactions: PaymentTransaction[];
   analyticsEvents: AnalyticsEvent[];
+  feedbackEvents: Array<{
+    feedbackId: string;
+    mealPlanId: string;
+    memberId?: string;
+    rating: string;
+    notes?: string;
+    createdAt: string;
+  }>;
 }
 
 const globalForStore = globalThis as typeof globalThis & { mamaAiStore?: StoreState };
@@ -50,7 +58,8 @@ export const store: StoreState = globalForStore.mamaAiStore ?? {
   mealPlans: [],
   subscriptionRecords: [],
   paymentTransactions: [],
-  analyticsEvents: []
+  analyticsEvents: [],
+  feedbackEvents: []
 };
 
 globalForStore.mamaAiStore = store;

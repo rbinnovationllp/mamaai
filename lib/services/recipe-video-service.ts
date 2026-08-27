@@ -129,43 +129,43 @@ function localText(language: "en" | "hi" | "kn", key: string, fallback: string) 
     thirdPartyDisclaimer:
       "बाहरी recipe videos third-party content हैं। जब तक reviewed mark न हो, MAMAAI ने video को medical या nutrition रूप से verify नहीं किया है।",
     approvedDisclaimer:
-      "MAMAAI approved recipe-video mapping। खाना बनाने से पहले ingredients को अपनी saved family restrictions से जरूर मिलाकर जांचें।",
+      "MAMAAI का स्वीकृत रेसिपी-वीडियो मिलान। खाना बनाने से पहले सामग्री को अपनी सेव की हुई पारिवारिक पाबंदियों से जरूर मिलाकर जांचें।",
     sponsoredDisclaimer:
-      "Sponsored Recipe Video / Paid Promotion। MAMAAI paid placements को साफ label करता है; ingredients को saved family restrictions से जरूर जांचें।",
+      "प्रायोजित रेसिपी वीडियो / पेड प्रमोशन। MAMAAI पेड प्लेसमेंट को साफ दिखाता है; सामग्री को सेव की हुई पारिवारिक पाबंदियों से जरूर जांचें।",
     curatedSearch: "चुनी हुई YouTube खोज",
     youtubeSearch: "YouTube खोज",
-    sponsoredTitle: "Sponsored Recipe Video",
-    approvedTitle: "Approved Recipe Video",
+    sponsoredTitle: "प्रायोजित रेसिपी वीडियो",
+    approvedTitle: "स्वीकृत रेसिपी वीडियो",
     watchTitle: "रेसिपी वीडियो देखें",
-    approvedStatus: "Approved Recipe Video",
-    approvedSponsoredStatus: "Approved / Sponsored Recipe Video",
+    approvedStatus: "स्वीकृत रेसिपी वीडियो",
+    approvedSponsoredStatus: "स्वीकृत / प्रायोजित रेसिपी वीडियो",
     storedMappingNote:
-      "Saved approved recipe-video mapping पहले इस्तेमाल की गई है। Sponsored placement होने पर उसे साफ label किया जाता है।",
-    searchStatus: "YouTube Video Search Link",
-    searchNote: "Testing mode के लिए सीधा YouTube search link दिया गया है। Written recipe भी उपलब्ध है।",
-    fallbackStatus: "Demo/Test Fallback",
-    quotaNote: "YouTube API quota या error आया; safe YouTube link दिया गया है। Written recipe भी उपलब्ध है।",
+      "सेव किया हुआ स्वीकृत रेसिपी-वीडियो मिलान पहले इस्तेमाल किया गया है। प्रायोजित वीडियो होने पर उसे साफ लिखा जाएगा।",
+    searchStatus: "YouTube वीडियो खोज लिंक",
+    searchNote: "टेस्ट मोड के लिए सीधा YouTube खोज लिंक दिया गया है। लिखी हुई रेसिपी भी उपलब्ध है।",
+    fallbackStatus: "डेमो/टेस्ट वैकल्पिक खोज",
+    quotaNote: "YouTube API सीमा या त्रुटि आई है; सुरक्षित YouTube लिंक दिया गया है। लिखी हुई रेसिपी भी उपलब्ध है।",
   };
   const kn: Record<string, string> = {
     thirdPartyDisclaimer:
       "ಹೊರಗಿನ recipe videos third-party content ಆಗಿವೆ. Reviewed ಎಂದು ಸ್ಪಷ್ಟವಾಗಿ ಗುರುತಿಸದಿದ್ದರೆ MAMAAI ಆ video ಅನ್ನು medical ಅಥವಾ nutrition ದೃಷ್ಟಿಯಿಂದ verify ಮಾಡಿಲ್ಲ.",
     approvedDisclaimer:
-      "MAMAAI approved recipe-video mapping. ಅಡುಗೆ ಮಾಡುವ ಮೊದಲು ingredients ಅನ್ನು ನಿಮ್ಮ saved family restrictions ಜೊತೆ ಪರಿಶೀಲಿಸಿ.",
+      "MAMAAI ಅನುಮೋದಿತ ರೆಸಿಪಿ-ವಿಡಿಯೋ ಹೊಂದಾಣಿಕೆ. ಅಡುಗೆ ಮಾಡುವ ಮೊದಲು ಪದಾರ್ಥಗಳನ್ನು ನಿಮ್ಮ ಉಳಿಸಿದ ಕುಟುಂಬ ನಿರ್ಬಂಧಗಳೊಂದಿಗೆ ಪರಿಶೀಲಿಸಿ.",
     sponsoredDisclaimer:
-      "Sponsored Recipe Video / Paid Promotion. MAMAAI paid placements ಅನ್ನು ಸ್ಪಷ್ಟವಾಗಿ label ಮಾಡುತ್ತದೆ; ingredients ಅನ್ನು saved family restrictions ಜೊತೆ ಪರಿಶೀಲಿಸಿ.",
+      "ಪ್ರಾಯೋಜಿತ ರೆಸಿಪಿ ವಿಡಿಯೋ / ಪೇಡ್ ಪ್ರಮೋಶನ್. MAMAAI ಪೇಡ್ ಪ್ಲೇಸ್ಮೆಂಟ್‌ಗಳನ್ನು ಸ್ಪಷ್ಟವಾಗಿ ತೋರಿಸುತ್ತದೆ; ಪದಾರ್ಥಗಳನ್ನು ಉಳಿಸಿದ ಕುಟುಂಬ ನಿರ್ಬಂಧಗಳೊಂದಿಗೆ ಪರಿಶೀಲಿಸಿ.",
     curatedSearch: "ಆಯ್ದ YouTube ಹುಡುಕಾಟ",
     youtubeSearch: "YouTube ಹುಡುಕಾಟ",
-    sponsoredTitle: "Sponsored Recipe Video",
-    approvedTitle: "Approved Recipe Video",
+    sponsoredTitle: "ಪ್ರಾಯೋಜಿತ ರೆಸಿಪಿ ವಿಡಿಯೋ",
+    approvedTitle: "ಅನುಮೋದಿತ ರೆಸಿಪಿ ವಿಡಿಯೋ",
     watchTitle: "ರೆಸಿಪಿ ವಿಡಿಯೋ ನೋಡಿ",
-    approvedStatus: "Approved Recipe Video",
-    approvedSponsoredStatus: "Approved / Sponsored Recipe Video",
+    approvedStatus: "ಅನುಮೋದಿತ ರೆಸಿಪಿ ವಿಡಿಯೋ",
+    approvedSponsoredStatus: "ಅನುಮೋದಿತ / ಪ್ರಾಯೋಜಿತ ರೆಸಿಪಿ ವಿಡಿಯೋ",
     storedMappingNote:
-      "Saved approved recipe-video mapping ಮೊದಲು ಬಳಸಲಾಗಿದೆ. Sponsored placement ಇದ್ದರೆ ಅದನ್ನು ಸ್ಪಷ್ಟವಾಗಿ label ಮಾಡಲಾಗುತ್ತದೆ.",
-    searchStatus: "YouTube Video Search Link",
-    searchNote: "Testing modeಗಾಗಿ ನೇರ YouTube search link ನೀಡಲಾಗಿದೆ. Written recipe ಕೂಡ ಲಭ್ಯವಿದೆ.",
-    fallbackStatus: "Demo/Test Fallback",
-    quotaNote: "YouTube API quota ಅಥವಾ error ಬಂದಿದೆ; safe YouTube link ನೀಡಲಾಗಿದೆ. Written recipe ಕೂಡ ಲಭ್ಯವಿದೆ.",
+      "ಉಳಿಸಿದ ಅನುಮೋದಿತ ರೆಸಿಪಿ-ವಿಡಿಯೋ ಹೊಂದಾಣಿಕೆಯನ್ನು ಮೊದಲು ಬಳಸಲಾಗಿದೆ. ಪ್ರಾಯೋಜಿತ ವಿಡಿಯೋ ಇದ್ದರೆ ಅದನ್ನು ಸ್ಪಷ್ಟವಾಗಿ ತೋರಿಸಲಾಗುತ್ತದೆ.",
+    searchStatus: "YouTube ವಿಡಿಯೋ ಹುಡುಕಾಟ ಲಿಂಕ್",
+    searchNote: "ಟೆಸ್ಟ್ ಮೋಡ್‌ಗೆ ನೇರ YouTube ಹುಡುಕಾಟ ಲಿಂಕ್ ನೀಡಲಾಗಿದೆ. ಬರಹದ ರೆಸಿಪಿಯೂ ಲಭ್ಯವಿದೆ.",
+    fallbackStatus: "ಡೆಮೋ/ಟೆಸ್ಟ್ ಪರ್ಯಾಯ ಹುಡುಕಾಟ",
+    quotaNote: "YouTube API ಮಿತಿ ಅಥವಾ ದೋಷ ಬಂದಿದೆ; ಸುರಕ್ಷಿತ YouTube ಲಿಂಕ್ ನೀಡಲಾಗಿದೆ. ಬರಹದ ರೆಸಿಪಿಯೂ ಲಭ್ಯವಿದೆ.",
   };
   return (language === "hi" ? hi[key] : kn[key]) ?? fallback;
 }
@@ -335,3 +335,6 @@ export class RecipeVideoService {
     }
   }
 }
+
+
+

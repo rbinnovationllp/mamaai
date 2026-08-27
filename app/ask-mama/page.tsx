@@ -16,6 +16,7 @@ interface ChatMessage {
 
 const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
 const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
+const PANTRY_STORAGE_KEY = 'mamaai_pantry_items_v1';
 
 export default function HomePage() {
   const { language } = useLanguage();
@@ -51,14 +52,30 @@ export default function HomePage() {
     try {
       const members = JSON.parse(window.localStorage.getItem(HOUSEHOLD_STORAGE_KEY) || '[]');
       const customer = JSON.parse(window.localStorage.getItem(CUSTOMER_STORAGE_KEY) || '{}');
+      const pantry = JSON.parse(window.localStorage.getItem(PANTRY_STORAGE_KEY) || '[]');
       setProfileContext({
         householdFoodPreference: customer.householdFoodPreference,
         cookingHabit: customer.cookingHabit,
+        mealTypePreferences: customer.mealTypePreferences,
+        recentMealHistory: customer.recentMealHistory,
+        weeklyFoodRoutine: customer.weeklyFoodRoutine,
+        nonVegPreferredFoods: customer.nonVegPreferredFoods,
+        pantryItems: Array.isArray(pantry)
+          ? pantry.slice(0, 20).map((item) => ({
+              name: item.name,
+              quantity: item.quantity,
+              unit: item.unit,
+              expiryDate: item.expiryDate,
+            }))
+          : [],
         members: Array.isArray(members)
           ? members.map((member) => ({
               name: member.name,
               relation: member.relation,
+              age: member.age,
               foodPreference: member.foodPreference,
+              nonVegFrequency: member.nonVegFrequency,
+              nonVegAvoidDays: member.nonVegAvoidDays,
               allergies: member.allergies,
               doctorAdvisedRestrictions: member.doctorAdvisedRestrictions,
               dislikes: member.dislikes,

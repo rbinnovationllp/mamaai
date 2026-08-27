@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AppPageNav } from '@/components/AppPageNav';
 import { LanguageSelector, useLanguage } from '@/components/LanguageProvider';
 import { VoiceTextInput } from '@/components/VoiceTextInput';
@@ -50,6 +50,8 @@ const pantryCopy = {
   },
 };
 
+const PANTRY_STORAGE_KEY = 'mamaai_pantry_items_v1';
+
 interface PantryItem {
   id: string;
   name: string;
@@ -71,6 +73,27 @@ export default function PantryPage() {
   const [filter, setFilter] = useState<'available' | 'low' | 'expiry' | 'out'>('available');
   const [showModal, setShowModal] = useState(false);
   const [newItem, setNewItem] = useState({ name: '', category: 'Vegetables', quantity: 1, unit: 'kg', minStock: 1, expiryDate: '' });
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(PANTRY_STORAGE_KEY);
+      if (!saved) return;
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        setItems(parsed.filter((item) => item?.name));
+      }
+    } catch {
+      // Keep starter pantry items if local storage is unavailable.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(PANTRY_STORAGE_KEY, JSON.stringify(items));
+    } catch {
+      // Pantry persistence is helpful, but the page should still work without it.
+    }
+  }, [items]);
 
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();

@@ -5,6 +5,10 @@ import { useLanguage } from '@/components/LanguageProvider';
 import { VoiceTextInput } from '@/components/VoiceTextInput';
 import { askMamaCopy } from '@/lib/i18n';
 
+const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
+const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
+const PANTRY_STORAGE_KEY = 'mamaai_pantry_items_v1';
+
 export interface ChatMessage {
   id: string;
   sender: 'user' | 'mama';
@@ -31,6 +35,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo, compact = false }: Ask
   ]);
   const [inputMessage, setInputMessage] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [profileContext, setProfileContext] = useState<unknown>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = (): void => {
@@ -48,6 +53,45 @@ export function AskMamaWidget({ onStartFamily, onTryDemo, compact = false }: Ask
         : current
     );
   }, [t.welcome]);
+
+  useEffect(() => {
+    try {
+      const members = JSON.parse(window.localStorage.getItem(HOUSEHOLD_STORAGE_KEY) || '[]');
+      const customer = JSON.parse(window.localStorage.getItem(CUSTOMER_STORAGE_KEY) || '{}');
+      const pantry = JSON.parse(window.localStorage.getItem(PANTRY_STORAGE_KEY) || '[]');
+      setProfileContext({
+        householdFoodPreference: customer.householdFoodPreference,
+        cookingHabit: customer.cookingHabit,
+        mealTypePreferences: customer.mealTypePreferences,
+        recentMealHistory: customer.recentMealHistory,
+        weeklyFoodRoutine: customer.weeklyFoodRoutine,
+        nonVegPreferredFoods: customer.nonVegPreferredFoods,
+        pantryItems: Array.isArray(pantry)
+          ? pantry.slice(0, 20).map((item) => ({
+              name: item.name,
+              quantity: item.quantity,
+              unit: item.unit,
+              expiryDate: item.expiryDate,
+            }))
+          : [],
+        members: Array.isArray(members)
+          ? members.map((member) => ({
+              name: member.name,
+              relation: member.relation,
+              age: member.age,
+              foodPreference: member.foodPreference,
+              nonVegFrequency: member.nonVegFrequency,
+              nonVegAvoidDays: member.nonVegAvoidDays,
+              allergies: member.allergies,
+              doctorAdvisedRestrictions: member.doctorAdvisedRestrictions,
+              dislikes: member.dislikes,
+            }))
+          : [],
+      });
+    } catch {
+      setProfileContext(null);
+    }
+  }, []);
 
   const handleSendMessage = async (textToSend?: string): Promise<void> => {
     const query = (textToSend || inputMessage).trim();
@@ -80,6 +124,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo, compact = false }: Ask
           history,
           isJudgeMode: true,
           language,
+          profileContext,
         }),
       });
 

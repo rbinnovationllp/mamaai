@@ -147,6 +147,16 @@ function chickenDalIngredients(): Ingredient[] {
   ];
 }
 
+function fishRiceIngredients(): Ingredient[] {
+  return [
+    { name: "Fish", quantity: "650 g", category: "protein", estimatedCost: money(260) },
+    { name: "Rice", quantity: "1.5 cups", category: "grains", estimatedCost: money(55) },
+    { name: "Moong dal", quantity: "1 cup", category: "pulses", estimatedCost: money(40) },
+    { name: "Mixed vegetables", quantity: "4 cups", category: "vegetables", estimatedCost: money(110) },
+    { name: "Curd", quantity: "500 g", category: "dairy", estimatedCost: money(60) }
+  ];
+}
+
 function mixedFamilyIngredients(): Ingredient[] {
   return [
     { name: "Masoor dal", quantity: "1.5 cups", category: "pulses", estimatedCost: money(65) },
@@ -228,6 +238,27 @@ function preferenceIncludes(input: GeneratePlanInput, mealTime: MealTime, patter
   return patterns.some((pattern) => text.includes(pattern));
 }
 
+function familyNotesText(input: GeneratePlanInput) {
+  return input.family.localIngredientAvailabilityNotes?.join(" ").toLowerCase() ?? "";
+}
+
+function cookingHabitFor(input: GeneratePlanInput) {
+  const text = familyNotesText(input);
+  if (text.includes("ready-made") || text.includes("frozen")) return "ready_frozen";
+  if (text.includes("takeaway") || text.includes("prepared meals")) return "takeaway_prepared";
+  if (text.includes("mix of fresh cooking")) return "fresh_ready_mix";
+  return "fresh_home_cooked";
+}
+
+function preferredNonVegText(input: GeneratePlanInput) {
+  return (input.family.nonVegPreferredFoods ?? []).join(" ").toLowerCase();
+}
+
+function preferredNonVegIncludes(input: GeneratePlanInput, values: string[]) {
+  const text = preferredNonVegText(input);
+  return values.some((value) => text.includes(value));
+}
+
 function recentMealsFor(input: GeneratePlanInput, mealTime: MealTime) {
   const slot = mealSlotForMealTime(mealTime);
   return input.family.recentMealHistory?.map((entry) => entry[slot]?.toLowerCase().trim()).filter(Boolean) ?? [];
@@ -245,6 +276,21 @@ function weeklyRoutinePrefersVegetarianBase(input: GeneratePlanInput) {
     preference === "vegan" ||
     preference === "light_meal" ||
     preference === "fasting_vrat"
+  );
+}
+
+function avoidsNonVegToday(input: GeneratePlanInput) {
+  const preference = weeklyRoutinePreferenceFor(input);
+  const weekday = localWeekday(input.targetDate);
+  return (
+    preference === "vegetarian" ||
+    preference === "vegan" ||
+    preference === "light_meal" ||
+    preference === "fasting_vrat" ||
+    input.members.some((member) => {
+      if (member.dietType !== "non_vegetarian" && member.dietType !== "eggitarian") return false;
+      return member.nonVegAvoidDays?.map((day) => day.toLowerCase()).includes(weekday) ?? false;
+    })
   );
 }
 
@@ -505,22 +551,65 @@ function mealForDiet(input: GeneratePlanInput, mealId: string, mealTime: MealTim
     };
   }
 
+  if ((dietPreference === "non_vegetarian" || dietPreference === "eggetarian") && avoidsNonVegToday(input)) {
+    return {
+      mealId,
+      name: "Family Dal-Roti-Sabzi with Curd",
+      mealTime,
+      description: "A vegetarian common family meal for a saved no-non-veg day, with portions adjusted for each member.",
+      ingredients: rotiDalIngredients(),
+      prepTimeMinutes: 35,
+      difficulty: "easy",
+      regionFit,
+      nutritionIntent: "Saved weekly routine or member avoid-day says no non-vegetarian food today, so the common base avoids meat, fish and eggs unless the user explicitly overrides this meal.",
+      nutritionEstimate: estimateForDiet("vegetarian", mealTime)
+    };
+  }
+
   if ((dietPreference === "non_vegetarian" || dietPreference === "eggetarian") && prefersVegetarianBaseToday(input)) {
     return {
       mealId,
       name: "Family Dal-Roti-Sabzi with Optional Egg or Chicken Add-On",
       mealTime,
-      description: "A shared vegetarian base meal with optional egg or chicken protein for members whose saved frequency and avoid-day rules allow it today.",
+      description: "A shared vegetarian base meal with optional egg or chicken protein for members whose saved frequency rules allow it today.",
       ingredients: mixedFamilyIngredients(),
       prepTimeMinutes: 38,
       difficulty: "medium",
       regionFit,
-      nutritionIntent: "Respect saved weekly routine, non-vegetarian frequency, and avoid-day traditions without forcing the whole family into separate cooking.",
+      nutritionIntent: "Respect saved weekly routine and non-vegetarian frequency without forcing the whole family into separate cooking.",
       nutritionEstimate: estimateForDiet("mixed", mealTime)
     };
   }
 
   if (dietPreference === "non_vegetarian") {
+    if (preferredNonVegIncludes(input, ["fish", "seafood"])) {
+      return {
+        mealId,
+        name: "Fish Dal Rice Plate with Vegetables and Curd",
+        mealTime,
+        description: "A non-vegetarian family meal using the family's saved fish/seafood preference with dal, vegetables, curd, and member-specific portions.",
+        ingredients: fishRiceIngredients(),
+        prepTimeMinutes: 40,
+        difficulty: "medium",
+        regionFit,
+        nutritionIntent: "Non-vegetarian choice follows the family's explicit saved fish/seafood preference instead of assuming another meat category.",
+        nutritionEstimate: estimateForDiet(dietPreference, mealTime)
+      };
+    }
+    if (preferredNonVegIncludes(input, ["egg"]) && !preferredNonVegIncludes(input, ["chicken", "mutton", "goat"])) {
+      return {
+        mealId,
+        name: "Egg Curry with Roti, Seasonal Sabzi and Curd",
+        mealTime,
+        description: "An egg-based family meal chosen because eggs are the family's saved non-vegetarian preference.",
+        ingredients: eggCurryIngredients(),
+        prepTimeMinutes: 35,
+        difficulty: "easy",
+        regionFit,
+        nutritionIntent: "Respect detailed non-vegetarian choices by using eggs and not introducing chicken, mutton/goat, seafood, or other meats.",
+        nutritionEstimate: estimateForDiet("eggetarian", mealTime)
+      };
+    }
     return {
       mealId,
       name: "Chicken Dal Rice Plate with Vegetables and Curd",
@@ -594,6 +683,15 @@ function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
   const mealTime = input.mealTime ?? "lunch";
   const localContext = input.mealTimeContext?.timeZone ? `, timed for ${input.mealTimeContext.timeZone}` : "";
   const cuisineFit = input.family.cuisinePreferences.length ? ` with ${input.family.cuisinePreferences.join(", ")} food-culture fit` : "";
+  const cookingHabit = cookingHabitFor(input);
+  const cookingFit =
+    cookingHabit === "ready_frozen"
+      ? ". Cooking habit: prefer ready-made/frozen bases with fresh safe sides"
+      : cookingHabit === "fresh_ready_mix"
+        ? ". Cooking habit: combine fresh cooking with suitable ready/frozen bases"
+        : cookingHabit === "takeaway_prepared"
+          ? ". Cooking habit: keep effort low and suggest practical prepared-meal balancing"
+          : ". Cooking habit: fresh home cooking preferred";
   const statedPreferences = statedMealPreferencesFor(input, mealTime);
   const hasExplicitMealPreference = statedPreferences.length > 0;
   const recentFit = recentMealsFor(input, mealTime).length
@@ -602,7 +700,7 @@ function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
   const preferenceFit = statedPreferences.length
     ? `. Explicit family ${mealSlotForMealTime(mealTime)} preferences: ${statedPreferences.join(", ")}. Family choice overrides regional assumptions`
     : "";
-  const regionFit = `${input.family.city}, ${input.family.state}, ${input.family.country} friendly${cuisineFit}${localContext}${preferenceFit}${recentFit}`;
+  const regionFit = `${input.family.city}, ${input.family.state}, ${input.family.country} friendly${cuisineFit}${localContext}${preferenceFit}${recentFit}${cookingFit}`;
 
   if (mealTime === "high_tea" || mealTime === "evening_snack" || mealTime === "snack") {
     if (input.family.dietPreference === "vegan") {
@@ -771,6 +869,8 @@ function outputLanguage(locale?: string): OutputLanguage {
 const mealNameTranslations = {
   hi: {
     "Chicken Dal Rice Plate with Vegetables and Curd": "सब्जियों और दही के साथ चिकन-दाल-चावल प्लेट",
+    "Family Dal-Roti-Sabzi with Curd": "दही के साथ पारिवारिक दाल-रोटी-सब्जी",
+    "Fish Dal Rice Plate with Vegetables and Curd": "सब्जियों और दही के साथ मछली-दाल-चावल प्लेट",
     "Egg Curry with Roti, Seasonal Sabzi and Curd": "रोटी, मौसमी सब्जी और दही के साथ अंडा करी",
     "Family Dal-Roti-Sabzi with Optional Egg or Chicken Add-On": "वैकल्पिक अंडा या चिकन के साथ पारिवारिक दाल-रोटी-सब्जी",
     "Vegan Dal, Millet-Rice and Seasonal Sabzi Plate": "वीगन दाल, मिलेट-चावल और मौसमी सब्जी की थाली",
@@ -784,6 +884,8 @@ const mealNameTranslations = {
   },
   kn: {
     "Chicken Dal Rice Plate with Vegetables and Curd": "ತರಕಾರಿ ಮತ್ತು ಮೊಸರು ಜೊತೆಗೆ ಚಿಕನ್-ದಾಲ್-ಅಕ್ಕಿ ತಟ್ಟೆ",
+    "Family Dal-Roti-Sabzi with Curd": "ಮೊಸರಿನೊಂದಿಗೆ ಕುಟುಂಬದ ದಾಲ್-ರೊಟ್ಟಿ-ತರಕಾರಿ",
+    "Fish Dal Rice Plate with Vegetables and Curd": "ತರಕಾರಿ ಮತ್ತು ಮೊಸರು ಜೊತೆಗೆ ಮೀನು-ದಾಲ್-ಅಕ್ಕಿ ತಟ್ಟೆ",
     "Egg Curry with Roti, Seasonal Sabzi and Curd": "ರೊಟ್ಟಿ, ಋತುಮಾನ ತರಕಾರಿ ಮತ್ತು ಮೊಸರು ಜೊತೆಗೆ ಮೊಟ್ಟೆ ಕರಿ",
     "Family Dal-Roti-Sabzi with Optional Egg or Chicken Add-On": "ಐಚ್ಛಿಕ ಮೊಟ್ಟೆ ಅಥವಾ ಚಿಕನ್ ಜೊತೆ ಕುಟುಂಬದ ದಾಲ್-ರೊಟ್ಟಿ-ತರಕಾರಿ",
     "Vegan Dal, Millet-Rice and Seasonal Sabzi Plate": "ವೀಗನ್ ದಾಲ್, ಮಿಲ್ಲೆಟ್-ಅಕ್ಕಿ ಮತ್ತು ಋತುಮಾನ ತರಕಾರಿ ತಟ್ಟೆ",
@@ -823,6 +925,7 @@ const ingredientTranslations = {
     "Eggs": "अंडे",
     "Onion tomato masala": "प्याज-टमाटर मसाला",
     "Chicken": "चिकन",
+    "Fish": "मछली",
     "Eggs or chicken add-on": "अंडा या चिकन ऐड-ऑन",
     "Brown rice or millet": "ब्राउन राइस या मिलेट",
     "Roasted peanuts or sesame chutney": "भुनी मूंगफली या तिल की चटनी",
@@ -855,6 +958,7 @@ const ingredientTranslations = {
     "Eggs": "ಮೊಟ್ಟೆಗಳು",
     "Onion tomato masala": "ಈರುಳ್ಳಿ-ಟೊಮೇಟೊ ಮಸಾಲೆ",
     "Chicken": "ಚಿಕನ್",
+    "Fish": "ಮೀನು",
     "Eggs or chicken add-on": "ಮೊಟ್ಟೆ ಅಥವಾ ಚಿಕನ್ ಐಚ್ಛಿಕ ಸೇರಿಕೆ",
     "Brown rice or millet": "ಬ್ರೌನ್ ರೈಸ್ ಅಥವಾ ಮಿಲ್ಲೆಟ್",
     "Roasted peanuts or sesame chutney": "ಹುರಿದ ಕಡಲೆಕಾಯಿ ಅಥವಾ ಎಳ್ಳು ಚಟ್ನಿ",
@@ -941,6 +1045,8 @@ function translateText(text: string | undefined, language: OutputLanguage): stri
       "दाल, सब्जियों, मिलेट या चावल और मेवा/बीज की चटनी वाला पूरी तरह पौधों पर आधारित पारिवारिक भोजन। इसमें मांस, मछली, अंडा, दूध, पनीर, मक्खन, घी, दही और अन्य डेयरी शामिल नहीं हैं।",
     "A non-vegetarian family meal with chicken protein, dal, vegetables, curd, and member-specific portions.":
       "चिकन प्रोटीन, दाल, सब्जियों, दही और सदस्य-विशेष हिस्सों वाला पारिवारिक नॉन-वेज भोजन।",
+    "A non-vegetarian family meal using the family's saved fish/seafood preference with dal, vegetables, curd, and member-specific portions.":
+      "परिवार की सेव की हुई मछली/सीफूड पसंद के अनुसार दाल, सब्जियों, दही और सदस्य-विशेष हिस्सों वाला नॉन-वेज भोजन।",
     "An eggetarian family meal with egg protein, roti, vegetables, and curd that can be portion-adjusted for each member.":
       "अंडे के प्रोटीन, रोटी, सब्जियों और दही वाला एगेटेरियन पारिवारिक भोजन, जिसे हर सदस्य के हिस्से के अनुसार बदला जा सकता है।",
     "A shared vegetarian base meal with optional egg or chicken protein for members who eat it, keeping one family table.":
@@ -988,6 +1094,8 @@ function translateText(text: string | undefined, language: OutputLanguage): stri
       "ದಾಲ್, ತರಕಾರಿಗಳು, ಮಿಲ್ಲೆಟ್ ಅಥವಾ ಅಕ್ಕಿ ಮತ್ತು ಕಾಯಿ/ಬೀಜದ ಚಟ್ನಿಯೊಂದಿಗಿನ ಸಂಪೂರ್ಣ ಸಸ್ಯಾಧಾರಿತ ಕುಟುಂಬದ ಊಟ. ಇದರಲ್ಲಿ ಮಾಂಸ, ಮೀನು, ಮೊಟ್ಟೆ, ಹಾಲು, ಪನೀರ್, ಬೆಣ್ಣೆ, ತುಪ್ಪ, ಮೊಸರು ಮತ್ತು ಇತರ ಡೈರಿ ಪದಾರ್ಥಗಳಿಲ್ಲ.",
     "A non-vegetarian family meal with chicken protein, dal, vegetables, curd, and member-specific portions.":
       "ಚಿಕನ್ ಪ್ರೋಟೀನ್, ದಾಲ್, ತರಕಾರಿಗಳು, ಮೊಸರು ಮತ್ತು ಸದಸ್ಯರಿಗನುಗುಣ ಭಾಗಗಳಿರುವ ನಾನ್-ವೆಜ್ ಕುಟುಂಬದ ಊಟ.",
+    "A non-vegetarian family meal using the family's saved fish/seafood preference with dal, vegetables, curd, and member-specific portions.":
+      "ಕುಟುಂಬದ ಉಳಿಸಿದ ಮೀನು/ಸೀಫುಡ್ ಇಷ್ಟಕ್ಕೆ ಅನುಗುಣವಾಗಿ ದಾಲ್, ತರಕಾರಿಗಳು, ಮೊಸರು ಮತ್ತು ಸದಸ್ಯರಿಗನುಗುಣ ಭಾಗಗಳಿರುವ ನಾನ್-ವೆಜ್ ಊಟ.",
     "An eggetarian family meal with egg protein, roti, vegetables, and curd that can be portion-adjusted for each member.":
       "ಮೊಟ್ಟೆ ಪ್ರೋಟೀನ್, ರೊಟ್ಟಿ, ತರಕಾರಿಗಳು ಮತ್ತು ಮೊಸರು ಹೊಂದಿರುವ, ಪ್ರತಿಯೊಬ್ಬ ಸದಸ್ಯರ ಭಾಗಕ್ಕೆ ಹೊಂದಿಸಬಹುದಾದ ಎಗ್ಗೆಟೇರಿಯನ್ ಕುಟುಂಬದ ಊಟ.",
     "A shared vegetarian base meal with optional egg or chicken protein for members who eat it, keeping one family table.":
@@ -1060,6 +1168,27 @@ function translateCommonText(text: string, language: Exclude<OutputLanguage, "en
           [/Regular balanced portion with vegetables and curd\./g, "सब्जियों और दही के साथ नियमित संतुलित हिस्सा।"],
           [/Regular balanced portion with vegetables and curd\./g, "सब्जियों और दही के साथ नियमित संतुलित हिस्सा।"],
           [/1\.5 bowls khichdi with 0\.5 cup curd\./g, "1.5 कटोरी खिचड़ी और 0.5 कप दही।"],
+          [/Saved non-veg pattern:/g, "सेव किया हुआ नॉन-वेज पैटर्न:"],
+          [/not specified/g, "अभी नहीं बताया गया"],
+          [/avoid days:/g, "बचने वाले दिन:"],
+          [/no fixed avoid day/g, "कोई तय बचने वाला दिन नहीं"],
+          [/Hard restriction: do not serve ([^.]+) to ([^.]+)\. Use the listed alternative\./g, "सख्त पाबंदी: $2 को $1 न परोसें। बताई गई वैकल्पिक सामग्री इस्तेमाल करें।"],
+          [/Preference adjustment: avoid ([^.]+) in ([^']+)'s portion if practical\./g, "पसंद के अनुसार बदलाव: संभव हो तो $2 के हिस्से में $1 से बचें।"],
+          [/Preference adjustment: ([^.]+) dislikes ([^;]+); provide the alternative portion\./g, "पसंद के अनुसार बदलाव: $1 को $2 पसंद नहीं है; वैकल्पिक हिस्सा दें।"],
+          [/Diabetes-aware portion guidance; follow doctor-provided carbohydrate instructions if stricter\./g, "डायबिटीज को ध्यान में रखकर हिस्सा बताया गया है; डॉक्टर के कार्बोहाइड्रेट निर्देश अधिक सख्त हों तो उन्हें मानें।"],
+          [/Watch chewing comfort and digestion\./g, "चबाने की सुविधा और पाचन पर ध्यान दें।"],
+          [/Child nutrition needs are individualized; consult a pediatric professional for specific concerns\./g, "बच्चों की पोषण जरूरतें अलग-अलग होती हैं; विशेष चिंता हो तो बाल-विशेषज्ञ से सलाह लें।"],
+          [/Serve dosa softer with extra sambar, less spice, and small pieces\./g, "डोसा को अतिरिक्त सांभर, कम मसाले और छोटे टुकड़ों के साथ नरम परोसें।"],
+          [/Use more sambar vegetables, moderate dosa count, and avoid sweet beverages\./g, "सांभर में अधिक सब्जियां रखें, डोसा की संख्या नियंत्रित रखें और मीठे पेय से बचें।"],
+          [/Regular family serving with balanced sambar and curd\./g, "संतुलित सांभर और दही के साथ सामान्य पारिवारिक हिस्सा।"],
+          [/Add paneer side and extra sambar dal for protein support\./g, "प्रोटीन के लिए पनीर साइड और अतिरिक्त सांभर दाल जोड़ें।"],
+          [/Add paneer or extra dal topping for protein support\./g, "प्रोटीन के लिए पनीर या अतिरिक्त दाल की टॉपिंग जोड़ें।"],
+          [/Serve smaller dosa pieces with mild sambar and curd\./g, "हल्के सांभर और दही के साथ डोसा के छोटे टुकड़े परोसें।"],
+          [/2 medium dosas with 1\.5 cups sambar and unsweetened curd; adjust as a/g, "2 मध्यम डोसा, 1.5 कप सांभर और बिना चीनी का दही; इस तरह समायोजित करें:"],
+          [/1 soft dosa with 1 cup sambar, served warm and easy to chew;/g, "1 नरम डोसा और 1 कप सांभर, गरम और आसानी से चबाने योग्य परोसें;"],
+          [/3 dosas, 2 cups sambar, and paneer side;/g, "3 डोसा, 2 कप सांभर और पनीर साइड;"],
+          [/1 small dosa, 0\.75 cup sambar, and curd;/g, "1 छोटा डोसा, 0.75 कप सांभर और दही;"],
+          [/2 dosas, 1\.5 cups sambar, and 0\.5 cup curd;/g, "2 डोसा, 1.5 कप सांभर और 0.5 कप दही;"],
           [/Sip water steadily across the day\./g, "दिन भर नियमित अंतराल पर पानी पिएं।"],
           [/Small frequent water servings through the day\./g, "दिन भर थोड़ी-थोड़ी मात्रा में बार-बार पानी दें।"],
           [/Mid-morning or evening, away from the main meal if preferred\./g, "जरूरत हो तो मुख्य भोजन से अलग, मध्य-सुबह या शाम को दें।"],
@@ -1104,6 +1233,27 @@ function translateCommonText(text: string, language: Exclude<OutputLanguage, "en
           [/Regular balanced portion with vegetables and curd\./g, "ತರಕಾರಿ ಮತ್ತು ಮೊಸರಿನೊಂದಿಗೆ ನಿಯಮಿತ ಸಮತೋಲನ ಭಾಗ."],
           [/Regular balanced portion with vegetables and curd\./g, "ತರಕಾರಿ ಮತ್ತು ಮೊಸರಿನೊಂದಿಗೆ ನಿಯಮಿತ ಸಮತೋಲನ ಭಾಗ."],
           [/1\.5 bowls khichdi with 0\.5 cup curd\./g, "1.5 ಬೌಲ್ ಖಿಚಡಿ ಮತ್ತು 0.5 ಕಪ್ ಮೊಸರು."],
+          [/Saved non-veg pattern:/g, "ಉಳಿಸಿದ ನಾನ್-ವೆಜ್ ಪದ್ಧತಿ:"],
+          [/not specified/g, "ಇನ್ನೂ ತಿಳಿಸಲಾಗಿಲ್ಲ"],
+          [/avoid days:/g, "ತಪ್ಪಿಸುವ ದಿನಗಳು:"],
+          [/no fixed avoid day/g, "ನಿಗದಿತ ತಪ್ಪಿಸುವ ದಿನವಿಲ್ಲ"],
+          [/Hard restriction: do not serve ([^.]+) to ([^.]+)\. Use the listed alternative\./g, "ಕಠಿಣ ನಿರ್ಬಂಧ: $2 ಗೆ $1 ನೀಡಬೇಡಿ. ಸೂಚಿಸಿದ ಪರ್ಯಾಯವನ್ನು ಬಳಸಿ."],
+          [/Preference adjustment: avoid ([^.]+) in ([^']+)'s portion if practical\./g, "ಇಷ್ಟದ ಪ್ರಕಾರ ಬದಲಾವಣೆ: ಸಾಧ್ಯವಾದರೆ $2 ಅವರ ಭಾಗದಲ್ಲಿ $1 ತಪ್ಪಿಸಿ."],
+          [/Preference adjustment: ([^.]+) dislikes ([^;]+); provide the alternative portion\./g, "ಇಷ್ಟದ ಪ್ರಕಾರ ಬದಲಾವಣೆ: $1 ಅವರಿಗೆ $2 ಇಷ್ಟವಿಲ್ಲ; ಪರ್ಯಾಯ ಭಾಗ ನೀಡಿ."],
+          [/Diabetes-aware portion guidance; follow doctor-provided carbohydrate instructions if stricter\./g, "ಮಧುಮೇಹವನ್ನು ಗಮನದಲ್ಲಿಟ್ಟ ಭಾಗ ಮಾರ್ಗದರ್ಶನ; ವೈದ್ಯರ ಕಾರ್ಬೊಹೈಡ್ರೇಟ್ ಸೂಚನೆ ಹೆಚ್ಚು ಕಠಿಣವಾಗಿದ್ದರೆ ಅದನ್ನು ಅನುಸರಿಸಿ."],
+          [/Watch chewing comfort and digestion\./g, "ಚವೆಯುವ ಸುಲಭತೆ ಮತ್ತು ಜೀರ್ಣಕ್ಕೆ ಗಮನ ಕೊಡಿ."],
+          [/Child nutrition needs are individualized; consult a pediatric professional for specific concerns\./g, "ಮಕ್ಕಳ ಪೋಷಣೆಯ ಅಗತ್ಯಗಳು ವೈಯಕ್ತಿಕವಾಗಿರುತ್ತವೆ; ವಿಶೇಷ ಚಿಂತೆ ಇದ್ದರೆ ಮಕ್ಕಳ ತಜ್ಞರನ್ನು ಸಂಪರ್ಕಿಸಿ."],
+          [/Serve dosa softer with extra sambar, less spice, and small pieces\./g, "ಹೆಚ್ಚು ಸಾಂಬಾರ್, ಕಡಿಮೆ ಮಸಾಲೆ ಮತ್ತು ಚಿಕ್ಕ ತುಂಡುಗಳೊಂದಿಗೆ ದೋಸೆಯನ್ನು ಮೃದುವಾಗಿ ನೀಡಿ."],
+          [/Use more sambar vegetables, moderate dosa count, and avoid sweet beverages\./g, "ಸಾಂಬಾರ್‌ನಲ್ಲಿ ಹೆಚ್ಚು ತರಕಾರಿಗಳನ್ನು ಬಳಸಿ, ದೋಸೆ ಸಂಖ್ಯೆಯನ್ನು ನಿಯಂತ್ರಿಸಿ ಮತ್ತು ಸಿಹಿ ಪಾನೀಯಗಳನ್ನು ತಪ್ಪಿಸಿ."],
+          [/Regular family serving with balanced sambar and curd\./g, "ಸಮತೋಲನ ಸಾಂಬಾರ್ ಮತ್ತು ಮೊಸರಿನೊಂದಿಗೆ ಸಾಮಾನ್ಯ ಕುಟುಂಬದ ಭಾಗ."],
+          [/Add paneer side and extra sambar dal for protein support\./g, "ಪ್ರೋಟೀನ್ ಬೆಂಬಲಕ್ಕೆ ಪನೀರ್ ಸೈಡ್ ಮತ್ತು ಹೆಚ್ಚುವರಿ ಸಾಂಬಾರ್ ದಾಲ್ ಸೇರಿಸಿ."],
+          [/Add paneer or extra dal topping for protein support\./g, "ಪ್ರೋಟೀನ್ ಬೆಂಬಲಕ್ಕೆ ಪನೀರ್ ಅಥವಾ ಹೆಚ್ಚುವರಿ ದಾಲ್ ಟಾಪಿಂಗ್ ಸೇರಿಸಿ."],
+          [/Serve smaller dosa pieces with mild sambar and curd\./g, "ಸೌಮ್ಯ ಸಾಂಬಾರ್ ಮತ್ತು ಮೊಸರಿನೊಂದಿಗೆ ಚಿಕ್ಕ ದೋಸೆ ತುಂಡುಗಳನ್ನು ನೀಡಿ."],
+          [/2 medium dosas with 1\.5 cups sambar and unsweetened curd; adjust as a/g, "2 ಮಧ್ಯಮ ದೋಸೆ, 1.5 ಕಪ್ ಸಾಂಬಾರ್ ಮತ್ತು ಸಕ್ಕರೆರಹಿತ ಮೊಸರು; ಹೀಗೆ ಹೊಂದಿಸಿ:"],
+          [/1 soft dosa with 1 cup sambar, served warm and easy to chew;/g, "1 ಮೃದುವಾದ ದೋಸೆ ಮತ್ತು 1 ಕಪ್ ಸಾಂಬಾರ್, ಬಿಸಿ ಮತ್ತು ಸುಲಭವಾಗಿ ಚವೆಯಲು ಆಗುವಂತೆ ನೀಡಿ;"],
+          [/3 dosas, 2 cups sambar, and paneer side;/g, "3 ದೋಸೆ, 2 ಕಪ್ ಸಾಂಬಾರ್ ಮತ್ತು ಪನೀರ್ ಸೈಡ್;"],
+          [/1 small dosa, 0\.75 cup sambar, and curd;/g, "1 ಚಿಕ್ಕ ದೋಸೆ, 0.75 ಕಪ್ ಸಾಂಬಾರ್ ಮತ್ತು ಮೊಸರು;"],
+          [/2 dosas, 1\.5 cups sambar, and 0\.5 cup curd;/g, "2 ದೋಸೆ, 1.5 ಕಪ್ ಸಾಂಬಾರ್ ಮತ್ತು 0.5 ಕಪ್ ಮೊಸರು;"],
           [/Sip water steadily across the day\./g, "ದಿನಪೂರ್ತಿ ನಿಯಮಿತವಾಗಿ ನೀರು ಕುಡಿಯಿರಿ."],
           [/Small frequent water servings through the day\./g, "ದಿನಪೂರ್ತಿ ಸ್ವಲ್ಪಸ್ವಲ್ಪವಾಗಿ ನೀರು ನೀಡಿ."],
           [/Mid-morning or evening, away from the main meal if preferred\./g, "ಅಗತ್ಯವಿದ್ದರೆ ಮುಖ್ಯ ಊಟದಿಂದ ಬೇರೆ, ಮಧ್ಯಬೆಳಗ್ಗೆ ಅಥವಾ ಸಂಜೆ ನೀಡಿ."],
@@ -1400,3 +1550,6 @@ export class AIService {
     };
   }
 }
+
+
+
