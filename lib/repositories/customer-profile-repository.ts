@@ -15,6 +15,8 @@ export interface CustomerAccountRecord {
   preferredLanguage?: string;
   householdFoodPreference?: "vegetarian" | "eggetarian" | "non_vegetarian" | "semi_vegetarian" | "vegan" | "mixed" | "other";
   cookingHabit?: "fresh_home_cooked" | "ready_frozen" | "fresh_ready_mix" | "takeaway_prepared" | "other";
+  budgetPreference?: "economical" | "moderate" | "flexible" | "no_specific_limit" | "custom_monthly";
+  customMonthlyFoodBudget?: number;
   weeklyFoodRoutineStatus?: WeeklyFoodRoutineStatus;
   weeklyFoodRoutine?: DayWiseFoodRoutinePreference[];
   mealTypePreferences?: MealTypePreferenceProfile;
@@ -63,6 +65,8 @@ export class CustomerProfileRepository {
     preferredLanguage?: string;
     householdFoodPreference?: CustomerAccountRecord["householdFoodPreference"];
     cookingHabit?: CustomerAccountRecord["cookingHabit"];
+    budgetPreference?: CustomerAccountRecord["budgetPreference"];
+    customMonthlyFoodBudget?: CustomerAccountRecord["customMonthlyFoodBudget"];
     weeklyFoodRoutineStatus?: CustomerAccountRecord["weeklyFoodRoutineStatus"];
     weeklyFoodRoutine?: CustomerAccountRecord["weeklyFoodRoutine"];
     mealTypePreferences?: CustomerAccountRecord["mealTypePreferences"];
@@ -79,6 +83,8 @@ export class CustomerProfileRepository {
       preferredLanguage: input.preferredLanguage,
       householdFoodPreference: input.householdFoodPreference ?? existing?.householdFoodPreference,
       cookingHabit: input.cookingHabit ?? existing?.cookingHabit,
+      budgetPreference: input.budgetPreference ?? existing?.budgetPreference ?? "moderate",
+      customMonthlyFoodBudget: input.customMonthlyFoodBudget ?? existing?.customMonthlyFoodBudget,
       weeklyFoodRoutineStatus: input.weeklyFoodRoutineStatus ?? existing?.weeklyFoodRoutineStatus ?? "skip",
       weeklyFoodRoutine: input.weeklyFoodRoutine ?? existing?.weeklyFoodRoutine ?? [],
       mealTypePreferences: input.mealTypePreferences ?? existing?.mealTypePreferences ?? {},

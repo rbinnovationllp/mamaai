@@ -5,6 +5,7 @@ import type {
   Ingredient,
   IngredientRequirement,
   MealAttendanceEntry,
+  MealComponent,
   MealTime
 } from "@/lib/shared/contracts";
 
@@ -103,6 +104,45 @@ export class QuantityPlanningService {
         "Absent and fasting members are excluded from normal meal quantities."
       ]
     }));
+  }
+
+  componentMealRequirements(mealTime: MealTime, components: MealComponent[], attendance: MealAttendanceEntry, members: FamilyMember[]) {
+    const participatingIds = new Set(attendance.participatingMemberIds);
+    const absentIds = new Set(attendance.absentMemberIds);
+    const fastingIds = new Set(attendance.fastingMemberIds);
+
+    return components.flatMap((component) => {
+      const componentMembers = members.filter(
+        (member) =>
+          component.memberIds.includes(member.memberId) &&
+          participatingIds.has(member.memberId) &&
+          !absentIds.has(member.memberId) &&
+          !fastingIds.has(member.memberId)
+      );
+      const units = round(componentMembers.reduce((sum, member) => sum + portionFactor(member), 0));
+      if (units <= 0) return [];
+      const scale = units / Math.max(members.length, 1);
+
+      return component.ingredients.map((ingredient, index): IngredientRequirement => ({
+        itemId: `${mealTime}-${component.componentId}-${index + 1}-${ingredient.name.toLowerCase().replace(/\s+/g, "-")}`,
+        mealTime,
+        name: ingredient.name,
+        category: ingredient.category,
+        baseQuantity: ingredient.quantity,
+        adjustedQuantity: scaleQuantity(ingredient.quantity, scale),
+        quantityToPurchase: scaleQuantity(ingredient.quantity, scale),
+        portionUnits: units,
+        estimatedCost: {
+          amount: Math.round(ingredient.estimatedCost.amount * scale),
+          currency: "INR"
+        },
+        notes: [
+          `Component: ${component.label}.`,
+          `Calculated for ${units} adult-equivalent portion units from ${componentMembers.length} assigned member(s).`,
+          ...component.notes
+        ]
+      }));
+    });
   }
 
   fastingRequirements(mealTime: MealTime, attendance: MealAttendanceEntry, members: FamilyMember[]) {

@@ -49,6 +49,8 @@ type CustomerAccount = {
   email?: string;
   householdFoodPreference?: 'vegetarian' | 'eggetarian' | 'non_vegetarian' | 'semi_vegetarian' | 'vegan' | 'mixed' | 'other';
   cookingHabit?: 'fresh_home_cooked' | 'ready_frozen' | 'fresh_ready_mix' | 'takeaway_prepared' | 'other';
+  budgetPreference?: 'economical' | 'moderate' | 'flexible' | 'no_specific_limit' | 'custom_monthly';
+  customMonthlyFoodBudget?: number;
   weeklyFoodRoutineStatus?: WeeklyFoodRoutineStatus;
   weeklyFoodRoutine?: DayWiseFoodRoutinePreference[];
   mealTypePreferences?: Partial<Record<MealSlot, string[]>>;
@@ -110,6 +112,8 @@ const plannerCopy = {
     suggestedPlan: 'Suggested plan',
     lastSelected: 'Last selected',
     recipe: 'Recipe',
+    mealComponents: 'Meal components',
+    servesMembers: 'For',
     watchVideo: 'Watch How to Cook',
     videoLoading: 'Searching suitable cooking videos...',
     videoEmpty: "We couldn't find a suitable cooking video for this dish right now. Please use the written recipe.",
@@ -178,6 +182,8 @@ const plannerCopy = {
     suggestedPlan: 'सुझाया गया प्लान',
     lastSelected: 'पिछली बार चुना गया',
     recipe: 'रेसिपी',
+    mealComponents: 'भोजन के हिस्से',
+    servesMembers: 'इनके लिए',
     watchVideo: 'कैसे बनाएं वीडियो देखें',
     videoLoading: 'उपयुक्त खाना बनाने का वीडियो खोज रहे हैं...',
     videoEmpty: 'इस व्यंजन के लिए अभी उपयुक्त खाना बनाने का वीडियो नहीं मिला। कृपया लिखी हुई रेसिपी इस्तेमाल करें।',
@@ -246,6 +252,8 @@ const plannerCopy = {
     suggestedPlan: 'ಸೂಚಿಸಿದ ಪ್ಲ್ಯಾನ್',
     lastSelected: 'ಕೊನೆಯದಾಗಿ ಆಯ್ಕೆಮಾಡಿದದು',
     recipe: 'ರೆಸಿಪಿ',
+    mealComponents: 'ಊಟದ ಭಾಗಗಳು',
+    servesMembers: 'ಇವರಿಗೆ',
     watchVideo: 'ಹೇಗೆ ಅಡುಗೆ ಮಾಡುವುದು ನೋಡಿ',
     videoLoading: 'ಸೂಕ್ತ ಅಡುಗೆ ವಿಡಿಯೋ ಹುಡುಕಲಾಗುತ್ತಿದೆ...',
     videoEmpty: 'ಈ ತಿನಿಸಿಗೆ ಈಗ ಸೂಕ್ತ ಅಡುಗೆ ವಿಡಿಯೋ ಸಿಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಬರಹದ ರೆಸಿಪಿ ಬಳಸಿ.',
@@ -316,10 +324,68 @@ function familyDietPreferenceFor(customer: CustomerAccount, members: HouseholdMe
 
 function memberDietTypeFor(preference?: HouseholdMember['foodPreference']): DietType {
   if (preference === 'eggetarian') return 'eggitarian';
+  if (preference === 'semi_vegetarian') return 'non_vegetarian';
   if (preference === 'vegetarian' || preference === 'non_vegetarian' || preference === 'vegan') return preference;
   return 'other';
 }
 
+function budgetProfileFor(customer: CustomerAccount) {
+  const preference = customer.budgetPreference ?? 'moderate';
+  if (preference === 'economical') {
+    return {
+      type: 'daily' as const,
+      amount: 450,
+      currency: 'INR' as const,
+      priority: 'strict' as const,
+      preferLowCostMeals: true,
+    };
+  }
+  if (preference === 'moderate') {
+    return {
+      type: 'daily' as const,
+      amount: 700,
+      currency: 'INR' as const,
+      priority: 'flexible' as const,
+      preferLowCostMeals: true,
+    };
+  }
+  if (preference === 'custom_monthly' && customer.customMonthlyFoodBudget) {
+    return {
+      type: 'monthly' as const,
+      amount: customer.customMonthlyFoodBudget,
+      currency: 'INR' as const,
+      priority: 'flexible' as const,
+      preferLowCostMeals: customer.customMonthlyFoodBudget < 18000,
+    };
+  }
+  if (preference === 'no_specific_limit') {
+    return {
+      type: 'none' as const,
+      currency: 'INR' as const,
+      priority: 'flexible' as const,
+      preferLowCostMeals: false,
+    };
+  }
+  return {
+    type: 'weekly' as const,
+    amount: 2500,
+    currency: 'INR' as const,
+    priority: 'flexible' as const,
+    preferLowCostMeals: false,
+  };
+}
+
+function budgetNotes(customer: CustomerAccount) {
+  const preference = customer.budgetPreference ?? 'moderate';
+  const labels = {
+    economical: 'Economical budget: prefer affordable everyday local ingredients, reduce premium proteins, and reuse common base meals.',
+    moderate: 'Moderate budget: balance cost, variety and nutrition; keep expensive items controlled.',
+    flexible: 'Flexible budget: occasional premium ingredients are acceptable, but avoid waste.',
+    no_specific_limit: 'No specific budget limit: prioritize preference, variety and convenience while avoiding unnecessary waste.',
+    custom_monthly: `Custom monthly food budget guideline: INR ${customer.customMonthlyFoodBudget ?? 'not specified'}. Treat as planning guidance, not an exact bill promise.`,
+  } satisfies Record<NonNullable<CustomerAccount['budgetPreference']>, string>;
+  return [labels[preference]];
+}
 function cookingHabitNotes(value?: CustomerAccount['cookingHabit']) {
   switch (value) {
     case 'ready_frozen':
@@ -813,6 +879,7 @@ export default function PlannerPage() {
             localIngredientAvailabilityNotes: [
               ...cultureNotes(culture),
               ...cookingHabitNotes(customer.cookingHabit),
+              ...budgetNotes(customer),
               ...mealTypePreferenceNotes(customer, selectedMealTime),
               ...recentMealHistoryNotes(customer, selectedMealTime),
               ...weeklyRoutineNotes(customer, selectedMealTime, targetDate),
@@ -1104,6 +1171,26 @@ export default function PlannerPage() {
                     <InfoTile label={t.difficulty} value={difficultyLabel(mealPlan.commonMeal.difficulty, t.difficulties)} />
                     <InfoTile label={t.cost} value={`₹${mealPlan.estimatedCost.mealCost.amount}`} />
                   </div>
+
+                  {mealPlan.commonMeal.components?.length ? (
+                    <div className="mt-6 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100">
+                      <h3 className="text-sm font-black text-emerald-950">{t.mealComponents}</h3>
+                      <div className="mt-3 grid gap-3">
+                        {mealPlan.commonMeal.components.map((component) => (
+                          <div key={component.componentId} className="rounded-xl bg-white p-3 text-sm ring-1 ring-emerald-100">
+                            <p className="font-black text-emerald-950">{component.label}</p>
+                            <p className="mt-1 text-xs font-semibold text-emerald-800">
+                              {t.servesMembers}: {component.memberIds
+                                .map((memberId) => members.find((member) => member.id === memberId)?.name)
+                                .filter(Boolean)
+                                .join(', ') || t.members}
+                            </p>
+                            {component.notes.length ? <p className="mt-1 text-xs text-slate-600">{component.notes.join(' ')}</p> : null}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
 
                   <h3 className="mt-6 text-lg font-bold text-slate-950">{t.recipe}</h3>
                   <ol className="mt-3 space-y-2 text-sm leading-6 text-slate-700">

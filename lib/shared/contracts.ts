@@ -386,12 +386,22 @@ export interface CommonMeal {
   mealTime: MealTime;
   description: string;
   ingredients: Ingredient[];
+  components?: MealComponent[];
   prepTimeMinutes: number;
   difficulty: "easy" | "medium" | "hard";
   regionFit: string;
   nutritionIntent: string;
   nutritionEstimate: NutritionEstimate;
   recipe: RecipeDetails;
+}
+
+export interface MealComponent {
+  componentId: ID;
+  label: string;
+  role: "common_base" | "vegetarian_option" | "eggetarian_option" | "non_vegetarian_option" | "vegan_option";
+  memberIds: ID[];
+  ingredients: Ingredient[];
+  notes: string[];
 }
 
 export interface MemberCustomization {

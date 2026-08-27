@@ -4,6 +4,14 @@
 
 Overall status: controlled hackathon launch and colleague payment testing candidate, pending final deployed Razorpay verification.
 
+## Production Personalization Update - August 27, 2026
+
+- Added mixed-diet joint-family planning support so MAMAAI can prefer one common base meal with vegetarian, eggetarian, vegan, or non-vegetarian add-ons only for the members who eat them.
+- Added optional family food budget preference to the family profile: economical, moderate, flexible, no specific limit, or custom monthly food budget.
+- Budget preference is persisted with the customer family profile and passed into planner/Gemini context so recommendations can prefer affordable ingredients, moderate variety, flexible premium choices, or custom monthly guidance.
+- Component-level quantity planning now scales optional protein/add-on ingredients only for assigned members, reducing unnecessary duplicate cooking and grocery cost.
+- Planning priority is now: safety/restrictions, explicit family preferences, mixed-diet common meal structure, budget, regional/cultural habits, pantry availability, recent history, and variety.
+
 Production-readiness status:
 
 - Public Next.js app builds successfully with `npm run build`.
