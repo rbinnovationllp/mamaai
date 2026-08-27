@@ -110,6 +110,27 @@ export default function AdminPage() {
           <p className="muted">Tracked events: {analytics.aiUsage.totalTrackedAiApiEvents}</p>
           <BarList items={analytics.aiUsage.expensiveOperationMix} />
         </article>
+        <article className="panel wide-panel">
+          <h2>Unit Economics Monitor</h2>
+          <p className="muted">{analytics.costMonitoring.assumptions}</p>
+          <div className="event-metrics">
+            <p>Current prices locked until: {analytics.costMonitoring.currentPricesLockedUntil}</p>
+            <p>Active AI users tracked: {analytics.costMonitoring.activeAiUsers}</p>
+            <p>Meal plans: {analytics.costMonitoring.measuredEvents.mealPlans}</p>
+            <p>Meal replacements: {analytics.costMonitoring.measuredEvents.replacements}</p>
+            <p>Ask MAMA questions: {analytics.costMonitoring.measuredEvents.askQuestions}</p>
+            <p>Recipe video requests: {analytics.costMonitoring.measuredEvents.recipeVideos}</p>
+          </div>
+          <div className="event-metrics">
+            {analytics.costMonitoring.plans.map((plan) => (
+              <p key={plan.plan}>
+                {plan.plan}: ₹{plan.estimatedTotalTechAndPaymentCost}/user estimated recurring tech+payment cost,
+                margin {plan.estimatedMarginPercent}% ({plan.marginStatus})
+              </p>
+            ))}
+          </div>
+          <p className="muted">{analytics.costMonitoring.promptCostControls}</p>
+        </article>
         <article className="panel">
           <h2>Recipe Video Marketplace</h2>
           <p className="muted">

@@ -177,6 +177,17 @@ export const createFamilyInputSchema = z.object({
       dinner: z.array(z.string()).optional(),
     })
     .optional(),
+  recentMealHistory: z
+    .array(
+      z.object({
+        day: z.string().min(1),
+        breakfast: z.string().optional(),
+        lunch: z.string().optional(),
+        snacks: z.string().optional(),
+        dinner: z.string().optional(),
+      })
+    )
+    .optional(),
   nonVegPreferredFoods: z.array(z.string()).optional(),
   cultureProfile: z
     .object({

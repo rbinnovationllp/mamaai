@@ -12,6 +12,7 @@ import type {
   FamilyMealPlan,
   MealSlot,
   MealTime,
+  RecentMealHistoryDay,
   RecipeVideoSearchResponse,
   WeeklyFoodRoutineStatus,
 } from '@/lib/shared/contracts';
@@ -48,6 +49,7 @@ type CustomerAccount = {
   weeklyFoodRoutineStatus?: WeeklyFoodRoutineStatus;
   weeklyFoodRoutine?: DayWiseFoodRoutinePreference[];
   mealTypePreferences?: Partial<Record<MealSlot, string[]>>;
+  recentMealHistory?: RecentMealHistoryDay[];
   nonVegPreferredFoods?: string[];
 };
 
@@ -318,6 +320,31 @@ function mealTypePreferenceNotes(customer: CustomerAccount, selectedMealTime: Me
   ];
 }
 
+function recentMealHistoryNotes(customer: CustomerAccount, selectedMealTime: MealTime) {
+  const entries = customer.recentMealHistory?.filter((entry) =>
+    entry.breakfast || entry.lunch || entry.snacks || entry.dinner
+  ) ?? [];
+  if (!entries.length) return [];
+
+  const slot = mealSlotForMealTime(selectedMealTime);
+  const slotMeals = entries
+    .map((entry) => (entry[slot] ? `${entry.day} ${slot}: ${entry[slot]}` : ''))
+    .filter(Boolean)
+    .slice(0, 7);
+  const allMeals = entries
+    .flatMap((entry) =>
+      (['breakfast', 'lunch', 'snacks', 'dinner'] as MealSlot[])
+        .map((mealSlot) => (entry[mealSlot] ? `${entry.day} ${mealSlot}: ${entry[mealSlot]}` : ''))
+        .filter(Boolean)
+    )
+    .slice(0, 18);
+
+  return [
+    `Recent same-meal history: ${slotMeals.length ? slotMeals.join('; ') : 'not specified'}. Avoid repeating these unless the user explicitly asks.`,
+    `Compact recent family meal history: ${allMeals.join('; ')}. Use this for repetition control only; latest user request and safety restrictions override history.`,
+  ];
+}
+
 function cultureNotes(culture: CultureProfile) {
   const notes = [
     'Use country and region only as supporting food-culture context. Do not stereotype the family from location.',
@@ -447,6 +474,7 @@ export default function PlannerPage() {
               ...cultureNotes(culture),
               ...cookingHabitNotes(customer.cookingHabit),
               ...mealTypePreferenceNotes(customer, selectedMealTime),
+              ...recentMealHistoryNotes(customer, selectedMealTime),
               ...weeklyRoutineNotes(customer, selectedMealTime, targetDate),
               ...(customer.nonVegPreferredFoods?.length
                 ? [`Explicit family non-vegetarian food preferences: ${customer.nonVegPreferredFoods.join(', ')}. Do not add other meat categories unless the family requested them.`]
@@ -455,6 +483,7 @@ export default function PlannerPage() {
             weeklyFoodRoutineStatus: customer.weeklyFoodRoutineStatus ?? 'skip',
             weeklyFoodRoutine: customer.weeklyFoodRoutine ?? [],
             mealTypePreferences: customer.mealTypePreferences ?? {},
+            recentMealHistory: customer.recentMealHistory ?? [],
             nonVegPreferredFoods: customer.nonVegPreferredFoods ?? [],
             cultureProfile: {
               country,
