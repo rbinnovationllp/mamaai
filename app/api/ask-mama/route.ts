@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { answerAskMama } from "@/lib/ask-mama/knowledge-base";
 import { type AppLanguage, isAppLanguage } from "@/lib/i18n";
+import { AskMamaService } from "@/lib/services/ask-mama-service";
 
 export const dynamic = "force-dynamic";
 
@@ -158,6 +159,28 @@ export async function POST(request: Request) {
     }
 
     const language = isAppLanguage(body.language) ? body.language : "en";
+
+    if (isCookingQuestion(message)) {
+      const askMamaService = new AskMamaService();
+      const response = await askMamaService.ask({
+        message,
+        language,
+        profileContext: body.profileContext,
+        history: Array.isArray((body as { history?: unknown }).history)
+          ? ((body as { history?: Array<{ role: string; parts: string }> }).history ?? [])
+          : [],
+      });
+
+      return NextResponse.json({
+        success: true,
+        role: "model",
+        response,
+        category: "meal_planning",
+        suggestions: localizedSuggestions(language),
+        action: "/planner",
+      });
+    }
+
     const contextualAnswer = profileAwareAnswer(message, body.profileContext, language);
     if (contextualAnswer) {
       return NextResponse.json({
@@ -194,3 +217,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
+
