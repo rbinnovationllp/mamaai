@@ -139,6 +139,14 @@ export default function HomePage() {
           <div>
             <p className="text-sm font-black uppercase tracking-[0.18em] text-amber-200">{t.footerEyebrow}</p>
             <h2 className="mt-2 text-3xl font-black">{t.footerTitle}</h2>
+            <a
+              href="https://www.sabsewa.in"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex text-sm font-bold text-emerald-100 underline decoration-emerald-300/60 underline-offset-4"
+            >
+              {t.footerPartner}
+            </a>
           </div>
           <Link href="/profile/family" className="rounded-full bg-white px-7 py-3.5 text-sm font-black text-emerald-900">
             {t.footerCta}

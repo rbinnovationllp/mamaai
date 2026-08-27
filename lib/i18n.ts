@@ -38,6 +38,7 @@ export const homeCopy = {
     fourPaw: "Includes four-paw family",
     footerEyebrow: "Healthy families. Happy kitchens.",
     footerTitle: "Every day, one practical plan.",
+    footerPartner: "Community launch support: www.sabsewa.in",
     footerCta: "Create family profile",
     ask: "Ask MAMA",
     features: [
@@ -81,6 +82,7 @@ export const homeCopy = {
     fourPaw: "Four-paw family शामिल",
     footerEyebrow: "Healthy families. Happy kitchens.",
     footerTitle: "हर दिन, एक practical plan.",
+    footerPartner: "Community launch support: www.sabsewa.in",
     footerCta: "Family profile बनाएं",
     ask: "Ask MAMA",
     features: [
@@ -124,6 +126,7 @@ export const homeCopy = {
     fourPaw: "Four-paw family ಸೇರಿದೆ",
     footerEyebrow: "Healthy families. Happy kitchens.",
     footerTitle: "ಪ್ರತಿ ದಿನ, ಒಂದು practical plan.",
+    footerPartner: "Community launch support: www.sabsewa.in",
     footerCta: "Family profile ರಚಿಸಿ",
     ask: "Ask MAMA",
     features: [
