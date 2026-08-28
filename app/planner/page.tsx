@@ -95,6 +95,7 @@ const plannerCopy = {
     subtitle: 'Generate and view the next practical family food plan from your saved household profile.',
     readyTitle: 'Your saved household is ready',
     missingTitle: 'Complete your family profile first',
+    loadingProfile: 'Checking your saved family profile...',
     missingText:
       'Add at least one family member with relation and any allergies, restrictions or dislikes. Then return here to generate the food plan.',
     incompleteText: 'Please complete age for every family member before generating a portion-aware meal plan.',
@@ -184,6 +185,7 @@ const plannerCopy = {
     subtitle: 'आपकी सेव की हुई घरेलू प्रोफाइल से अगला व्यावहारिक पारिवारिक भोजन बनाएं और देखें।',
     readyTitle: 'आपकी घरेलू प्रोफाइल तैयार है',
     missingTitle: 'पहले परिवार की प्रोफाइल पूरी करें',
+    loadingProfile: 'आपकी सेव की हुई family profile check हो रही है...',
     missingText:
       'कम से कम एक सदस्य, रिश्ता और कोई एलर्जी, डॉक्टर की पाबंदी या नापसंद जोड़ें। फिर भोजन योजना बनाने के लिए यहां लौटें।',
     incompleteText: 'हिस्से के अनुसार भोजन योजना बनाने से पहले हर परिवार सदस्य की उम्र भरें।',
@@ -273,6 +275,7 @@ const plannerCopy = {
     subtitle: 'ನಿಮ್ಮ ಉಳಿಸಿದ ಮನೆಯ ಪ್ರೊಫೈಲ್ ಆಧರಿಸಿ ಮುಂದಿನ ಪ್ರಾಯೋಗಿಕ ಕುಟುಂಬದ ಊಟವನ್ನು ರಚಿಸಿ ನೋಡಿ.',
     readyTitle: 'ನಿಮ್ಮ ಮನೆಯ ಪ್ರೊಫೈಲ್ ಸಿದ್ಧವಾಗಿದೆ',
     missingTitle: 'ಮೊದಲು ಕುಟುಂಬದ ಪ್ರೊಫೈಲ್ ಪೂರ್ಣಗೊಳಿಸಿ',
+    loadingProfile: 'ನಿಮ್ಮ ಉಳಿಸಿದ family profile ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...',
     missingText:
       'ಕನಿಷ್ಠ ಒಬ್ಬ ಸದಸ್ಯ, ಸಂಬಂಧ ಮತ್ತು ಯಾವುದೇ ಅಲರ್ಜಿ, ವೈದ್ಯರ ನಿರ್ಬಂಧ ಅಥವಾ ಇಷ್ಟವಿಲ್ಲದ ಪದಾರ್ಥಗಳನ್ನು ಸೇರಿಸಿ. ನಂತರ ಊಟದ ಯೋಜನೆ ಮಾಡಲು ಇಲ್ಲಿ ಮರಳಿ ಬನ್ನಿ.',
     incompleteText: 'ಭಾಗಕ್ಕೆ ಅನುಗುಣವಾದ ಊಟದ ಯೋಜನೆ ಮಾಡಲು ಮೊದಲು ಪ್ರತಿ ಕುಟುಂಬ ಸದಸ್ಯರ ವಯಸ್ಸು ಭರ್ತಿ ಮಾಡಿ.',
@@ -543,6 +546,43 @@ function budgetNotes(customer: CustomerAccount) {
   } satisfies Record<NonNullable<CustomerAccount['budgetPreference']>, string>;
   return [labels[preference]];
 }
+
+function normalizeServerFamilyMembers(rawMembers: unknown): HouseholdMember[] {
+  if (!Array.isArray(rawMembers)) return [];
+  return rawMembers
+    .map((member) => {
+      const item = member as Partial<HouseholdMember> & {
+        memberId?: string;
+        relationship?: string;
+        doctorRestrictions?: string[];
+      };
+      return {
+        id: String(item.id || item.memberId || ''),
+        name: String(item.name || '').trim(),
+        relation: String(item.relation || item.relationship || 'Family member').trim(),
+        age: typeof item.age === 'number' ? item.age : undefined,
+        activityLevel: item.activityLevel,
+        foodPreference: item.foodPreference,
+        nonVegFrequency: item.nonVegFrequency,
+        nonVegAvoidDays: Array.isArray(item.nonVegAvoidDays) ? item.nonVegAvoidDays : [],
+        nonVegCustomRule: item.nonVegCustomRule,
+        allergies: Array.isArray(item.allergies) ? item.allergies : [],
+        doctorAdvisedRestrictions: Array.isArray(item.doctorAdvisedRestrictions)
+          ? item.doctorAdvisedRestrictions
+          : Array.isArray(item.doctorRestrictions)
+            ? item.doctorRestrictions
+            : [],
+        dislikes: Array.isArray(item.dislikes) ? item.dislikes : [],
+        mealStrategyPreference: item.mealStrategyPreference ?? 'common',
+      } satisfies HouseholdMember;
+    })
+    .filter((member) => member.id && member.name);
+}
+
+function hydrateCustomerFromServer(rawCustomer: unknown): CustomerAccount {
+  return rawCustomer && typeof rawCustomer === 'object' ? (rawCustomer as CustomerAccount) : {};
+}
+
 function cookingHabitNotes(value?: CustomerAccount['cookingHabit']) {
   switch (value) {
     case 'ready_frozen':
@@ -954,11 +994,14 @@ export default function PlannerPage() {
   const [videoSearch, setVideoSearch] = useState<RecipeVideoSearchResponse | null>(null);
   const [videoStatus, setVideoStatus] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoadingServerProfile, setIsLoadingServerProfile] = useState(true);
   const [lastPlan, setLastPlan] = useState('');
   const [feedbackStatus, setFeedbackStatus] = useState('');
   const remainingMealTimes = useMemo(() => remainingMealTimesForHour(currentLocalHour()), []);
 
   useEffect(() => {
+    let cancelled = false;
+
     try {
       const savedMembers = window.localStorage.getItem(HOUSEHOLD_STORAGE_KEY);
       if (savedMembers) {
@@ -986,6 +1029,36 @@ export default function PlannerPage() {
     } catch {
       setMembers([]);
     }
+
+    async function loadServerProfile() {
+      try {
+        const response = await fetch('/api/customer/session', { cache: 'no-store' });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (cancelled || !data.authenticated) return;
+
+        const serverCustomer = hydrateCustomerFromServer(data.customer);
+        if (Object.keys(serverCustomer).length) {
+          setCustomer(serverCustomer);
+          window.localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(serverCustomer));
+        }
+
+        const serverMembers = normalizeServerFamilyMembers(data.familyProfile?.members);
+        if (serverMembers.length) {
+          setMembers(serverMembers);
+          window.localStorage.setItem(HOUSEHOLD_STORAGE_KEY, JSON.stringify(serverMembers));
+        }
+      } catch {
+        // If the signed session is absent, localStorage/manual profile remains the fallback.
+      } finally {
+        if (!cancelled) setIsLoadingServerProfile(false);
+      }
+    }
+
+    loadServerProfile();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
 
@@ -1406,7 +1479,11 @@ export default function PlannerPage() {
           <LanguageSelector />
         </div>
 
-        {!canGenerate ? (
+        {isLoadingServerProfile && !canGenerate ? (
+          <section className="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+            <p className="text-sm font-bold text-emerald-800">{t.loadingProfile}</p>
+          </section>
+        ) : !canGenerate ? (
           <section className="rounded-3xl border border-amber-100 bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-bold text-slate-950">{t.missingTitle}</h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">{t.missingText}</p>
