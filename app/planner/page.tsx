@@ -137,6 +137,11 @@ const plannerCopy = {
     cooked: 'Cooked this',
     liked: 'Liked it',
     rejected: 'Do not suggest again',
+    mealWishLabel: 'What kind of food would you like today?',
+    mealWishPlaceholder: 'Example: not light food today, paneer dinner, South Indian, quick dinner...',
+    showAnotherOption: 'Show Me Another Option',
+    anotherOptionLoading: 'Finding another suitable meal...',
+    anotherOptionSuccess: 'Another suitable meal is ready.',
     feedbackSaved: 'Thanks. This signal was saved for future personalization.',
     commonMeal: "Today's Family Meal",
     portions: 'Member guidance',
@@ -227,6 +232,11 @@ const plannerCopy = {
     cooked: 'यह बनाया',
     liked: 'पसंद आया',
     rejected: 'फिर न सुझाएं',
+    mealWishLabel: 'आज आप किस तरह का खाना चाहते हैं?',
+    mealWishPlaceholder: 'जैसे: आज हल्का नहीं, पनीर डिनर, South Indian, जल्दी बनने वाला खाना...',
+    showAnotherOption: 'दूसरा भोजन सुझाएँ',
+    anotherOptionLoading: 'दूसरा उपयुक्त भोजन खोज रहे हैं...',
+    anotherOptionSuccess: 'दूसरा उपयुक्त भोजन तैयार है।',
     feedbackSaved: 'धन्यवाद। यह संकेत आगे की व्यक्तिगत योजना के लिए सेव हो गया।',
     commonMeal: 'आज का पारिवारिक भोजन',
     portions: 'सदस्य-विशेष मार्गदर्शन',
@@ -317,6 +327,11 @@ const plannerCopy = {
     cooked: 'ಇದನ್ನು ಅಡುಗೆ ಮಾಡಿದೆವು',
     liked: 'ಇಷ್ಟವಾಯಿತು',
     rejected: 'ಮತ್ತೆ ಸೂಚಿಸಬೇಡಿ',
+    mealWishLabel: 'ಇಂದು ಯಾವ ರೀತಿಯ ಆಹಾರ ಬೇಕು?',
+    mealWishPlaceholder: 'ಉದಾ: ಇಂದು ಹಗುರ ಬೇಡ, ಪನೀರ್ ಡಿನ್ನರ್, South Indian, ಬೇಗ ಆಗುವ ಊಟ...',
+    showAnotherOption: 'ಮತ್ತೊಂದು ಊಟ ಸೂಚಿಸಿ',
+    anotherOptionLoading: 'ಇನ್ನೊಂದು ಸೂಕ್ತ ಊಟ ಹುಡುಕಲಾಗುತ್ತಿದೆ...',
+    anotherOptionSuccess: 'ಇನ್ನೊಂದು ಸೂಕ್ತ ಊಟ ಸಿದ್ಧವಾಗಿದೆ.',
     feedbackSaved: 'ಧನ್ಯವಾದಗಳು. ಈ ಸೂಚನೆ ಮುಂದಿನ ವೈಯಕ್ತಿಕ ಯೋಜನೆಗಾಗಿ ಉಳಿಸಲಾಗಿದೆ.',
     commonMeal: 'ಇಂದಿನ ಕುಟುಂಬದ ಊಟ',
     portions: 'ಸದಸ್ಯರಿಗನುಗುಣ ಮಾರ್ಗದರ್ಶನ',
@@ -963,6 +978,37 @@ function writeCachedMealPlan(cacheKey: string, mealPlan: FamilyMealPlan, signatu
   }
 }
 
+function clearDailyPlanCache() {
+  try {
+    window.localStorage.removeItem(DAILY_PLAN_CACHE_KEY);
+  } catch {
+    // Cache is only an optimization.
+  }
+}
+
+function readLocalLearningSignals(): Array<{
+  mealName: string;
+  mealTime: MealTime;
+  outcome: 'cooked' | 'liked' | 'rejected';
+  createdAt: string;
+}> {
+  try {
+    const raw = window.localStorage.getItem(FAMILY_LEARNING_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((signal) => signal?.mealName && signal?.mealTime);
+  } catch {
+    return [];
+  }
+}
+
+function previousMealsForPlanning(mealTime: MealTime, currentMealName?: string) {
+  const learnedMeals = readLocalLearningSignals()
+    .filter((signal) => signal.mealTime === mealTime && (signal.outcome === 'rejected' || signal.outcome === 'cooked'))
+    .map((signal) => signal.mealName);
+  return [...new Set([currentMealName, ...learnedMeals].filter(Boolean) as string[])].slice(-10);
+}
+
 function saveLocalLearningSignal(signal: {
   mealName: string;
   mealTime: MealTime;
@@ -994,9 +1040,11 @@ export default function PlannerPage() {
   const [videoSearch, setVideoSearch] = useState<RecipeVideoSearchResponse | null>(null);
   const [videoStatus, setVideoStatus] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isReplacingMeal, setIsReplacingMeal] = useState(false);
   const [isLoadingServerProfile, setIsLoadingServerProfile] = useState(true);
   const [lastPlan, setLastPlan] = useState('');
   const [feedbackStatus, setFeedbackStatus] = useState('');
+  const [mealWish, setMealWish] = useState('');
   const remainingMealTimes = useMemo(() => remainingMealTimesForHour(currentLocalHour()), []);
 
   useEffect(() => {

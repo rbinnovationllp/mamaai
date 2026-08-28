@@ -137,6 +137,7 @@ export class MealPlanningService {
       mealAttendance,
       highTeaPreference: request.highTeaPreference,
       userPlanningMode: request.userPlanningMode,
+      previousMeals: request.previousMeals,
       targetDate: request.targetDate ?? new Date().toISOString().slice(0, 10),
     });
 
@@ -160,7 +161,7 @@ export class MealPlanningService {
     return { nutritionContexts, mealPlan };
   }
 
-  async replace(mealPlanId: string, _request: ReplaceMealRequest) {
+  async replace(mealPlanId: string, request: ReplaceMealRequest) {
     this.mealRetentionService.removeExpiredDetailedMealPlans();
 
     let existing = await this.repository.getMealPlan(mealPlanId).catch((error) => {
@@ -187,10 +188,17 @@ export class MealPlanningService {
       mealAttendance: existing.mealAttendance,
       targetDate: existing.targetDate,
       replacement: true,
+      replacementReason: request.reason,
+      excludedMealNames: [
+        existing.commonMeal.name,
+        ...(request.dislikedFoods ?? []),
+        ...(request.previousMeals ?? []),
+      ],
+      previousMeals: [existing.commonMeal.name, ...(request.previousMeals ?? [])],
     });
 
     const mealPlan = {
-      ...replacement,
+      ...this.aiService.localizeFamilyMealPlan(replacement, request.preferredLanguage),
       mealPlanId: existing.mealPlanId,
       createdAt: existing.createdAt,
     };

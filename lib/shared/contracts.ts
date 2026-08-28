@@ -390,6 +390,15 @@ export interface RecipeVideoSearchResponse {
   note: string;
 }
 
+export interface MealAlternativeOption {
+  title: string;
+  description: string;
+  prepTimeMinutes: number;
+  difficulty: "easy" | "medium" | "hard";
+  ingredientsSummary: string[];
+  reasoning: string;
+}
+
 export interface CommonMeal {
   mealId: ID;
   name: string;
@@ -403,6 +412,7 @@ export interface CommonMeal {
   nutritionIntent: string;
   nutritionEstimate: NutritionEstimate;
   recipe: RecipeDetails;
+  alternativeOptions?: MealAlternativeOption[];
 }
 
 export interface MealComponent {
@@ -602,6 +612,8 @@ export interface CreateMealPlanRequest {
   userTimeZone?: string;
   userPlanningMode?: UserPlanningMode;
   targetDate?: string;
+  userPromptOverride?: string;
+  excludeDishes?: string[];
   availableIngredients?: string[];
   previousMeals?: string[];
   mealAttendance?: MealAttendanceEntry[];
@@ -616,6 +628,8 @@ export interface ReplaceMealRequest {
   reason: MealReplacementReason;
   unavailableIngredients?: string[];
   dislikedFoods?: string[];
+  userPromptOverride?: string;
+  excludeDishes?: string[];
 }
 
 export interface FeedbackRequest {
