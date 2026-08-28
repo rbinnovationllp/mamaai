@@ -598,7 +598,9 @@ export const replaceMealRequestSchema = z.object({
   unavailableIngredients: z.array(z.string()).optional(),
   dislikedFoods: z.array(z.string()).optional(),
   previousMeals: z.array(z.string()).optional(),
-  preferredLanguage: z.enum(["en", "hi", "kn"]).optional(),
+  userPromptOverride: z.string().optional(),
+  excludeDishes: z.array(z.string()).optional(),
+  preferredLanguage: z.string().optional(),
 });
 
 export const feedbackRequestSchema = z.object({

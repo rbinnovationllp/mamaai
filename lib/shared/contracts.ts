@@ -628,8 +628,10 @@ export interface ReplaceMealRequest {
   reason: MealReplacementReason;
   unavailableIngredients?: string[];
   dislikedFoods?: string[];
+  previousMeals?: string[];
   userPromptOverride?: string;
   excludeDishes?: string[];
+  preferredLanguage?: string;
 }
 
 export interface FeedbackRequest {
