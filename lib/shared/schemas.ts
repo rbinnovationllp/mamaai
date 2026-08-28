@@ -31,10 +31,21 @@ export const mealTimeSchema = z.enum([
   "high_tea",
 ]);
 
-// Canonical subscription tier schema
+export const mealSlotSchema = z.enum(["breakfast", "lunch", "snacks", "dinner"]);
+
+export const attendanceStatusSchema = z.enum(["home", "tiffin", "eating_out", "fasting"]);
+
+export const mealTimingPatternSchema = z
+  .object({
+    breakfast: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
+    lunch: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
+    snacks: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
+    dinner: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
+  })
+  .optional();
+
 export const planTierSchema = z.enum(["starter", "premium", "family_plus"]);
 
-// Legacy/Compatibility Subscription Enum
 export const legacyPlanTierSchema = z.enum([
   "starter",
   "premium",
@@ -43,10 +54,8 @@ export const legacyPlanTierSchema = z.enum([
   "family_premium",
 ]);
 
-// Union for backward compatibility
 export const anyPlanTierSchema = z.union([planTierSchema, legacyPlanTierSchema]);
 
-// Helper function to normalize plan names to canonical keys
 export function normalizePlanTier(plan: string): "starter" | "premium" | "family_plus" {
   if (plan === "family_starter") return "starter";
   if (plan === "family_premium") return "premium";
@@ -177,6 +186,7 @@ export const createFamilyInputSchema = z.object({
       dinner: z.array(z.string()).optional(),
     })
     .optional(),
+  mealTimings: mealTimingPatternSchema,
   recentMealHistory: z
     .array(
       z.object({
@@ -530,6 +540,11 @@ const mealAttendanceEntrySchema = z.object({
   enabled: z.boolean().default(true),
 });
 
+export const todayAttendanceItemSchema = z.object({
+  memberId: z.string().min(1),
+  status: attendanceStatusSchema,
+});
+
 const highTeaPreferenceSchema = z.object({
   enabled: z.boolean(),
   days: z.array(z.string()).default([]),
@@ -540,9 +555,17 @@ const highTeaPreferenceSchema = z.object({
 
 export const createMealPlanRequestSchema = z.object({
   familyId: z.string().min(1),
-  planType: z.enum(["daily", "weekly", "monthly"]),
+  userId: z.string().optional(),
+  planType: z.enum(["daily", "weekly", "monthly"]).default("daily"),
   mealTime: mealTimeSchema.optional(),
+  mealSlot: mealSlotSchema.optional(),
+  scheduledTime: z.string().optional(),
   mealTimeContext: mealTimeContextSchema.optional(),
+  userLocalTime: z.string().optional(),
+  userTimeZone: z.string().optional(),
+  todayAttendance: z.array(todayAttendanceItemSchema).optional(),
+  isExceptionToday: z.boolean().default(false),
+  customMealTimings: mealTimingPatternSchema,
   mealAttendance: z.array(mealAttendanceEntrySchema).optional(),
   highTeaPreference: highTeaPreferenceSchema.optional(),
   userPlanningMode: z
@@ -628,14 +651,15 @@ export type PlanTier = z.infer<typeof planTierSchema>;
 export type Money = z.infer<typeof moneySchema>;
 export type BudgetProfile = z.infer<typeof budgetProfileSchema>;
 export type KitchenProfile = z.infer<typeof kitchenProfileSchema>;
+export type MealTimingPattern = z.infer<typeof mealTimingPatternSchema>;
 export type CreateFamilyInput = z.infer<typeof createFamilyInputSchema>;
 export type CreateFamilyMemberInput = z.infer<typeof createFamilyMemberInputSchema>;
 export type CreateFamilyRequest = z.infer<typeof createFamilyRequestSchema>;
 export type FamilyMealPlan = z.infer<typeof familyMealPlanSchema>;
+export type TodayAttendanceItem = z.infer<typeof todayAttendanceItemSchema>;
 export type CreateMealPlanRequest = z.infer<typeof createMealPlanRequestSchema>;
 export type SubscriptionPlanRequest = z.infer<typeof subscriptionPlanRequestSchema>;
 export type CreateRazorpaySubscription = z.infer<typeof createRazorpaySubscriptionSchema>;
 export type VerifyRazorpayPayment = z.infer<typeof verifyRazorpayPaymentSchema>;
 export type RecipeVideoSearchRequest = z.infer<typeof recipeVideoSearchRequestSchema>;
 export type RevenueCatWebhook = z.infer<typeof revenueCatWebhookSchema>;
-

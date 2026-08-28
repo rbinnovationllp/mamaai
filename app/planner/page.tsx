@@ -25,7 +25,9 @@ const LAST_PLAN_KEY = 'mamaai_last_successful_plan';
 const DAILY_PLAN_CACHE_KEY = 'mamaai_daily_meal_plan_cache_v1';
 const PANTRY_STORAGE_KEY = 'mamaai_pantry_items_v1';
 const FAMILY_LEARNING_KEY = 'mamaai_family_learning_signals_v1';
-const PLANNER_FAMILY_ID_KEY = 'mamaai_planner_family_id_v1';
+const TODAY_ATTENDANCE_KEY = 'mamaai_today_meal_attendance_v1';
+const YESTERDAY_ATTENDANCE_KEY = 'mamaai_yesterday_meal_attendance_v1';
+const REGULAR_WEEKDAY_ATTENDANCE_KEY = 'mamaai_regular_weekday_attendance_v1';
 
 type HouseholdMember = {
   id: string;
@@ -76,6 +78,7 @@ type PantryItem = {
 };
 
 type PlannerMode = 'next_meal' | 'specific_meal';
+type MemberMealAvailability = 'home' | 'tiffin' | 'away';
 type MealAttendanceDraft = Record<
   MealTime,
   {
@@ -83,6 +86,8 @@ type MealAttendanceDraft = Record<
     tiffinMemberIds: string[];
   }
 >;
+
+const dailyScheduleMealTimes: MealTime[] = ['breakfast', 'lunch', 'high_tea', 'dinner'];
 
 const plannerCopy = {
   en: {
@@ -110,6 +115,17 @@ const plannerCopy = {
     tiffinHelp: 'Select only members who need this meal packed for office, school or travel.',
     selectedByTime: 'Auto-selected from your local time',
     selectOneMember: 'Select at least one family member for this meal.',
+    todayScheduleTitle: 'Who will be eating each meal today?',
+    todayScheduleHelp: 'Choose Home, Tiffin or Not eating for each member. This controls portions, dietary checks, pantry use and grocery quantities.',
+    everyone: 'Everyone',
+    noOne: 'No One',
+    sameAsYesterday: 'Same as Yesterday',
+    useWeekdayPattern: 'Use Regular Weekday Pattern',
+    saveWeekdayPattern: 'Save as Regular Weekday Pattern',
+    homeMeal: 'Home',
+    tiffinMeal: 'Tiffin',
+    awayMeal: 'Not eating',
+    scheduleSaved: 'Regular weekday pattern saved on this device.',
     pantryUsed: 'Pantry considered',
     alreadyInPantry: 'Already in pantry',
     sabsewaTitle: 'Support Your Local Vendor',
@@ -188,6 +204,17 @@ const plannerCopy = {
     tiffinHelp: 'केवल उन सदस्यों को चुनें जिन्हें ऑफिस, स्कूल या यात्रा के लिए यह भोजन पैक चाहिए।',
     selectedByTime: 'आपके स्थानीय समय से अपने-आप चुना गया',
     selectOneMember: 'इस भोजन के लिए कम से कम एक परिवार सदस्य चुनें।',
+    todayScheduleTitle: 'आज हर भोजन कौन खाएगा?',
+    todayScheduleHelp: 'हर सदस्य के लिए Home, Tiffin या Not eating चुनें। इसी से portions, dietary checks, pantry और grocery quantity तय होगी।',
+    everyone: 'सभी',
+    noOne: 'कोई नहीं',
+    sameAsYesterday: 'कल जैसा',
+    useWeekdayPattern: 'Regular weekday pattern लगाएं',
+    saveWeekdayPattern: 'Regular weekday pattern सेव करें',
+    homeMeal: 'घर पर',
+    tiffinMeal: 'टिफिन',
+    awayMeal: 'नहीं खाएंगे',
+    scheduleSaved: 'Regular weekday pattern इस device पर सेव हो गया।',
     pantryUsed: 'पैंट्री को ध्यान में रखा गया',
     alreadyInPantry: 'पैंट्री में पहले से है',
     sabsewaTitle: 'अपने local vendor को support करें',
@@ -266,6 +293,17 @@ const plannerCopy = {
     tiffinHelp: 'ಆಫೀಸ್, ಶಾಲೆ ಅಥವಾ ಪ್ರಯಾಣಕ್ಕೆ ಈ ಊಟವನ್ನು ಪ್ಯಾಕ್ ಮಾಡಿಸಬೇಕಾದ ಸದಸ್ಯರನ್ನು ಮಾತ್ರ ಆಯ್ಕೆಮಾಡಿ.',
     selectedByTime: 'ನಿಮ್ಮ ಸ್ಥಳೀಯ ಸಮಯದಿಂದ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಆಯ್ಕೆ ಮಾಡಲಾಗಿದೆ',
     selectOneMember: 'ಈ ಊಟಕ್ಕೆ ಕನಿಷ್ಠ ಒಬ್ಬ ಕುಟುಂಬ ಸದಸ್ಯರನ್ನು ಆಯ್ಕೆಮಾಡಿ.',
+    todayScheduleTitle: 'ಇಂದು ಪ್ರತಿ ಊಟವನ್ನು ಯಾರು ತಿನ್ನುತ್ತಾರೆ?',
+    todayScheduleHelp: 'ಪ್ರತಿ ಸದಸ್ಯರಿಗೆ Home, Tiffin ಅಥವಾ Not eating ಆಯ್ಕೆಮಾಡಿ. ಇದರಿಂದ portions, dietary checks, pantry ಮತ್ತು grocery quantity ನಿರ್ಧಾರವಾಗುತ್ತದೆ.',
+    everyone: 'ಎಲ್ಲರೂ',
+    noOne: 'ಯಾರೂ ಇಲ್ಲ',
+    sameAsYesterday: 'ನಿನ್ನೆ ಇದ್ದಂತೆ',
+    useWeekdayPattern: 'Regular weekday pattern ಬಳಸಿ',
+    saveWeekdayPattern: 'Regular weekday pattern ಉಳಿಸಿ',
+    homeMeal: 'ಮನೆಯಲ್ಲಿ',
+    tiffinMeal: 'ಟಿಫಿನ್',
+    awayMeal: 'ತಿನ್ನುವುದಿಲ್ಲ',
+    scheduleSaved: 'Regular weekday pattern ಈ device ನಲ್ಲಿ ಉಳಿಸಲಾಗಿದೆ.',
     pantryUsed: 'ಪ್ಯಾಂಟ್ರಿಯನ್ನು ಪರಿಗಣಿಸಲಾಗಿದೆ',
     alreadyInPantry: 'ಈಗಾಗಲೇ ಪ್ಯಾಂಟ್ರಿಯಲ್ಲಿದೆ',
     sabsewaTitle: 'ನಿಮ್ಮ local vendor ಅನ್ನು support ಮಾಡಿ',
@@ -356,6 +394,58 @@ function emptyAttendanceDraft(): MealAttendanceDraft {
     high_tea: { participatingMemberIds: [], tiffinMemberIds: [] },
     snack: { participatingMemberIds: [], tiffinMemberIds: [] },
   };
+}
+
+function attendanceForAllMembers(members: HouseholdMember[], status: MemberMealAvailability = 'home'): MealAttendanceDraft {
+  const memberIds = members.map((member) => member.id);
+  const draft = emptyAttendanceDraft();
+  dailyScheduleMealTimes.forEach((mealTime) => {
+    draft[mealTime] = {
+      participatingMemberIds: status === 'away' ? [] : memberIds,
+      tiffinMemberIds: status === 'tiffin' ? memberIds : [],
+    };
+  });
+  return draft;
+}
+
+function availabilityForMember(entry: MealAttendanceDraft[MealTime], memberId: string): MemberMealAvailability {
+  if (entry.tiffinMemberIds.includes(memberId)) return 'tiffin';
+  if (entry.participatingMemberIds.includes(memberId)) return 'home';
+  return 'away';
+}
+
+function patchMealAvailability(
+  entry: MealAttendanceDraft[MealTime],
+  memberId: string,
+  status: MemberMealAvailability
+) {
+  const participating = new Set(entry.participatingMemberIds);
+  const tiffin = new Set(entry.tiffinMemberIds);
+  if (status === 'away') {
+    participating.delete(memberId);
+    tiffin.delete(memberId);
+  } else {
+    participating.add(memberId);
+    if (status === 'tiffin') tiffin.add(memberId);
+    else tiffin.delete(memberId);
+  }
+  return {
+    participatingMemberIds: Array.from(participating),
+    tiffinMemberIds: Array.from(tiffin).filter((value) => participating.has(value)),
+  };
+}
+
+function validAttendanceDraft(value: unknown): value is MealAttendanceDraft {
+  if (!value || typeof value !== 'object') return false;
+  return dailyScheduleMealTimes.every((mealTime) => {
+    const entry = (value as Record<string, unknown>)[mealTime];
+    return (
+      Boolean(entry) &&
+      typeof entry === 'object' &&
+      Array.isArray((entry as { participatingMemberIds?: unknown }).participatingMemberIds) &&
+      Array.isArray((entry as { tiffinMemberIds?: unknown }).tiffinMemberIds)
+    );
+  });
 }
 
 function weekdayForDate(dateString: string) {
@@ -774,6 +864,36 @@ function dailyPlanCacheKey(input: {
   return `${input.userId}|${input.targetDate}|${input.mealTime}|${input.signature}`;
 }
 
+function attendanceSignatureForSchedule(schedule: MealAttendanceDraft) {
+  return JSON.stringify(
+    Object.fromEntries(
+      dailyScheduleMealTimes.map((mealTime) => [
+        mealTime,
+        {
+          participatingMemberIds: [...(schedule[mealTime]?.participatingMemberIds ?? [])].sort(),
+          tiffinMemberIds: [...(schedule[mealTime]?.tiffinMemberIds ?? [])].sort(),
+        },
+      ])
+    )
+  );
+}
+
+function attendanceNotesForSchedule(schedule: MealAttendanceDraft, members: HouseholdMember[], labels: typeof plannerCopy.en.meals) {
+  return dailyScheduleMealTimes.map((mealTime) => {
+    const entry = schedule[mealTime] ?? { participatingMemberIds: [], tiffinMemberIds: [] };
+    const home = members
+      .filter((member) => entry.participatingMemberIds.includes(member.id) && !entry.tiffinMemberIds.includes(member.id))
+      .map((member) => member.name);
+    const tiffin = members
+      .filter((member) => entry.tiffinMemberIds.includes(member.id))
+      .map((member) => member.name);
+    const away = members
+      .filter((member) => !entry.participatingMemberIds.includes(member.id))
+      .map((member) => member.name);
+    return `${mealLabel(mealTime, labels)} attendance today - Home: ${home.join(', ') || 'none'}; Tiffin: ${tiffin.join(', ') || 'none'}; Not eating this meal: ${away.join(', ') || 'none'}.`;
+  });
+}
+
 function readCachedMealPlan(cacheKey: string, expected: { targetDate: string; mealTime: MealTime; signature: string }): FamilyMealPlan | null {
   try {
     const raw = window.localStorage.getItem(DAILY_PLAN_CACHE_KEY);
@@ -916,47 +1036,102 @@ export default function PlannerPage() {
     });
   }, [members]);
 
-  const toggleMealParticipant = (mealTime: MealTime, memberId: string) => {
+  useEffect(() => {
+    if (!members.length) return;
+    try {
+      const today = todayLocalDate();
+      const raw = window.localStorage.getItem(TODAY_ATTENDANCE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed?.date && parsed.date !== today && validAttendanceDraft(parsed.attendance)) {
+        window.localStorage.setItem(YESTERDAY_ATTENDANCE_KEY, raw);
+        return;
+      }
+      if (parsed?.date === today && validAttendanceDraft(parsed.attendance)) {
+        const memberIds = new Set(members.map((member) => member.id));
+        setMealAttendance((current) => {
+          const next = { ...current };
+          dailyScheduleMealTimes.forEach((mealTime) => {
+            const entry = parsed.attendance[mealTime];
+            next[mealTime] = {
+              participatingMemberIds: entry.participatingMemberIds.filter((memberId: string) => memberIds.has(memberId)),
+              tiffinMemberIds: entry.tiffinMemberIds.filter((memberId: string) => memberIds.has(memberId)),
+            };
+          });
+          return next;
+        });
+      }
+    } catch {
+      // Today's attendance is a convenience cache only.
+    }
+  }, [members]);
+
+  useEffect(() => {
+    if (!members.length) return;
+    try {
+      const today = todayLocalDate();
+      window.localStorage.setItem(
+        TODAY_ATTENDANCE_KEY,
+        JSON.stringify({ date: today, attendance: mealAttendance })
+      );
+    } catch {
+      // Attendance persistence should not block planning.
+    }
+  }, [mealAttendance, members.length]);
+
+  const setMealAvailability = (mealTime: MealTime, memberId: string, status: MemberMealAvailability) => {
     setMealAttendance((current) => {
       const existing = current[mealTime] ?? { participatingMemberIds: [], tiffinMemberIds: [] };
-      const isSelected = existing.participatingMemberIds.includes(memberId);
-      const participatingMemberIds = isSelected
-        ? existing.participatingMemberIds.filter((value) => value !== memberId)
-        : [...existing.participatingMemberIds, memberId];
       return {
         ...current,
-        [mealTime]: {
-          ...existing,
-          participatingMemberIds,
-          tiffinMemberIds: existing.tiffinMemberIds.filter((value) => participatingMemberIds.includes(value)),
-        },
+        [mealTime]: patchMealAvailability(existing, memberId, status),
       };
     });
   };
 
-  const toggleTiffin = (mealTime: MealTime, memberId: string) => {
-    setMealAttendance((current) => {
-      const existing = current[mealTime] ?? { participatingMemberIds: [], tiffinMemberIds: [] };
-      const isSelected = existing.tiffinMemberIds.includes(memberId);
-      return {
-        ...current,
-        [mealTime]: {
-          participatingMemberIds: existing.participatingMemberIds.includes(memberId)
-            ? existing.participatingMemberIds
-            : [...existing.participatingMemberIds, memberId],
-          tiffinMemberIds: isSelected
-            ? existing.tiffinMemberIds.filter((value) => value !== memberId)
-            : [...existing.tiffinMemberIds, memberId],
-        },
-      };
-    });
+  const setMealForEveryone = (mealTime: MealTime, status: MemberMealAvailability) => {
+    setMealAttendance((current) => ({
+      ...current,
+      [mealTime]: attendanceForAllMembers(members, status)[mealTime],
+    }));
+  };
+
+  const saveRegularWeekdayPattern = () => {
+    try {
+      window.localStorage.setItem(REGULAR_WEEKDAY_ATTENDANCE_KEY, JSON.stringify(mealAttendance));
+      setStatus(t.scheduleSaved);
+    } catch {
+      setStatus('');
+    }
+  };
+
+  const loadStoredAttendance = (storageKey: string) => {
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      const attendance = validAttendanceDraft(parsed?.attendance) ? parsed.attendance : parsed;
+      if (!validAttendanceDraft(attendance)) return;
+      const memberIds = new Set(members.map((member) => member.id));
+      setMealAttendance((current) => {
+        const next = { ...current };
+        dailyScheduleMealTimes.forEach((mealTime) => {
+          const entry = attendance[mealTime];
+          next[mealTime] = {
+            participatingMemberIds: entry.participatingMemberIds.filter((memberId: string) => memberIds.has(memberId)),
+            tiffinMemberIds: entry.tiffinMemberIds.filter((memberId: string) => memberIds.has(memberId)),
+          };
+        });
+        return next;
+      });
+    } catch {
+      // Ignore invalid saved patterns.
+    }
   };
 
   const suggestedPlan = useMemo(() => planFromMemberCount(members.length), [members.length]);
   const canGenerate = members.length > 0;
   const membersMissingAge = members.filter((member) => typeof member.age !== 'number' || Number.isNaN(member.age));
-  const selectedAttendance = mealAttendance[selectedMealTime] ?? { participatingMemberIds: members.map((member) => member.id), tiffinMemberIds: [] };
-
   const generatePlan = async () => {
     if (!canGenerate || isGenerating) return;
     if (membersMissingAge.length) {
@@ -980,11 +1155,7 @@ export default function PlannerPage() {
       const userId = customer.userId || `customer_${Date.now()}`;
       const targetDate = todayLocalDate();
       const activeAttendance = mealAttendance[selectedMealTime] ?? { participatingMemberIds: members.map((member) => member.id), tiffinMemberIds: [] };
-      const attendanceSignature = JSON.stringify({
-        mealTime: selectedMealTime,
-        participatingMemberIds: [...activeAttendance.participatingMemberIds].sort(),
-        tiffinMemberIds: [...activeAttendance.tiffinMemberIds].sort(),
-      });
+      const attendanceSignature = attendanceSignatureForSchedule(mealAttendance);
       const signature = `${stableContextSignature({ members, customer, culture, language })}|attendance:${attendanceSignature}|pantry:${pantrySummary(pantryItems)}`;
       const cacheKey = dailyPlanCacheKey({ userId, targetDate, mealTime: selectedMealTime, signature });
       const cachedMealPlan = readCachedMealPlan(cacheKey, { targetDate, mealTime: selectedMealTime, signature });
@@ -1029,6 +1200,7 @@ export default function PlannerPage() {
               ...(customer.nonVegPreferredFoods?.length
                 ? [`Explicit family non-vegetarian food preferences: ${customer.nonVegPreferredFoods.join(', ')}. Do not add other meat categories unless the family requested them.`]
                 : []),
+              ...attendanceNotesForSchedule(mealAttendance, members, t.meals),
               activeAttendance.tiffinMemberIds.length
                 ? `Packed meal/tiffin needed for: ${members
                     .filter((member) => activeAttendance.tiffinMemberIds.includes(member.id))
@@ -1338,41 +1510,76 @@ export default function PlannerPage() {
                 </div>
 
                 <div>
-                  <p className="text-sm font-black text-slate-800">{t.mealAttendanceTitle}</p>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {members.map((member) => {
-                      const checked = selectedAttendance.participatingMemberIds.includes(member.id);
-                      return (
-                        <label key={member.id} className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-700 ring-1 ring-slate-200">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleMealParticipant(selectedMealTime, member.id)}
-                            className="h-5 w-5 rounded border-slate-300 text-emerald-700"
-                          />
-                          <span>{member.name}</span>
-                        </label>
-                      );
-                    })}
+                  <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+                    <div>
+                      <p className="text-sm font-black text-slate-800">{t.todayScheduleTitle}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-600">{t.todayScheduleHelp}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" onClick={() => loadStoredAttendance(YESTERDAY_ATTENDANCE_KEY)} className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-700 ring-1 ring-slate-200">
+                        {t.sameAsYesterday}
+                      </button>
+                      <button type="button" onClick={() => loadStoredAttendance(REGULAR_WEEKDAY_ATTENDANCE_KEY)} className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-700 ring-1 ring-slate-200">
+                        {t.useWeekdayPattern}
+                      </button>
+                      <button type="button" onClick={saveRegularWeekdayPattern} className="rounded-full bg-emerald-700 px-3 py-2 text-xs font-black text-white">
+                        {t.saveWeekdayPattern}
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <p className="text-sm font-black text-slate-800">{t.tiffinTitle}</p>
-                  <p className="mt-1 text-xs text-slate-600">{t.tiffinHelp}</p>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {members.map((member) => {
-                      const checked = selectedAttendance.tiffinMemberIds.includes(member.id);
+                  <div className="mt-4 grid gap-4">
+                    {dailyScheduleMealTimes.map((mealTime) => {
+                      const entry = mealAttendance[mealTime] ?? { participatingMemberIds: [], tiffinMemberIds: [] };
                       return (
-                        <label key={`tiffin-${member.id}`} className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-700 ring-1 ring-slate-200">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleTiffin(selectedMealTime, member.id)}
-                            className="h-5 w-5 rounded border-slate-300 text-emerald-700"
-                          />
-                          <span>{member.name}</span>
-                        </label>
+                        <article key={`schedule-${mealTime}`} className={`rounded-2xl p-4 ring-1 ${
+                          mealTime === selectedMealTime ? 'bg-emerald-50 ring-emerald-200' : 'bg-white ring-slate-200'
+                        }`}>
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedMealTime(mealTime)}
+                              className="text-left text-base font-black text-slate-950"
+                            >
+                              {mealLabel(mealTime, t.meals)}
+                            </button>
+                            <div className="flex flex-wrap gap-2">
+                              <button type="button" onClick={() => setMealForEveryone(mealTime, 'home')} className="rounded-full bg-white px-3 py-2 text-xs font-black text-emerald-800 ring-1 ring-emerald-100">
+                                {t.everyone}
+                              </button>
+                              <button type="button" onClick={() => setMealForEveryone(mealTime, 'away')} className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-600 ring-1 ring-slate-200">
+                                {t.noOne}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 grid gap-3">
+                            {members.map((member) => {
+                              const availability = availabilityForMember(entry, member.id);
+                              return (
+                                <div key={`${mealTime}-${member.id}`} className="rounded-xl bg-slate-50 p-3 ring-1 ring-slate-100">
+                                  <p className="text-sm font-black text-slate-800">{member.name}</p>
+                                  <div className="mt-2 grid grid-cols-3 gap-2">
+                                    {(['home', 'tiffin', 'away'] as MemberMealAvailability[]).map((status) => (
+                                      <button
+                                        key={`${mealTime}-${member.id}-${status}`}
+                                        type="button"
+                                        onClick={() => setMealAvailability(mealTime, member.id, status)}
+                                        className={`rounded-xl px-2 py-2 text-xs font-black ring-1 ${
+                                          availability === status
+                                            ? 'bg-emerald-700 text-white ring-emerald-700'
+                                            : 'bg-white text-slate-700 ring-slate-200'
+                                        }`}
+                                      >
+                                        {status === 'home' ? t.homeMeal : status === 'tiffin' ? t.tiffinMeal : t.awayMeal}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </article>
                       );
                     })}
                   </div>

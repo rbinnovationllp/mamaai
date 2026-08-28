@@ -33,6 +33,15 @@ export type DayFoodPreference =
 
 export type MealSlot = "breakfast" | "lunch" | "snacks" | "dinner";
 
+export type AttendanceStatus = "home" | "tiffin" | "eating_out" | "fasting";
+
+export interface MealTimingPattern {
+  breakfast?: string; // "HH:MM" (24h)
+  lunch?: string;
+  snacks?: string;
+  dinner?: string;
+}
+
 export interface DayWiseFoodRoutinePreference {
   day: string;
   preference: DayFoodPreference;
@@ -234,6 +243,7 @@ export interface Family {
   weeklyFoodRoutine?: DayWiseFoodRoutinePreference[];
   mealTypePreferences?: MealTypePreferenceProfile;
   recentMealHistory?: RecentMealHistoryDay[];
+  mealTimings?: MealTimingPattern;
   nonVegPreferredFoods?: string[];
   cultureProfile?: CulturalFoodProfile;
   budget: BudgetProfile;
@@ -551,6 +561,7 @@ export interface CreateFamilyInput {
   weeklyFoodRoutine?: DayWiseFoodRoutinePreference[];
   mealTypePreferences?: MealTypePreferenceProfile;
   recentMealHistory?: RecentMealHistoryDay[];
+  mealTimings?: MealTimingPattern;
   nonVegPreferredFoods?: string[];
   cultureProfile?: CulturalFoodProfile;
   budget: BudgetProfile;
@@ -566,16 +577,29 @@ export interface CreateFamilyRequest {
   members: CreateFamilyMemberInput[];
 }
 
+export interface TodayAttendanceItem {
+  memberId: string;
+  status: AttendanceStatus;
+}
+
 export interface CreateMealPlanRequest {
   familyId: ID;
+  userId?: string;
   planType: PlanType;
   mealTime?: MealTime;
+  mealSlot?: MealSlot;
+  scheduledTime?: string;
   mealTimeContext?: MealTimeContext;
+  userLocalTime?: string;
+  userTimeZone?: string;
   userPlanningMode?: UserPlanningMode;
   targetDate?: string;
   availableIngredients?: string[];
   previousMeals?: string[];
   mealAttendance?: MealAttendanceEntry[];
+  todayAttendance?: TodayAttendanceItem[];
+  isExceptionToday?: boolean;
+  customMealTimings?: MealTimingPattern;
   highTeaPreference?: HighTeaPreference;
 }
 
@@ -586,8 +610,12 @@ export interface ReplaceMealRequest {
 }
 
 export interface FeedbackRequest {
+  userId?: string;
   mealPlanId: ID;
   memberId?: ID;
+  mealName?: string;
+  mealTime?: string;
+  outcome?: "cooked" | "liked" | "rejected";
   rating: "loved" | "good" | "average" | "dont_suggest_again";
   notes?: string;
 }
