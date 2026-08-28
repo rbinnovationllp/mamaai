@@ -223,6 +223,13 @@ const mealPlanningTermsUnicode = [
   "ಏನು ಮಾಡಬಹುದು",
   "ಪ್ಯಾಂಟ್ರಿ",
 ];
+const overviewTermsUnicode = [
+  "कैसे काम करता",
+  "कैसे काम करती",
+  "क्या है",
+  "ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ",
+  "ಏನು",
+];
 const subscriptionTerms = [
   "subscription",
   "price",
@@ -309,7 +316,10 @@ export function answerAskMama(question: string, detailed = false, language: AppL
     };
   }
 
-  if (hasAny(text, ["what is", "about mamaai", "how does mamaai work", "how it work", "how does it work"])) {
+  if (
+    hasAny(text, ["what is", "about mamaai", "how does mamaai work", "how it work", "how does it work"]) ||
+    hasAny(rawText, overviewTermsUnicode)
+  ) {
     return {
       category: "overview",
       answer: localized.overview,
