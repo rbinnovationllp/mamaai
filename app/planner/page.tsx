@@ -25,6 +25,7 @@ const LAST_PLAN_KEY = 'mamaai_last_successful_plan';
 const DAILY_PLAN_CACHE_KEY = 'mamaai_daily_meal_plan_cache_v1';
 const PANTRY_STORAGE_KEY = 'mamaai_pantry_items_v1';
 const FAMILY_LEARNING_KEY = 'mamaai_family_learning_signals_v1';
+const PLANNER_FAMILY_ID_KEY = 'mamaai_planner_family_id_v1';
 
 type HouseholdMember = {
   id: string;
@@ -74,6 +75,15 @@ type PantryItem = {
   unit: string;
 };
 
+type PlannerMode = 'next_meal' | 'specific_meal';
+type MealAttendanceDraft = Record<
+  MealTime,
+  {
+    participatingMemberIds: string[];
+    tiffinMemberIds: string[];
+  }
+>;
+
 const plannerCopy = {
   en: {
     title: "Plan Today's Family Meal",
@@ -92,6 +102,14 @@ const plannerCopy = {
     noSubscription:
       'If payment or trial is not completed yet, choose a subscription first. Judges can use evaluator access from the subscription page.',
     subscriptionSuccess: 'Subscription verified. You can now generate your family food plan.',
+    plannerMode: 'Planning mode',
+    nextMealMode: 'Plan next meal from current time',
+    specificMealMode: 'Plan a specific meal',
+    mealAttendanceTitle: 'Who will eat this meal?',
+    tiffinTitle: 'Packed meal / tiffin',
+    tiffinHelp: 'Select only members who need this meal packed for office, school or travel.',
+    selectedByTime: 'Auto-selected from your local time',
+    selectOneMember: 'Select at least one family member for this meal.',
     pantryUsed: 'Pantry considered',
     alreadyInPantry: 'Already in pantry',
     sabsewaTitle: 'Support Your Local Vendor',
@@ -162,6 +180,14 @@ const plannerCopy = {
     noSubscription:
       'अगर भुगतान या ट्रायल पूरा नहीं है, तो पहले सब्सक्रिप्शन चुनें। जज सब्सक्रिप्शन पेज से मूल्यांकन एक्सेस इस्तेमाल कर सकते हैं।',
     subscriptionSuccess: 'सब्सक्रिप्शन सत्यापित हो गया है। अब आप अपने परिवार का भोजन प्लान बना सकते हैं।',
+    plannerMode: 'प्लानिंग मोड',
+    nextMealMode: 'मौजूदा समय के अनुसार अगला भोजन प्लान करें',
+    specificMealMode: 'कोई खास भोजन प्लान करें',
+    mealAttendanceTitle: 'यह भोजन कौन खाएगा?',
+    tiffinTitle: 'पैक्ड मील / टिफिन',
+    tiffinHelp: 'केवल उन सदस्यों को चुनें जिन्हें ऑफिस, स्कूल या यात्रा के लिए यह भोजन पैक चाहिए।',
+    selectedByTime: 'आपके स्थानीय समय से अपने-आप चुना गया',
+    selectOneMember: 'इस भोजन के लिए कम से कम एक परिवार सदस्य चुनें।',
     pantryUsed: 'पैंट्री को ध्यान में रखा गया',
     alreadyInPantry: 'पैंट्री में पहले से है',
     sabsewaTitle: 'अपने local vendor को support करें',
@@ -232,6 +258,14 @@ const plannerCopy = {
     noSubscription:
       'ಪಾವತಿ ಅಥವಾ ಟ್ರಯಲ್ ಪೂರ್ಣವಾಗಿರದಿದ್ದರೆ ಮೊದಲು ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಆಯ್ಕೆಮಾಡಿ. ಜಡ್ಜ್‌ಗಳು ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಪೇಜ್‌ನಿಂದ ಮೌಲ್ಯಮಾಪನ ಪ್ರವೇಶ ಬಳಸಬಹುದು.',
     subscriptionSuccess: 'ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಪರಿಶೀಲಿಸಲಾಗಿದೆ. ಈಗ ನಿಮ್ಮ ಕುಟುಂಬದ ಊಟದ ಯೋಜನೆ ರಚಿಸಬಹುದು.',
+    plannerMode: 'ಯೋಜನೆ ಮೋಡ್',
+    nextMealMode: 'ಪ್ರಸ್ತುತ ಸಮಯದ ಪ್ರಕಾರ ಮುಂದಿನ ಊಟವನ್ನು ಯೋಜಿಸಿ',
+    specificMealMode: 'ನಿರ್ದಿಷ್ಟ ಊಟವನ್ನು ಯೋಜಿಸಿ',
+    mealAttendanceTitle: 'ಈ ಊಟವನ್ನು ಯಾರು ತಿನ್ನುತ್ತಾರೆ?',
+    tiffinTitle: 'ಪ್ಯಾಕ್ ಮಾಡಿದ ಊಟ / ಟಿಫಿನ್',
+    tiffinHelp: 'ಆಫೀಸ್, ಶಾಲೆ ಅಥವಾ ಪ್ರಯಾಣಕ್ಕೆ ಈ ಊಟವನ್ನು ಪ್ಯಾಕ್ ಮಾಡಿಸಬೇಕಾದ ಸದಸ್ಯರನ್ನು ಮಾತ್ರ ಆಯ್ಕೆಮಾಡಿ.',
+    selectedByTime: 'ನಿಮ್ಮ ಸ್ಥಳೀಯ ಸಮಯದಿಂದ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಆಯ್ಕೆ ಮಾಡಲಾಗಿದೆ',
+    selectOneMember: 'ಈ ಊಟಕ್ಕೆ ಕನಿಷ್ಠ ಒಬ್ಬ ಕುಟುಂಬ ಸದಸ್ಯರನ್ನು ಆಯ್ಕೆಮಾಡಿ.',
     pantryUsed: 'ಪ್ಯಾಂಟ್ರಿಯನ್ನು ಪರಿಗಣಿಸಲಾಗಿದೆ',
     alreadyInPantry: 'ಈಗಾಗಲೇ ಪ್ಯಾಂಟ್ರಿಯಲ್ಲಿದೆ',
     sabsewaTitle: 'ನಿಮ್ಮ local vendor ಅನ್ನು support ಮಾಡಿ',
@@ -289,6 +323,39 @@ const plannerCopy = {
 
 function todayLocalDate() {
   return new Date().toLocaleDateString('en-CA');
+}
+
+function currentLocalHour() {
+  return new Date().getHours();
+}
+
+function browserTimeZone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+}
+
+function nextMealTimeForHour(hour: number): MealTime {
+  if (hour < 10) return 'breakfast';
+  if (hour < 15) return 'lunch';
+  if (hour < 18) return 'high_tea';
+  return 'dinner';
+}
+
+function remainingMealTimesForHour(hour: number): MealTime[] {
+  if (hour < 10) return ['breakfast', 'lunch', 'high_tea', 'dinner'];
+  if (hour < 15) return ['lunch', 'high_tea', 'dinner'];
+  if (hour < 18) return ['high_tea', 'dinner'];
+  return ['dinner'];
+}
+
+function emptyAttendanceDraft(): MealAttendanceDraft {
+  return {
+    breakfast: { participatingMemberIds: [], tiffinMemberIds: [] },
+    lunch: { participatingMemberIds: [], tiffinMemberIds: [] },
+    dinner: { participatingMemberIds: [], tiffinMemberIds: [] },
+    evening_snack: { participatingMemberIds: [], tiffinMemberIds: [] },
+    high_tea: { participatingMemberIds: [], tiffinMemberIds: [] },
+    snack: { participatingMemberIds: [], tiffinMemberIds: [] },
+  };
 }
 
 function weekdayForDate(dateString: string) {
@@ -687,6 +754,8 @@ function stableContextSignature(input: {
     })),
     householdFoodPreference: input.customer.householdFoodPreference,
     cookingHabit: input.customer.cookingHabit,
+    budgetPreference: input.customer.budgetPreference,
+    customMonthlyFoodBudget: input.customer.customMonthlyFoodBudget,
     mealTypePreferences: input.customer.mealTypePreferences ?? {},
     recentMealHistory: input.customer.recentMealHistory ?? [],
     weeklyFoodRoutineStatus: input.customer.weeklyFoodRoutineStatus,
@@ -705,13 +774,16 @@ function dailyPlanCacheKey(input: {
   return `${input.userId}|${input.targetDate}|${input.mealTime}|${input.signature}`;
 }
 
-function readCachedMealPlan(cacheKey: string): FamilyMealPlan | null {
+function readCachedMealPlan(cacheKey: string, expected: { targetDate: string; mealTime: MealTime; signature: string }): FamilyMealPlan | null {
   try {
     const raw = window.localStorage.getItem(DAILY_PLAN_CACHE_KEY);
     if (!raw) return null;
-    const cache = JSON.parse(raw) as Record<string, { savedAt: string; mealPlan: FamilyMealPlan }>;
+    const cache = JSON.parse(raw) as Record<string, { savedAt: string; signature?: string; mealPlan: FamilyMealPlan }>;
     const entry = cache[cacheKey];
     if (!entry?.mealPlan) return null;
+    if (entry.signature !== expected.signature) return null;
+    if (entry.mealPlan.targetDate !== expected.targetDate) return null;
+    if (entry.mealPlan.commonMeal.mealTime !== expected.mealTime) return null;
     const ageMs = Date.now() - new Date(entry.savedAt).getTime();
     return ageMs < 24 * 60 * 60 * 1000 ? entry.mealPlan : null;
   } catch {
@@ -719,12 +791,12 @@ function readCachedMealPlan(cacheKey: string): FamilyMealPlan | null {
   }
 }
 
-function writeCachedMealPlan(cacheKey: string, mealPlan: FamilyMealPlan) {
+function writeCachedMealPlan(cacheKey: string, mealPlan: FamilyMealPlan, signature: string) {
   try {
     const raw = window.localStorage.getItem(DAILY_PLAN_CACHE_KEY);
-    const cache = raw ? (JSON.parse(raw) as Record<string, { savedAt: string; mealPlan: FamilyMealPlan }>) : {};
+    const cache = raw ? (JSON.parse(raw) as Record<string, { savedAt: string; signature?: string; mealPlan: FamilyMealPlan }>) : {};
     const nextCache = Object.fromEntries(Object.entries(cache).slice(-24));
-    nextCache[cacheKey] = { savedAt: new Date().toISOString(), mealPlan };
+    nextCache[cacheKey] = { savedAt: new Date().toISOString(), signature, mealPlan };
     window.localStorage.setItem(DAILY_PLAN_CACHE_KEY, JSON.stringify(nextCache));
   } catch {
     // Caching saves cost but should never block meal planning.
@@ -753,7 +825,9 @@ export default function PlannerPage() {
   const [customer, setCustomer] = useState<CustomerAccount>({});
   const [culture, setCulture] = useState<CultureProfile>({});
   const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
-  const [selectedMealTime, setSelectedMealTime] = useState<MealTime>('dinner');
+  const [plannerMode, setPlannerMode] = useState<PlannerMode>('next_meal');
+  const [selectedMealTime, setSelectedMealTime] = useState<MealTime>(() => nextMealTimeForHour(currentLocalHour()));
+  const [mealAttendance, setMealAttendance] = useState<MealAttendanceDraft>(() => emptyAttendanceDraft());
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [mealPlan, setMealPlan] = useState<FamilyMealPlan | null>(null);
@@ -762,6 +836,7 @@ export default function PlannerPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [lastPlan, setLastPlan] = useState('');
   const [feedbackStatus, setFeedbackStatus] = useState('');
+  const remainingMealTimes = useMemo(() => remainingMealTimesForHour(currentLocalHour()), []);
 
   useEffect(() => {
     try {
@@ -824,14 +899,73 @@ export default function PlannerPage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    setMealAttendance((current) => {
+      const next = emptyAttendanceDraft();
+      const memberIds = members.map((member) => member.id);
+      (Object.keys(next) as MealTime[]).forEach((mealTime) => {
+        const existing = current[mealTime] ?? { participatingMemberIds: [], tiffinMemberIds: [] };
+        const participating = existing.participatingMemberIds.filter((memberId) => memberIds.includes(memberId));
+        next[mealTime] = {
+          participatingMemberIds: participating.length ? participating : memberIds,
+          tiffinMemberIds: existing.tiffinMemberIds.filter((memberId) => memberIds.includes(memberId)),
+        };
+      });
+      return next;
+    });
+  }, [members]);
+
+  const toggleMealParticipant = (mealTime: MealTime, memberId: string) => {
+    setMealAttendance((current) => {
+      const existing = current[mealTime] ?? { participatingMemberIds: [], tiffinMemberIds: [] };
+      const isSelected = existing.participatingMemberIds.includes(memberId);
+      const participatingMemberIds = isSelected
+        ? existing.participatingMemberIds.filter((value) => value !== memberId)
+        : [...existing.participatingMemberIds, memberId];
+      return {
+        ...current,
+        [mealTime]: {
+          ...existing,
+          participatingMemberIds,
+          tiffinMemberIds: existing.tiffinMemberIds.filter((value) => participatingMemberIds.includes(value)),
+        },
+      };
+    });
+  };
+
+  const toggleTiffin = (mealTime: MealTime, memberId: string) => {
+    setMealAttendance((current) => {
+      const existing = current[mealTime] ?? { participatingMemberIds: [], tiffinMemberIds: [] };
+      const isSelected = existing.tiffinMemberIds.includes(memberId);
+      return {
+        ...current,
+        [mealTime]: {
+          participatingMemberIds: existing.participatingMemberIds.includes(memberId)
+            ? existing.participatingMemberIds
+            : [...existing.participatingMemberIds, memberId],
+          tiffinMemberIds: isSelected
+            ? existing.tiffinMemberIds.filter((value) => value !== memberId)
+            : [...existing.tiffinMemberIds, memberId],
+        },
+      };
+    });
+  };
+
   const suggestedPlan = useMemo(() => planFromMemberCount(members.length), [members.length]);
   const canGenerate = members.length > 0;
   const membersMissingAge = members.filter((member) => typeof member.age !== 'number' || Number.isNaN(member.age));
+  const selectedAttendance = mealAttendance[selectedMealTime] ?? { participatingMemberIds: members.map((member) => member.id), tiffinMemberIds: [] };
 
   const generatePlan = async () => {
     if (!canGenerate || isGenerating) return;
     if (membersMissingAge.length) {
       setError(t.incompleteText);
+      return;
+    }
+    const activeAttendanceForValidation = mealAttendance[selectedMealTime] ?? { participatingMemberIds: members.map((member) => member.id), tiffinMemberIds: [] };
+    if (!activeAttendanceForValidation.participatingMemberIds.length) {
+      setError(t.selectOneMember);
       return;
     }
 
@@ -845,9 +979,15 @@ export default function PlannerPage() {
     try {
       const userId = customer.userId || `customer_${Date.now()}`;
       const targetDate = todayLocalDate();
-      const signature = `${stableContextSignature({ members, customer, culture, language })}|pantry:${pantrySummary(pantryItems)}`;
+      const activeAttendance = mealAttendance[selectedMealTime] ?? { participatingMemberIds: members.map((member) => member.id), tiffinMemberIds: [] };
+      const attendanceSignature = JSON.stringify({
+        mealTime: selectedMealTime,
+        participatingMemberIds: [...activeAttendance.participatingMemberIds].sort(),
+        tiffinMemberIds: [...activeAttendance.tiffinMemberIds].sort(),
+      });
+      const signature = `${stableContextSignature({ members, customer, culture, language })}|attendance:${attendanceSignature}|pantry:${pantrySummary(pantryItems)}`;
       const cacheKey = dailyPlanCacheKey({ userId, targetDate, mealTime: selectedMealTime, signature });
-      const cachedMealPlan = readCachedMealPlan(cacheKey);
+      const cachedMealPlan = readCachedMealPlan(cacheKey, { targetDate, mealTime: selectedMealTime, signature });
       if (cachedMealPlan) {
         setMealPlan(adjustGroceryForPantry(cachedMealPlan, pantryItems, t.alreadyInPantry, language));
         setStatus(t.success);
@@ -889,6 +1029,12 @@ export default function PlannerPage() {
               ...(customer.nonVegPreferredFoods?.length
                 ? [`Explicit family non-vegetarian food preferences: ${customer.nonVegPreferredFoods.join(', ')}. Do not add other meat categories unless the family requested them.`]
                 : []),
+              activeAttendance.tiffinMemberIds.length
+                ? `Packed meal/tiffin needed for: ${members
+                    .filter((member) => activeAttendance.tiffinMemberIds.includes(member.id))
+                    .map((member) => member.name)
+                    .join(', ')}. Prefer travel-friendly, less-messy portions and keep safety restrictions unchanged.`
+                : 'No packed meal/tiffin requested for this selected meal.',
             ],
             weeklyFoodRoutineStatus: customer.weeklyFoodRoutineStatus ?? 'skip',
             weeklyFoodRoutine: customer.weeklyFoodRoutine ?? [],
@@ -902,12 +1048,7 @@ export default function PlannerPage() {
               cookingStyle: culture.cookingStyle,
               preferredCuisines: culture.preferredCuisines ?? [],
             },
-            budget: {
-              type: 'none',
-              currency: 'INR',
-              priority: 'flexible',
-              preferLowCostMeals: false,
-            },
+            budget: budgetProfileFor(customer),
             kitchenProfile: {
               equipment: ['Gas stove', 'Pressure cooker', 'Mixer/grinder'],
               cookingTimePreference: 'under_30',
@@ -969,7 +1110,7 @@ export default function PlannerPage() {
           planType: 'daily',
           mealTime: selectedMealTime,
           mealTimeContext: {
-            timeZone: 'Asia/Kolkata',
+            timeZone: browserTimeZone(),
             locale: language,
             country: familyData.family.country,
             region: familyData.family.state,
@@ -979,8 +1120,18 @@ export default function PlannerPage() {
           mealAttendance: [
             {
               mealTime: selectedMealTime,
-              participatingMemberIds: createdMembers.map((member: { memberId: string }) => member.memberId),
-              absentMemberIds: [],
+              participatingMemberIds: createdMembers
+                .filter((member: { name: string }) => {
+                  const original = members.find((item) => item.name === member.name);
+                  return original ? activeAttendance.participatingMemberIds.includes(original.id) : true;
+                })
+                .map((member: { memberId: string }) => member.memberId),
+              absentMemberIds: createdMembers
+                .filter((member: { name: string }) => {
+                  const original = members.find((item) => item.name === member.name);
+                  return original ? !activeAttendance.participatingMemberIds.includes(original.id) : false;
+                })
+                .map((member: { memberId: string }) => member.memberId),
               fastingMemberIds: [],
               guestCount: 0,
               enabled: true,
@@ -997,7 +1148,7 @@ export default function PlannerPage() {
 
       const pantryAdjustedPlan = adjustGroceryForPantry(mealData.mealPlan, pantryItems, t.alreadyInPantry, language);
       setMealPlan(pantryAdjustedPlan);
-      writeCachedMealPlan(cacheKey, pantryAdjustedPlan);
+      writeCachedMealPlan(cacheKey, pantryAdjustedPlan, signature);
       window.localStorage.setItem(LAST_PLAN_KEY, suggestedPlan);
       setLastPlan(suggestedPlan);
       trackAnalyticsEvent('meal_plan_generated', {
@@ -1125,7 +1276,10 @@ export default function PlannerPage() {
                   <span className="text-sm font-semibold text-slate-700">{t.meal}</span>
                   <select
                     value={selectedMealTime}
-                    onChange={(event) => setSelectedMealTime(event.target.value as MealTime)}
+                    onChange={(event) => {
+                      setPlannerMode('specific_meal');
+                      setSelectedMealTime(event.target.value as MealTime);
+                    }}
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                   >
                     <option value="breakfast">{t.meals.breakfast}</option>
@@ -1143,6 +1297,86 @@ export default function PlannerPage() {
                 >
                   {isGenerating ? t.generating : t.generate}
                 </button>
+              </div>
+
+              <div className="mt-5 grid gap-4 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                <div>
+                  <p className="text-sm font-black text-slate-800">{t.plannerMode}</p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPlannerMode('next_meal');
+                        setSelectedMealTime(nextMealTimeForHour(currentLocalHour()));
+                      }}
+                      className={`rounded-2xl px-4 py-3 text-left text-sm font-bold ring-1 ${
+                        plannerMode === 'next_meal'
+                          ? 'bg-emerald-700 text-white ring-emerald-700'
+                          : 'bg-white text-slate-700 ring-slate-200'
+                      }`}
+                    >
+                      {t.nextMealMode}
+                      <span className="mt-1 block text-xs opacity-80">
+                        {t.selectedByTime}: {mealLabel(nextMealTimeForHour(currentLocalHour()), t.meals)}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPlannerMode('specific_meal')}
+                      className={`rounded-2xl px-4 py-3 text-left text-sm font-bold ring-1 ${
+                        plannerMode === 'specific_meal'
+                          ? 'bg-emerald-700 text-white ring-emerald-700'
+                          : 'bg-white text-slate-700 ring-slate-200'
+                      }`}
+                    >
+                      {t.specificMealMode}
+                      <span className="mt-1 block text-xs opacity-80">
+                        {remainingMealTimes.map((mealTime) => mealLabel(mealTime, t.meals)).join(' | ')}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm font-black text-slate-800">{t.mealAttendanceTitle}</p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {members.map((member) => {
+                      const checked = selectedAttendance.participatingMemberIds.includes(member.id);
+                      return (
+                        <label key={member.id} className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-700 ring-1 ring-slate-200">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleMealParticipant(selectedMealTime, member.id)}
+                            className="h-5 w-5 rounded border-slate-300 text-emerald-700"
+                          />
+                          <span>{member.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm font-black text-slate-800">{t.tiffinTitle}</p>
+                  <p className="mt-1 text-xs text-slate-600">{t.tiffinHelp}</p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {members.map((member) => {
+                      const checked = selectedAttendance.tiffinMemberIds.includes(member.id);
+                      return (
+                        <label key={`tiffin-${member.id}`} className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-700 ring-1 ring-slate-200">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleTiffin(selectedMealTime, member.id)}
+                            className="h-5 w-5 rounded border-slate-300 text-emerald-700"
+                          />
+                          <span>{member.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
