@@ -80,6 +80,37 @@ type PantryItem = {
   unit: string;
 };
 
+async function readApiResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
+  const contentType = response.headers.get('content-type') || '';
+  const raw = await response.text();
+  let payload: T | null = null;
+
+  if (contentType.includes('application/json') && raw.trim()) {
+    try {
+      payload = JSON.parse(raw) as T;
+    } catch {
+      // Treat malformed JSON like any other API failure below.
+    }
+  }
+
+  if (!response.ok) {
+    const apiError = payload && typeof payload === 'object' && payload !== null
+      ? (payload as { error?: { message?: string } | string }).error
+      : undefined;
+    const message = typeof apiError === 'string' ? apiError : apiError?.message;
+    throw new Error(message || fallbackMessage);
+  }
+
+  if (!payload) throw new Error(fallbackMessage);
+  return payload;
+}
+
+function mealGenerationFailureMessage(language: 'en' | 'hi' | 'kn') {
+  if (language === 'hi') return 'अभी भोजन योजना तैयार नहीं हो सकी। कृपया कुछ क्षण बाद फिर प्रयास करें।';
+  if (language === 'kn') return 'ಈಗ ಕುಟುಂಬದ ಊಟದ ಯೋಜನೆಯನ್ನು ತಯಾರಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
+  return "We couldn't prepare your meal plan right now. Please try again in a moment.";
+}
+
 type PlannerMode = 'next_meal' | 'specific_meal';
 type MemberMealAvailability = 'home' | 'tiffin' | 'away';
 type MealAttendanceDraft = Record<
@@ -1002,6 +1033,13 @@ function readLocalLearningSignals(): Array<{
   }
 }
 
+function previousMealsForPlanning(mealTime: MealTime, currentMealName?: string) {
+  const learnedMeals = readLocalLearningSignals()
+    .filter((signal) => signal.mealTime === mealTime && (signal.outcome === 'rejected' || signal.outcome === 'cooked'))
+    .map((signal) => signal.mealName);
+  return [...new Set([currentMealName, ...learnedMeals].filter(Boolean) as string[])].slice(-10);
+}
+
 function saveLocalLearningSignal(signal: {
   mealName: string;
   mealTime: MealTime;
@@ -1426,16 +1464,16 @@ export default function PlannerPage() {
         }),
       });
 
-      const familyData = await familyResponse.json();
-      if (!familyResponse.ok) {
-        throw new Error(familyData.error?.message || 'Unable to prepare family profile for planning.');
-      }
+      const familyData = await readApiResponse<{
+        family: { familyId: string };
+        members?: Array<{ memberId: string; name: string }>;
+      }>(familyResponse, 'We could not prepare your family profile. Please try again.');
 
       const createdMembers = familyData.members ?? [];
       const excludeDishes = mealPlan?.commonMeal?.name ? [mealPlan.commonMeal.name] : [];
 
       // Generate Fresh Meal Plan
-      const mealResponse = await fetch('/api/meal-plan', {
+      const mealResponse = await fetch('/api/meal-plans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1443,6 +1481,7 @@ export default function PlannerPage() {
           planType: 'daily',
           mealTime: activeMealSlot,
           userPromptOverride: cravingOverride || mealWish,
+          previousMeals: previousMealsForPlanning(activeMealSlot, mealPlan?.commonMeal?.name),
           excludeDishes,
           userLocalTime: new Date().toISOString(),
           userTimeZone: browserTimeZone(),
@@ -1470,10 +1509,10 @@ export default function PlannerPage() {
         }),
       });
 
-      const mealData = await mealResponse.json();
-      if (!mealResponse.ok) {
-        throw new Error(mealData.error?.message || 'Unable to generate family food plan.');
-      }
+      const mealData = await readApiResponse<{ mealPlan: FamilyMealPlan }>(
+        mealResponse,
+        'We could not prepare this meal plan right now. Please try again.'
+      );
 
       const pantryAdjustedPlan = adjustGroceryForPantry(mealData.mealPlan, pantryItems, t.alreadyInPantry, language);
       setMealPlan(pantryAdjustedPlan);
@@ -1489,7 +1528,8 @@ export default function PlannerPage() {
       setStatus(t.success);
     } catch (err: any) {
       setStatus('');
-      setError(err.message || 'Unable to generate family food plan.');
+      console.error('Meal plan request failed:', err);
+      setError(mealGenerationFailureMessage(language));
     } finally {
       setIsGenerating(false);
     }
@@ -1523,7 +1563,8 @@ export default function PlannerPage() {
       window.localStorage.setItem(CURRENT_MEAL_PLAN_KEY, JSON.stringify(updatedPlan));
       setStatus(t.anotherOptionSuccess);
     } catch (err: any) {
-      setError(err.message || 'Could not find another option');
+      console.error('Meal replacement request failed:', err);
+      setError(mealGenerationFailureMessage(language));
     } finally {
       setIsReplacingMeal(false);
     }
