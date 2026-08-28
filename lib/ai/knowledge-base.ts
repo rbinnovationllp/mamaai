@@ -102,6 +102,72 @@ export const MAMAAI_KNOWLEDGE_BASE: KnowledgeChunk[] = [
         featureStatus: 'BETA',
     },
     {
+        id: '31_BUDGET_AWARE_PLANNING',
+        domain: 'Budget Intelligence',
+        topic: 'Family Food Budget Preference',
+        subtopic: 'Economical, Moderate, Flexible, and Custom Budget Planning',
+        intents: ['food budget', 'budget meal planning', 'affordable meals', 'किफायती भोजन', 'ಬಜೆಟ್ ಊಟ'],
+        keywords: ['budget', 'economical', 'moderate', 'flexible', 'custom monthly budget', 'affordable', 'low cost'],
+        canonicalFacts:
+            'MAMAAI lets families save a food budget preference: economical, moderate, flexible, no specific limit, or custom monthly budget. The planner uses this preference to guide dish choice, ingredient cost, grocery recommendations, substitutions, and premium ingredient frequency. Budget is a planning guideline, not an exact bill guarantee.',
+        featureStatus: 'IMPLEMENTED',
+    },
+    {
+        id: '32_MIXED_DIET_JOINT_FAMILY',
+        domain: 'Family Meal Optimizer',
+        topic: 'Mixed Vegetarian and Non-Vegetarian Family Planning',
+        subtopic: 'Common Base Meal with Optional Add-ons',
+        intents: ['mixed family meal', 'veg and non veg family', 'semi vegetarian', 'परिवार में वेज और नॉन वेज', 'ಮಿಶ್ರ ಆಹಾರ ಕುಟುಂಬ'],
+        keywords: ['mixed diet', 'vegetarian', 'non vegetarian', 'eggetarian', 'semi vegetarian', 'vegan', 'common base meal', 'add-on'],
+        canonicalFacts:
+            'MAMAAI prefers one common base meal for mixed-diet households, then adds vegetarian, eggetarian, vegan, or non-vegetarian components only for members who eat them. Safety and explicit family preference come first; country or region should provide context but never override what the family actually selected.',
+        featureStatus: 'IMPLEMENTED',
+    },
+    {
+        id: '34_LANGUAGE_SUPPORT',
+        domain: 'Multilingual Experience',
+        topic: 'English, Hindi and Kannada',
+        subtopic: 'Customer-Facing Language Consistency',
+        intents: ['language support', 'hindi output', 'kannada output', 'भाषा बदलें', 'ಕನ್ನಡ ಭಾಷೆ'],
+        keywords: ['language', 'english', 'hindi', 'kannada', 'translation', 'multilingual', 'devanagari'],
+        canonicalFacts:
+            'MAMAAI supports English, Hindi, and Kannada across the main customer surfaces. Ask MAMA and meal planning should respond in the selected language, while brand names such as MAMAAI, Razorpay, YouTube, Starter, Premium, and Family Plus may remain recognizable.',
+        featureStatus: 'IMPLEMENTED',
+    },
+    {
+        id: '35_RECIPE_VIDEO_GUIDANCE',
+        domain: 'Recipe Videos',
+        topic: 'Watch How to Cook',
+        subtopic: 'Approved Videos and YouTube Search Fallback',
+        intents: ['watch how to cook', 'recipe video', 'youtube recipe', 'रेसिपी वीडियो', 'ರೆಸಿಪಿ ವಿಡಿಯೋ'],
+        keywords: ['video', 'youtube', 'watch', 'how to cook', 'approved recipe video', 'sponsored'],
+        canonicalFacts:
+            'MAMAAI can show a Watch How to Cook option for generated recipes. Approved recipe-video mappings are preferred first. If direct video lookup is unavailable, MAMAAI provides a suitable YouTube search link with clear third-party and safety disclaimers. Sponsored placements must be clearly labelled when present.',
+        featureStatus: 'BETA',
+    },
+    {
+        id: '36_SABSEWA_LOCAL',
+        domain: 'Local Grocery Connection',
+        topic: 'SabSewa Local Future Connection',
+        subtopic: 'Local Vendor and Grocery Fulfilment Direction',
+        intents: ['sabsewa', 'local vendors', 'buy groceries', 'grocery delivery', 'स्थानीय विक्रेता', 'ಸ್ಥಳೀಯ ಅಂಗಡಿ'],
+        keywords: ['sabsewa', 'local vendor', 'grocery', 'buy local', 'partner', 'www.sabsewa.in'],
+        canonicalFacts:
+            'For Indian users, MAMAAI may encourage buying grocery requirements from local vendors and can mention SabSewa Local at www.sabsewa.in as the intended local-commerce connection. This should be framed as optional/community-oriented unless a live fulfilment integration is active.',
+        featureStatus: 'PLANNED',
+    },
+    {
+        id: '37_SECURITY_PRIVACY',
+        domain: 'Security and Privacy',
+        topic: 'Safe Product Boundaries',
+        subtopic: 'Secrets, Medical Safety, and User Data',
+        intents: ['is mamaai safe', 'privacy', 'medical advice', 'secret key', 'क्या सुरक्षित है', 'ಗೌಪ್ಯತೆ'],
+        keywords: ['privacy', 'security', 'secret', 'api key', 'medical safety', 'doctor', 'dietitian', 'allergy'],
+        canonicalFacts:
+            'MAMAAI should never expose private prompts, credentials, API keys, admin details, or hidden configuration. It provides food-planning suggestions for information and education, not diagnosis, treatment, prescriptions, medication changes, or a replacement for doctor or dietitian advice. Allergies and doctor restrictions are hard safety constraints.',
+        featureStatus: 'IMPLEMENTED',
+    },
+    {
         id: '33_INSTALLATION_PWA',
         domain: 'App Installation',
         topic: 'PWA & Mobile Use',

@@ -13,6 +13,7 @@ import type {
   FamilyMealPlan,
   MealAlternativeOption,
   MealSlot,
+  MealTimingPattern,
   MealTime,
   RecentMealHistoryDay,
   RecipeVideoSearchResponse,
@@ -61,6 +62,7 @@ type CustomerAccount = {
   weeklyFoodRoutine?: DayWiseFoodRoutinePreference[];
   mealTypePreferences?: Partial<Record<MealSlot, string[]>>;
   recentMealHistory?: RecentMealHistoryDay[];
+  mealTimings?: MealTimingPattern;
   nonVegPreferredFoods?: string[];
 };
 
@@ -135,8 +137,13 @@ const plannerCopy = {
     incompleteText: 'Please complete age for every family member before generating a portion-aware meal plan.',
     completeProfile: 'Complete Family Profile',
     subscription: 'Choose Subscription / Trial',
-    meal: 'Meal to plan',
+    meal: 'Choose another meal',
     generate: "Plan Today's Family Meal",
+    planMealNow: 'Plan {meal}',
+    nextMealTitle: "It's time to plan your next meal",
+    nextMealDetected: 'Next meal detected',
+    basedOnTiming: 'Based on your saved meal timings and local time.',
+    chooseAnotherMeal: 'Want to plan something else?',
     generating: 'Generating family food plan...',
     success: "Today's family food plan is ready.",
     staleWarning: '⚠️ Showing previously saved meal plan. Tap the button above to generate a fresh recommendation for today.',
@@ -232,8 +239,13 @@ const plannerCopy = {
     incompleteText: 'हिस्से के अनुसार भोजन योजना बनाने से पहले हर परिवार सदस्य की उम्र भरें।',
     completeProfile: 'परिवार प्रोफाइल पूरी करें',
     subscription: 'सब्सक्रिप्शन / ट्रायल चुनें',
-    meal: 'कौन सा भोजन प्लान करना है',
+    meal: 'दूसरा भोजन चुनें',
     generate: 'आज का पारिवारिक भोजन प्लान करें',
+    planMealNow: '{meal} प्लान करें',
+    nextMealTitle: 'अब अगला भोजन प्लान करें',
+    nextMealDetected: 'अगला भोजन पहचाना गया',
+    basedOnTiming: 'आपके सेव किए हुए meal timings और local time के आधार पर।',
+    chooseAnotherMeal: 'कुछ और प्लान करना चाहते हैं?',
     generating: 'पारिवारिक भोजन योजना बन रही है...',
     success: 'आज का पारिवारिक भोजन तैयार है।',
     staleWarning: '⚠️ यह पिछला सेव किया हुआ प्लान है। आज का नया भोजन बनाने के लिए ऊपर बटन दबाएं।',
@@ -329,8 +341,13 @@ const plannerCopy = {
     incompleteText: 'ಭಾಗಕ್ಕೆ ಅನುಗುಣವಾದ ಊಟದ ಯೋಜನೆ ಮಾಡಲು ಮೊದಲು ಪ್ರತಿ ಕುಟುಂಬ ಸದಸ್ಯರ ವಯಸ್ಸು ಭರ್ತಿ ಮಾಡಿ.',
     completeProfile: 'ಕುಟುಂಬದ ಪ್ರೊಫೈಲ್ ಪೂರ್ಣಗೊಳಿಸಿ',
     subscription: 'ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ / ಟ್ರಯಲ್ ಆಯ್ಕೆಮಾಡಿ',
-    meal: 'ಯಾವ ಊಟವನ್ನು ಯೋಜಿಸಬೇಕು',
+    meal: 'ಬೇರೆ ಊಟ ಆಯ್ಕೆಮಾಡಿ',
     generate: 'ಇಂದಿನ ಕುಟುಂಬದ ಊಟವನ್ನು ಯೋಜಿಸಿ',
+    planMealNow: '{meal} ಯೋಜಿಸಿ',
+    nextMealTitle: 'ಈಗ ನಿಮ್ಮ ಮುಂದಿನ ಊಟವನ್ನು ಯೋಜಿಸಿ',
+    nextMealDetected: 'ಮುಂದಿನ ಊಟ ಗುರುತಿಸಲಾಗಿದೆ',
+    basedOnTiming: 'ನಿಮ್ಮ ಉಳಿಸಿದ meal timings ಮತ್ತು local time ಆಧರಿಸಿ.',
+    chooseAnotherMeal: 'ಬೇರೆ ಊಟವನ್ನು ಯೋಜಿಸಬೇಕೇ?',
     generating: 'ಕುಟುಂಬದ ಊಟದ ಯೋಜನೆ ಸಿದ್ಧವಾಗುತ್ತಿದೆ...',
     success: 'ಇಂದಿನ ಕುಟುಂಬದ ಊಟ ಸಿದ್ಧವಾಗಿದೆ.',
     staleWarning: '⚠️ ಇದು ಹಿಂದಿನ ಊಟದ ಪ್ಲಾನ್ ಆಗಿದೆ. ಇಂದಿನ ಹೊಸ ಊಟವನ್ನು ಯೋಜಿಸಲು ಮೇಲಿನ ಬಟನ್ ಒತ್ತಿರಿ.',
@@ -429,18 +446,55 @@ function browserTimeZone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
 }
 
+function addDaysToLocalDate(date: Date, days: number) {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return copy.toLocaleDateString('en-CA');
+}
+
+function parseTimeToMinutes(value?: string) {
+  if (!value) return null;
+  const match = value.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return hour * 60 + minute;
+}
+
+function mealScheduleFromTimings(timings?: MealTimingPattern) {
+  return [
+    { mealTime: 'breakfast' as MealTime, minute: parseTimeToMinutes(timings?.breakfast) ?? 8 * 60 },
+    { mealTime: 'lunch' as MealTime, minute: parseTimeToMinutes(timings?.lunch) ?? 13 * 60 },
+    { mealTime: 'high_tea' as MealTime, minute: parseTimeToMinutes(timings?.snacks) ?? 17 * 60 },
+    { mealTime: 'dinner' as MealTime, minute: parseTimeToMinutes(timings?.dinner) ?? 20 * 60 + 30 },
+  ].sort((a, b) => a.minute - b.minute);
+}
+
+function nextMealInfoForCurrentTime(timings?: MealTimingPattern, now = new Date()) {
+  const currentMinute = now.getHours() * 60 + now.getMinutes();
+  const schedule = mealScheduleFromTimings(timings);
+  const upcoming = schedule.find((entry) => entry.minute >= currentMinute);
+  if (upcoming) {
+    return {
+      mealTime: upcoming.mealTime,
+      targetDate: now.toLocaleDateString('en-CA'),
+      scheduledTime: `${String(Math.floor(upcoming.minute / 60)).padStart(2, '0')}:${String(upcoming.minute % 60).padStart(2, '0')}`,
+    };
+  }
+  const firstTomorrow = schedule[0];
+  return {
+    mealTime: firstTomorrow.mealTime,
+    targetDate: addDaysToLocalDate(now, 1),
+    scheduledTime: `${String(Math.floor(firstTomorrow.minute / 60)).padStart(2, '0')}:${String(firstTomorrow.minute % 60).padStart(2, '0')}`,
+  };
+}
+
 function nextMealTimeForHour(hour: number): MealTime {
   if (hour < 10) return 'breakfast';
   if (hour < 15) return 'lunch';
   if (hour < 18) return 'high_tea';
   return 'dinner';
-}
-
-function remainingMealTimesForHour(hour: number): MealTime[] {
-  if (hour < 10) return ['breakfast', 'lunch', 'high_tea', 'dinner'];
-  if (hour < 15) return ['lunch', 'high_tea', 'dinner'];
-  if (hour < 18) return ['high_tea', 'dinner'];
-  return ['dinner'];
 }
 
 function emptyAttendanceDraft(): MealAttendanceDraft {
@@ -1066,7 +1120,6 @@ export default function PlannerPage() {
 
   // Interactive Planning States
   const [plannerMode, setPlannerMode] = useState<PlannerMode>('next_meal');
-  const [autoMealTime, setAutoMealTime] = useState<MealTime>(() => nextMealTimeForHour(currentLocalHour()));
   const [selectedMealTime, setSelectedMealTime] = useState<MealTime>(() => nextMealTimeForHour(currentLocalHour()));
   const [mealAttendance, setMealAttendance] = useState<MealAttendanceDraft>(() => emptyAttendanceDraft());
 
@@ -1084,16 +1137,13 @@ export default function PlannerPage() {
   const [videoSearch, setVideoSearch] = useState<RecipeVideoSearchResponse | null>(null);
   const [videoStatus, setVideoStatus] = useState('');
 
-  const remainingMealTimes = useMemo(() => remainingMealTimesForHour(currentLocalHour()), []);
-
   // 1. Resolve Local Time on Mount
   useEffect(() => {
-    const nextSlot = nextMealTimeForHour(currentLocalHour());
-    setAutoMealTime(nextSlot);
+    const nextSlot = nextMealInfoForCurrentTime(customer.mealTimings).mealTime;
     if (plannerMode === 'next_meal') {
       setSelectedMealTime(nextSlot);
     }
-  }, [plannerMode]);
+  }, [customer.mealTimings, plannerMode]);
 
   // 2. Hydrate Client Storage & Backend Profile
   useEffect(() => {
@@ -1270,7 +1320,12 @@ export default function PlannerPage() {
     }
   }, [mealAttendance, members.length]);
 
-  const activeMealSlot = plannerMode === 'next_meal' ? autoMealTime : selectedMealTime;
+  const detectedMealInfo = useMemo(() => nextMealInfoForCurrentTime(customer.mealTimings), [customer.mealTimings]);
+  const activeMealSlot = plannerMode === 'next_meal' ? detectedMealInfo.mealTime : selectedMealTime;
+  const activeTargetDate = plannerMode === 'next_meal' ? detectedMealInfo.targetDate : todayLocalDate();
+  const activeScheduledTime = plannerMode === 'next_meal' ? detectedMealInfo.scheduledTime : undefined;
+  const activeMealLabel = mealLabel(activeMealSlot, t.meals);
+  const activeGenerateLabel = t.planMealNow.replace('{meal}', activeMealLabel);
 
   const setMealAvailability = (mealTime: MealTime, memberId: string, status: MemberMealAvailability) => {
     setMealAttendance((current) => {
@@ -1352,7 +1407,7 @@ export default function PlannerPage() {
 
     try {
       const userId = customer.userId || `customer_${Date.now()}`;
-      const targetDate = todayLocalDate();
+      const targetDate = activeTargetDate;
       const activeAttendance = mealAttendance[activeMealSlot] ?? {
         participatingMemberIds: members.map((member) => member.id),
         tiffinMemberIds: [],
@@ -1407,6 +1462,7 @@ export default function PlannerPage() {
             weeklyFoodRoutine: customer.weeklyFoodRoutine ?? [],
             mealTypePreferences: customer.mealTypePreferences ?? {},
             recentMealHistory: customer.recentMealHistory ?? [],
+            mealTimings: customer.mealTimings ?? {},
             nonVegPreferredFoods: customer.nonVegPreferredFoods ?? [],
             cultureProfile: {
               country,
@@ -1486,6 +1542,7 @@ export default function PlannerPage() {
           userLocalTime: new Date().toISOString(),
           userTimeZone: browserTimeZone(),
           targetDate,
+          scheduledTime: activeScheduledTime,
           mealAttendance: [
             {
               mealTime: activeMealSlot,
@@ -1698,76 +1755,35 @@ export default function PlannerPage() {
                 </div>
               </div>
 
-              {/* Meal Selection Controls */}
-              <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-                <label className="grid gap-2">
-                  <span className="text-sm font-semibold text-slate-700">{t.meal}</span>
-                  <select
-                    value={selectedMealTime}
-                    onChange={(event) => {
-                      setPlannerMode('specific_meal');
-                      setSelectedMealTime(event.target.value as MealTime);
-                    }}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                  >
-                    <option value="breakfast">{t.meals.breakfast}</option>
-                    <option value="lunch">{t.meals.lunch}</option>
-                    <option value="dinner">{t.meals.dinner}</option>
-                    <option value="evening_snack">{t.meals.evening_snack}</option>
-                    <option value="high_tea">{t.meals.high_tea}</option>
-                  </select>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => generatePlan()}
-                  disabled={isGenerating}
-                  className="rounded-2xl bg-emerald-800 px-6 py-4 text-base font-bold text-white shadow-md transition hover:bg-emerald-900 disabled:opacity-60 flex items-center justify-center gap-2"
-                >
-                  {isGenerating ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>{t.generating}</span>
-                    </>
-                  ) : (
-                    <span>{t.generate}</span>
-                  )}
-                </button>
-              </div>
+              <div className="mt-6 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100">
+                <p className="text-sm font-black text-emerald-900">{t.nextMealTitle}</p>
+                <div className="mt-3 rounded-2xl bg-white p-4 ring-1 ring-emerald-100">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">{t.nextMealDetected}</p>
+                  <p className="mt-1 text-3xl font-black text-slate-950">{activeMealLabel}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    {t.basedOnTiming} {activeScheduledTime ? `${activeScheduledTime} | ${activeTargetDate}` : activeTargetDate}
+                  </p>
+                </div>
 
-              {/* Planning Mode Selector */}
-              <div className="mt-5 grid gap-4 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                <div>
-                  <p className="text-sm font-black text-slate-800">{t.plannerMode}</p>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPlannerMode('next_meal');
-                        setSelectedMealTime(nextMealTimeForHour(currentLocalHour()));
-                      }}
-                      className={`rounded-2xl px-4 py-3 text-left text-sm font-bold ring-1 ${plannerMode === 'next_meal'
-                        ? 'bg-emerald-800 text-white ring-emerald-800 shadow-sm'
-                        : 'bg-white text-slate-700 ring-slate-200'
-                        }`}
-                    >
-                      {t.nextMealMode}
-                      <span className="mt-1 block text-xs opacity-80">
-                        {t.selectedByTime}: {mealLabel(nextMealTimeForHour(currentLocalHour()), t.meals)}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPlannerMode('specific_meal')}
-                      className={`rounded-2xl px-4 py-3 text-left text-sm font-bold ring-1 ${plannerMode === 'specific_meal'
-                        ? 'bg-emerald-800 text-white ring-emerald-800 shadow-sm'
-                        : 'bg-white text-slate-700 ring-slate-200'
-                        }`}
-                    >
-                      {t.specificMealMode}
-                      <span className="mt-1 block text-xs opacity-80">
-                        {remainingMealTimes.map((mealTime) => mealLabel(mealTime, t.meals)).join(' | ')}
-                      </span>
-                    </button>
+                <div className="mt-4">
+                  <p className="text-sm font-black text-slate-800">{t.chooseAnotherMeal}</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {dailyScheduleMealTimes.map((mealTime) => (
+                      <button
+                        key={`choose-${mealTime}`}
+                        type="button"
+                        onClick={() => {
+                          setPlannerMode('specific_meal');
+                          setSelectedMealTime(mealTime);
+                        }}
+                        className={`rounded-2xl px-3 py-3 text-sm font-black ring-1 ${activeMealSlot === mealTime
+                          ? 'bg-emerald-800 text-white ring-emerald-800 shadow-sm'
+                          : 'bg-white text-slate-700 ring-slate-200'
+                          }`}
+                      >
+                        {mealLabel(mealTime, t.meals)}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -1792,7 +1808,7 @@ export default function PlannerPage() {
                   </div>
 
                   <div className="mt-4 grid gap-4">
-                    {dailyScheduleMealTimes.map((mealTime) => {
+                    {[activeMealSlot].map((mealTime) => {
                       const entry = mealAttendance[mealTime] ?? { participatingMemberIds: [], tiffinMemberIds: [] };
                       return (
                         <article key={`schedule-${mealTime}`} className={`rounded-2xl p-4 ring-1 ${mealTime === activeMealSlot ? 'bg-emerald-50 ring-emerald-200' : 'bg-white ring-slate-200'
@@ -1847,6 +1863,22 @@ export default function PlannerPage() {
                       );
                     })}
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => generatePlan()}
+                    disabled={isGenerating}
+                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-800 px-6 py-4 text-base font-bold text-white shadow-md transition hover:bg-emerald-900 disabled:opacity-60"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        <span>{t.generating}</span>
+                      </>
+                    ) : (
+                      <span>{activeGenerateLabel}</span>
+                    )}
+                  </button>
                 </div>
               </div>
             </section>

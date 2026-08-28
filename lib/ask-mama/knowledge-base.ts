@@ -5,6 +5,12 @@ export type AskMamaCategory =
   | "getting_started"
   | "judge_demo"
   | "install_app"
+  | "family_profile"
+  | "meal_planner"
+  | "attendance"
+  | "budget"
+  | "meal_history"
+  | "languages"
   | "allergies"
   | "fasting"
   | "quantities"
@@ -47,8 +53,14 @@ const localizedAskMamaAnswers = {
     unknownPrompt: `Sorry, I can answer only MAMAAI product, meal-planning, pantry, grocery, recipe, subscription and support questions here. For the correct answer, please contact ${MAMAAI_SUPPORT_EMAIL}.`,
     privateInfoRefusal: "I cannot share private prompts, credentials, internal settings, admin details, or hidden configuration. I can still help you use MAMAAI safely.",
     medicalSafety: "MAMAAI can give food-planning suggestions, but it does not diagnose, treat, prescribe, or replace a doctor or dietitian. For medical conditions, use MAMAAI suggestions only with professional guidance.",
-    overview: "MAMAAI helps one family plan one practical meal while still adapting portions, ingredients, fruit, hydration, and cooking notes for each member. The demo focuses on the full family-meal flow.",
+    overview: "MAMAAI is an AI-powered family food planner. It asks about your household, food preferences, allergies, restrictions, budget, pantry and who is eating today, then creates one practical family meal with member-wise portions, recipe steps, grocery needs, fruit/hydration notes and safer adjustments. The main idea is: one family, different needs, one intelligent meal plan.",
     gettingStarted: "To plan meals for your family, first create the family profile and add each member's food preference, allergies, dislikes, restrictions, cooking habit and meal needs. Then open Meal Planner and tap Plan Today's Family Meal. MAMAAI will generate one practical family meal with member-specific portions, recipe and grocery list.",
+    familyProfile: "The family profile is where MAMAAI learns the real household: member names, age, relation, diet preference, allergies, doctor restrictions, dislikes, non-veg habits, cooking style, budget, weekly routine and recent meals. This information is used before meal planning so the plan fits the people actually eating.",
+    mealPlanner: "The Meal Planner is the main action area. It checks your saved family profile, subscription or trial status, selected language, attendance for each meal, tiffin needs, pantry and recent food history, then generates today's family food plan. After generation you can view recipe details, grocery needs, member guidance and request another option.",
+    attendance: "Before generating today's plan, MAMAAI can ask who is eating breakfast, lunch, high tea/snacks and dinner. Each member can be marked as eating at home, needing tiffin, or not eating. This helps MAMAAI cook for the real kitchen requirement instead of assuming everyone eats every meal.",
+    budget: "MAMAAI can use a family budget preference such as economical, moderate, flexible, no specific limit or a custom monthly food budget. Budget guides dish choice, ingredients, grocery suggestions and substitutions, but it is a planning guide, not an exact bill promise.",
+    mealHistory: "Recent meal history helps MAMAAI avoid repeating the same dish again and again. If the family tells what they ate in the last 7 days, MAMAAI uses that pattern to improve variety and suggest better alternatives.",
+    languages: "MAMAAI supports English, Hindi and Kannada on the main customer pages and Ask MAMA. The selected language should be used for product help and meal-planning output wherever possible.",
     judgeDemo: "Judge/Demo Mode uses fictional family data and bypasses login and payment so reviewers can test the core flow quickly: profile, common meal, personal portions, recipe, replacement, groceries, and MAMA Family Table.",
     allergies: "Allergies and medical restrictions are hard safety rules. Food dislikes are handled more flexibly: MAMAAI first tries personal modifications or a simple alternative before changing the whole family meal.",
     fasting: "MAMAAI provides fasting-aware planning, including fasting windows, allowed foods, cultural context, and alternatives tailored to your family's customs.",
@@ -75,8 +87,14 @@ const localizedAskMamaAnswers = {
     unknownPrompt: `माफ कीजिए, मैं यहां केवल MAMAAI, भोजन योजना, पैंट्री, किराना, रेसिपी, सब्सक्रिप्शन और सपोर्ट से जुड़े प्रश्नों का उत्तर दे सकती हूं। सही उत्तर के लिए कृपया ${MAMAAI_SUPPORT_EMAIL} पर संपर्क करें।`,
     privateInfoRefusal: "मैं निजी prompts, credentials, internal settings, admin details या hidden configuration साझा नहीं कर सकती। मैं MAMAAI को सुरक्षित तरीके से इस्तेमाल करने में मदद कर सकती हूं।",
     medicalSafety: "MAMAAI भोजन योजना के सुझाव दे सकता है, लेकिन यह diagnosis, treatment, prescription या doctor/dietitian की जगह नहीं लेता।",
-    overview: "MAMAAI एक परिवार के लिए एक व्यावहारिक भोजन योजना बनाता है और हर सदस्य के हिस्से, सामग्री, फल, पानी और cooking notes को अलग-अलग जरूरतों के अनुसार समायोजित करता है।",
+    overview: "MAMAAI एक AI-संचालित पारिवारिक भोजन योजनाकार है। यह परिवार के सदस्यों, उनकी उम्र, भोजन पसंद, एलर्जी, डॉक्टर की पाबंदी, बजट, पैंट्री और आज कौन-कौन खाएगा जैसी जानकारी देखकर एक व्यावहारिक साझा भोजन बनाता है। फिर हर सदस्य के लिए मात्रा, बदलाव, रेसिपी, किराना, फल और पानी से जुड़ी सलाह अलग से देता है। इसका मूल विचार है: एक परिवार, अलग-अलग जरूरतें, एक समझदार भोजन योजना।",
     gettingStarted: "अपने परिवार का भोजन प्लान करने के लिए पहले परिवार प्रोफाइल बनाएं। हर सदस्य की भोजन पसंद, एलर्जी, नापसंद, डॉक्टर की पाबंदी, खाना बनाने की आदत और भोजन की जरूरतें जोड़ें। फिर Meal Planner खोलकर “आज का पारिवारिक भोजन प्लान करें” दबाएं। MAMAAI एक साझा भोजन, सदस्य-विशेष हिस्से, रेसिपी और किराने की सूची बनाएगा।",
+    familyProfile: "Family Profile में MAMAAI आपके घर की जरूरी जानकारी सीखता है: सदस्यों के नाम, उम्र, रिश्ता, भोजन पसंद, एलर्जी, डॉक्टर की पाबंदी, नापसंद, नॉन-वेज आदत, खाना पकाने की शैली, बजट, साप्ताहिक रूटीन और हाल के भोजन। Meal Planner इसी जानकारी का उपयोग करके परिवार के लिए सही योजना बनाता है।",
+    mealPlanner: "Meal Planner MAMAAI का मुख्य काम करने वाला हिस्सा है। यह आपकी सेव की हुई family profile, trial या subscription status, चुनी हुई भाषा, हर meal की attendance, tiffin जरूरत, pantry और recent meals देखकर आज का परिवार भोजन प्लान बनाता है। Plan बनने के बाद आप recipe, grocery list, member-wise guidance और दूसरा meal option देख सकते हैं।",
+    attendance: "आज का भोजन बनाने से पहले MAMAAI पूछ सकता है कि breakfast, lunch, high tea/snacks और dinner में कौन-कौन खाएगा। हर सदस्य को घर पर खाना, tiffin चाहिए या यह meal नहीं खाएंगे के रूप में चुना जा सकता है। इससे मात्रा और grocery सही लोगों के हिसाब से बनती है।",
+    budget: "MAMAAI family budget preference जैसे economical, moderate, flexible, no specific limit या custom monthly food budget का उपयोग कर सकता है। Budget dish, ingredients, grocery और substitutions को practical बनाता है, लेकिन यह exact bill guarantee नहीं है।",
+    mealHistory: "Recent meal history से MAMAAI बार-बार वही dish suggest करने से बचता है। अगर परिवार पिछले 7 दिनों में क्या खाया बताता है, तो MAMAAI variety और बेहतर alternatives देने के लिए उस pattern का उपयोग करता है।",
+    languages: "MAMAAI मुख्य customer pages और Ask MAMA में English, Hindi और Kannada support करता है। चुनी हुई भाषा product help और meal-planning output में जहां संभव हो इस्तेमाल होनी चाहिए।",
     judgeDemo: "Judge/Demo Mode में काल्पनिक family data और payment bypass होता है, ताकि reviewers profile, common meal, portions, recipe, replacement, groceries और MAMA Family Table जल्दी test कर सकें।",
     allergies: "एलर्जी और डॉक्टर की पाबंदियां सख्त safety rules हैं। Food dislikes को पहले personal modification या simple alternative से handle किया जाता है, ताकि पूरी family meal unnecessarily न बदले।",
     fasting: "MAMAAI fasting-aware planning देता है, जिसमें व्रत का समय, allowed foods, cultural context और family customs के अनुसार alternatives शामिल होते हैं।",
@@ -103,8 +121,14 @@ const localizedAskMamaAnswers = {
     unknownPrompt: `ಕ್ಷಮಿಸಿ, ಇಲ್ಲಿ ನಾನು MAMAAI, ಊಟ ಯೋಜನೆ, ಪ್ಯಾಂಟ್ರಿ, ಕಿರಾಣಿ, ರೆಸಿಪಿ, ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಮತ್ತು support ಪ್ರಶ್ನೆಗಳಿಗೆ ಮಾತ್ರ ಉತ್ತರಿಸಬಹುದು. ಸರಿಯಾದ ಉತ್ತರಕ್ಕಾಗಿ ದಯವಿಟ್ಟು ${MAMAAI_SUPPORT_EMAIL} ಸಂಪರ್ಕಿಸಿ.`,
     privateInfoRefusal: "ನಾನು private prompts, credentials, internal settings, admin details ಅಥವಾ hidden configuration ಹಂಚಿಕೊಳ್ಳಲು ಸಾಧ್ಯವಿಲ್ಲ. MAMAAI ಅನ್ನು ಸುರಕ್ಷಿತವಾಗಿ ಬಳಸಲು ಸಹಾಯ ಮಾಡಬಹುದು.",
     medicalSafety: "MAMAAI ಊಟ ಯೋಜನೆ ಸಲಹೆಗಳನ್ನು ನೀಡಬಹುದು, ಆದರೆ diagnosis, treatment, prescription ಅಥವಾ doctor/dietitian ಗೆ ಬದಲಾವಣೆ ಅಲ್ಲ.",
-    overview: "MAMAAI ಒಂದು ಕುಟುಂಬಕ್ಕೆ ಪ್ರಾಯೋಗಿಕ ಊಟದ ಯೋಜನೆ ಮಾಡುತ್ತದೆ ಮತ್ತು ಪ್ರತಿ ಸದಸ್ಯರ portions, ingredients, fruit, hydration ಮತ್ತು cooking notes ಅನ್ನು ಅವಶ್ಯಕತೆಗಳಿಗೆ ಅನುಗುಣವಾಗಿ ಹೊಂದಿಸುತ್ತದೆ.",
+    overview: "MAMAAI ಒಂದು AI ಆಧಾರಿತ ಕುಟುಂಬ ಆಹಾರ ಯೋಜಕ. ಇದು ಕುಟುಂಬದ ಸದಸ್ಯರು, ವಯಸ್ಸು, ಆಹಾರ ಇಷ್ಟಗಳು, ಅಲರ್ಜಿಗಳು, ವೈದ್ಯರ ನಿರ್ಬಂಧಗಳು, ಬಜೆಟ್, ಪ್ಯಾಂಟ್ರಿ ಮತ್ತು ಇಂದು ಯಾರು ಊಟ ಮಾಡುತ್ತಾರೆ ಎಂಬ ಮಾಹಿತಿಯನ್ನು ನೋಡಿ ಒಂದು ಪ್ರಾಯೋಗಿಕ ಸಾಮಾನ್ಯ ಕುಟುಂಬದ ಊಟವನ್ನು ಯೋಜಿಸುತ್ತದೆ. ನಂತರ ಪ್ರತಿ ಸದಸ್ಯರಿಗೆ ಬೇರೆ ಪ್ರಮಾಣ, ಬದಲಾವಣೆ, ರೆಸಿಪಿ, ಕಿರಾಣಿ, ಹಣ್ಣು ಮತ್ತು ನೀರಿನ ಸಲಹೆ ನೀಡುತ್ತದೆ.",
     gettingStarted: "ನಿಮ್ಮ ಕುಟುಂಬದ ಊಟವನ್ನು ಪ್ಲ್ಯಾನ್ ಮಾಡಲು ಮೊದಲು ಕುಟುಂಬ ಪ್ರೊಫೈಲ್ ರಚಿಸಿ. ಪ್ರತಿ ಸದಸ್ಯರ ಆಹಾರ ಇಷ್ಟ, ಅಲರ್ಜಿ, ಇಷ್ಟವಿಲ್ಲದ ಪದಾರ್ಥ, ವೈದ್ಯರ ನಿರ್ಬಂಧ, ಅಡುಗೆ ಪದ್ಧತಿ ಮತ್ತು ಊಟದ ಅಗತ್ಯಗಳನ್ನು ಸೇರಿಸಿ. ನಂತರ Meal Planner ತೆರೆಯಿರಿ ಮತ್ತು “ಇಂದಿನ ಕುಟುಂಬದ ಊಟವನ್ನು ಯೋಜಿಸಿ” ಒತ್ತಿ. MAMAAI ಒಂದು ಸಾಮಾನ್ಯ ಕುಟುಂಬದ ಊಟ, ಸದಸ್ಯರಿಗನುಗುಣ ಭಾಗಗಳು, ರೆಸಿಪಿ ಮತ್ತು ಕಿರಾಣಿ ಪಟ್ಟಿ ರಚಿಸುತ್ತದೆ.",
+    familyProfile: "Family Profile ನಲ್ಲಿ MAMAAI ಮನೆಯ ಮುಖ್ಯ ಮಾಹಿತಿಯನ್ನು ಕಲಿಯುತ್ತದೆ: ಸದಸ್ಯರ ಹೆಸರು, ವಯಸ್ಸು, ಸಂಬಂಧ, ಆಹಾರ ಇಷ್ಟ, ಅಲರ್ಜಿ, ವೈದ್ಯರ ನಿರ್ಬಂಧ, ಇಷ್ಟವಿಲ್ಲದ ಪದಾರ್ಥಗಳು, ನಾನ್-ವೆಜ್ ಅಭ್ಯಾಸ, ಅಡುಗೆ ಶೈಲಿ, ಬಜೆಟ್, ವಾರದ ರೂಟಿನ್ ಮತ್ತು ಇತ್ತೀಚಿನ ಊಟಗಳು. Meal Planner ಈ ಮಾಹಿತಿಯನ್ನು ಬಳಸಿ ಸೂಕ್ತ ಕುಟುಂಬ ಊಟವನ್ನು ಯೋಜಿಸುತ್ತದೆ.",
+    mealPlanner: "Meal Planner MAMAAI ಯ ಮುಖ್ಯ ಕಾರ್ಯಸ್ಥಳ. ಇದು ಉಳಿಸಿದ family profile, trial ಅಥವಾ subscription status, ಆಯ್ದ ಭಾಷೆ, ಪ್ರತಿ meal attendance, tiffin ಅಗತ್ಯ, pantry ಮತ್ತು recent meals ನೋಡಿ ಇಂದಿನ ಕುಟುಂಬದ ಊಟದ ಯೋಜನೆ ರಚಿಸುತ್ತದೆ. ನಂತರ recipe, grocery list, member-wise guidance ಮತ್ತು another meal option ನೋಡಬಹುದು.",
+    attendance: "ಇಂದಿನ ಊಟ ಯೋಜಿಸುವ ಮೊದಲು MAMAAI breakfast, lunch, high tea/snacks ಮತ್ತು dinner ಗೆ ಯಾರು ಇರುತ್ತಾರೆ ಎಂದು ಕೇಳಬಹುದು. ಪ್ರತಿ ಸದಸ್ಯರನ್ನು ಮನೆಯಲ್ಲಿ ಊಟ, tiffin ಬೇಕು ಅಥವಾ ಈ meal ತಿನ್ನುವುದಿಲ್ಲ ಎಂದು ಗುರುತಿಸಬಹುದು. ಇದರಿಂದ quantity ಮತ್ತು grocery ನಿಜವಾದ ಅಗತ್ಯಕ್ಕೆ ಸರಿಹೊಂದುತ್ತದೆ.",
+    budget: "MAMAAI economical, moderate, flexible, no specific limit ಅಥವಾ custom monthly food budget ಎಂಬ family budget preference ಅನ್ನು ಬಳಸಬಹುದು. Budget dish, ingredients, grocery ಮತ್ತು substitutions ಅನ್ನು ಪ್ರಾಯೋಗಿಕವಾಗಿ ಇಡುತ್ತದೆ; ಆದರೆ ಇದು exact bill guarantee ಅಲ್ಲ.",
+    mealHistory: "Recent meal history MAMAAIಗೆ ಅದೇ dish ಅನ್ನು ಮರುಮರು suggest ಮಾಡುವುದನ್ನು ತಪ್ಪಿಸಲು ಸಹಾಯ ಮಾಡುತ್ತದೆ. ಕುಟುಂಬ ಕಳೆದ 7 ದಿನಗಳಲ್ಲಿ ಏನು ತಿಂದಿತು ಎಂದು ತಿಳಿಸಿದರೆ, MAMAAI variety ಮತ್ತು ಉತ್ತಮ alternatives ಕೊಡಲು ಆ pattern ಬಳಸುತ್ತದೆ.",
+    languages: "MAMAAI ಮುಖ್ಯ customer pages ಮತ್ತು Ask MAMA ನಲ್ಲಿ English, Hindi ಮತ್ತು Kannada support ಮಾಡುತ್ತದೆ. ಆಯ್ದ ಭಾಷೆಯನ್ನು product help ಮತ್ತು meal-planning output ನಲ್ಲಿ ಸಾಧ್ಯವಾದಷ್ಟು ಬಳಸಬೇಕು.",
     judgeDemo: "Judge/Demo Mode ನಲ್ಲಿ fictional family data ಮತ್ತು payment bypass ಇರುತ್ತದೆ, reviewers profile, common meal, portions, recipe, replacement, groceries ಮತ್ತು MAMA Family Table ಅನ್ನು ಬೇಗ test ಮಾಡಬಹುದು.",
     allergies: "ಅಲರ್ಜಿ ಮತ್ತು ವೈದ್ಯರ ನಿರ್ಬಂಧಗಳು ಕಟ್ಟುನಿಟ್ಟಿನ safety rules. Food dislikes ಅನ್ನು ಮೊದಲು personal modification ಅಥವಾ simple alternative ಮೂಲಕ handle ಮಾಡಲಾಗುತ್ತದೆ.",
     fasting: "MAMAAI fasting-aware planning ನೀಡುತ್ತದೆ: ವ್ರತದ ಸಮಯ, allowed foods, cultural context ಮತ್ತು family customs ಗೆ ಹೊಂದಿದ alternatives.",
@@ -223,12 +247,124 @@ const mealPlanningTermsUnicode = [
   "ಏನು ಮಾಡಬಹುದು",
   "ಪ್ಯಾಂಟ್ರಿ",
 ];
+const familyProfileTerms = [
+  "family profile",
+  "profile",
+  "add member",
+  "family member",
+  "member age",
+  "diet preference",
+  "food preference",
+  "cooking habit",
+  "weekly routine",
+];
+const familyProfileTermsUnicode = [
+  "फैमिली प्रोफाइल",
+  "परिवार प्रोफाइल",
+  "सदस्य",
+  "उम्र",
+  "भोजन पसंद",
+  "खाना बनाने",
+  "साप्ताहिक",
+  "ಕುಟುಂಬದ ಪ್ರೊಫೈಲ್",
+  "ಸದಸ್ಯ",
+  "ವಯಸ್ಸು",
+  "ಆಹಾರ ಇಷ್ಟ",
+  "ಅಡುಗೆ ಪದ್ಧತಿ",
+  "ವಾರದ",
+];
+const attendanceTerms = [
+  "attendance",
+  "who is eating",
+  "tiffin",
+  "packed meal",
+  "eating at home",
+  "not eating",
+  "present for lunch",
+  "present for dinner",
+];
+const attendanceTermsUnicode = [
+  "कौन खाएगा",
+  "कौन-कौन खाएगा",
+  "टिफिन",
+  "घर पर",
+  "नहीं खाएंगे",
+  "ಯಾರು ಊಟ",
+  "ಟಿಫಿನ್",
+  "ಮನೆಯಲ್ಲಿ",
+  "ತಿನ್ನುವುದಿಲ್ಲ",
+];
+const budgetTerms = [
+  "budget",
+  "economical",
+  "moderate",
+  "flexible",
+  "monthly food budget",
+  "affordable",
+  "low cost",
+  "expensive",
+];
+const budgetTermsUnicode = [
+  "बजट",
+  "किफायती",
+  "सस्ता",
+  "महंगा",
+  "मासिक",
+  "ಬಜೆಟ್",
+  "ಕಡಿಮೆ ವೆಚ್ಚ",
+  "ಮಿತವ್ಯಯ",
+  "ದುಬಾರಿ",
+];
+const mealHistoryTerms = [
+  "last 7 days",
+  "recent meal",
+  "meal history",
+  "avoid repeat",
+  "repeated",
+  "same dish",
+  "khichdi again",
+  "variety",
+];
+const mealHistoryTermsUnicode = [
+  "पिछले 7 दिन",
+  "हाल के भोजन",
+  "बार-बार",
+  "दोहर",
+  "विविधता",
+  "खिचड़ी",
+  "ಕಳೆದ 7 ದಿನ",
+  "ಇತ್ತೀಚಿನ ಊಟ",
+  "ಮರುಮರು",
+  "ವೈವಿಧ್ಯ",
+];
 const overviewTermsUnicode = [
   "कैसे काम करता",
   "कैसे काम करती",
-  "क्या है",
+  "मामाआई क्या",
+  "मामा एआई क्या",
+  "MAMAAI क्या",
   "ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ",
-  "ಏನು",
+  "MAMAAI ಏನು",
+  "ಮಾಮಾ ಎಐ ಏನು",
+];
+const languageTerms = [
+  "language",
+  "hindi",
+  "kannada",
+  "english",
+  "translate",
+  "multilingual",
+];
+const languageTermsUnicode = [
+  "भाषा",
+  "हिंदी",
+  "हिन्दी",
+  "कन्नड़",
+  "अनुवाद",
+  "ಭಾಷೆ",
+  "ಕನ್ನಡ",
+  "ಇಂಗ್ಲಿಷ್",
+  "ಹಿಂದಿ",
 ];
 const subscriptionTerms = [
   "subscription",
@@ -328,6 +464,47 @@ export function answerAskMama(question: string, detailed = false, language: AppL
     };
   }
 
+  if (hasAny(text, familyProfileTerms) || hasAny(rawText, familyProfileTermsUnicode)) {
+    return {
+      category: "family_profile",
+      answer: localized.familyProfile,
+      action: { type: "add_family", label: "Add Family" },
+      suggestions: localized.quickSuggestions,
+    };
+  }
+
+  if (hasAny(text, attendanceTerms) || hasAny(rawText, attendanceTermsUnicode)) {
+    return {
+      category: "attendance",
+      answer: localized.attendance,
+      suggestions: ["Plan meals for my family", "How are ingredient quantities calculated?", "How does grocery planning work?"],
+    };
+  }
+
+  if (hasAny(text, budgetTerms) || hasAny(rawText, budgetTermsUnicode)) {
+    return {
+      category: "budget",
+      answer: localized.budget,
+      suggestions: ["Plan meals for my family", "How does grocery planning work?", "Show subscription plans"],
+    };
+  }
+
+  if (hasAny(text, mealHistoryTerms) || hasAny(rawText, mealHistoryTermsUnicode)) {
+    return {
+      category: "meal_history",
+      answer: localized.mealHistory,
+      suggestions: ["How do I replace a meal?", "Plan meals for my family", "How are ingredient quantities calculated?"],
+    };
+  }
+
+  if (hasAny(text, languageTerms) || hasAny(rawText, languageTermsUnicode)) {
+    return {
+      category: "languages",
+      answer: localized.languages,
+      suggestions: localized.quickSuggestions,
+    };
+  }
+
   if (hasAny(text, ["grocery", "shopping", "list", "ingredients to buy", "pantry", "staples"]) || hasAny(rawText, ["पैंट्री", "किराना", "ಕಿರಾಣಿ", "ಪ್ಯಾಂಟ್ರಿ"])) {
     return {
       category: "grocery",
@@ -337,7 +514,7 @@ export function answerAskMama(question: string, detailed = false, language: AppL
   }
 
   if (
-    hasAny(text, ["add family", "family member", "start", "get started", "create family"]) ||
+    hasAny(text, ["add family", "start", "get started", "create family"]) ||
     hasAny(text, mealPlanningTerms) ||
     hasAny(rawText, mealPlanningTermsUnicode)
   ) {
