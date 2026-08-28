@@ -18,6 +18,23 @@ const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
 const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
 const PANTRY_STORAGE_KEY = 'mamaai_pantry_items_v1';
 
+async function readAskMamaResponse(response: Response) {
+  const contentType = response.headers.get('content-type') || '';
+  const raw = await response.text();
+  let data: { response?: string } | null = null;
+  if (contentType.includes('application/json')) {
+    try { data = JSON.parse(raw); } catch { /* handled as an unavailable response */ }
+  }
+  if (!response.ok || !data?.response) throw new Error('ASK_MAMA_UNAVAILABLE');
+  return data;
+}
+
+function askMamaFailureMessage(language: 'en' | 'hi' | 'kn') {
+  if (language === 'hi') return 'माफ़ कीजिए, MAMA अभी जवाब नहीं दे पा रही है। कृपया कुछ क्षण बाद फिर प्रयास करें।';
+  if (language === 'kn') return 'ಕ್ಷಮಿಸಿ, MAMA ಈಗ ಉತ್ತರಿಸಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
+  return "Sorry, MAMA couldn't respond right now. Please try again.";
+}
+
 export default function HomePage() {
   const { language } = useLanguage();
   const t = askMamaCopy[language] ?? askMamaCopy.en;
@@ -123,11 +140,7 @@ export default function HomePage() {
         }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok || data.error) {
-        throw new Error(data.error?.message || 'Failed to get a response from MAMA.');
-      }
+      const data = await readAskMamaResponse(res);
 
       const mamaMsg: ChatMessage = {
         id: `m_${Date.now()}`,
@@ -138,10 +151,11 @@ export default function HomePage() {
 
       setMessages((prev) => [...prev, mamaMsg]);
     } catch (err) {
+      setInputMessage(query);
       const errorMsg: ChatMessage = {
         id: `err_${Date.now()}`,
         sender: 'mama',
-        text: `⚠️ ${err instanceof Error ? err.message : 'Something went wrong. Please check your connection and try again.'}`,
+        text: `⚠️ ${askMamaFailureMessage(language)}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, errorMsg]);
