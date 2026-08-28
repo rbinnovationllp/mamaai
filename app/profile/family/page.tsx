@@ -10,6 +10,7 @@ import type {
   DayFoodPreference,
   DayWiseFoodRoutinePreference,
   MealSlot,
+  MealTimingPattern,
   RecentMealHistoryDay,
   WeeklyFoodRoutineStatus,
 } from '@/lib/shared/contracts';
@@ -35,6 +36,7 @@ type CookingHabit = 'fresh_home_cooked' | 'ready_frozen' | 'fresh_ready_mix' | '
 type BudgetPreference = 'economical' | 'moderate' | 'flexible' | 'no_specific_limit' | 'custom_monthly';
 type NonVegFrequency = NonNullable<FamilyMemberProfile['nonVegFrequency']>;
 type MealPreferenceInputs = Record<MealSlot, string>;
+type MealTimingInputs = Required<Record<MealSlot, string>>;
 type NonVegFoodOption = 'chicken' | 'fish' | 'eggs' | 'mutton_goat' | 'seafood';
 type RecentMealHistoryStatus = 'manual' | 'photo' | 'skip';
 
@@ -62,6 +64,9 @@ const copy = {
     memberFood: 'Member food preference',
     householdFood: 'Household food preference',
     cookingHabit: 'How does your family usually prepare meals?',
+    mealTimingsTitle: 'Optional normal meal timings',
+    mealTimingsHelp:
+      "Add your family's approximate daily timings so MAMAAI can detect the next meal from your local time. You can skip or edit these anytime.",
     budgetQuestion: 'What budget level should MAMAAI consider while planning meals?',
     budgetHelp: 'Optional. This guides ingredient choice, substitutions and grocery suggestions; it is not an exact bill promise.',
     customBudget: 'Approximate monthly food budget',
@@ -232,6 +237,9 @@ const copy = {
     memberFood: 'Member food preference',
     householdFood: 'Household food preference',
     cookingHabit: 'आपका परिवार आम तौर पर भोजन कैसे बनाता है?',
+    mealTimingsTitle: 'वैकल्पिक सामान्य भोजन समय',
+    mealTimingsHelp:
+      'अपने परिवार के लगभग रोज़ के भोजन समय जोड़ें ताकि MAMAAI आपके local time से अगला भोजन पहचान सके। इसे छोड़ या बाद में बदल सकते हैं।',
     budgetQuestion: 'भोजन योजना बनाते समय MAMAAI कौन सा बजट स्तर ध्यान में रखे?',
     budgetHelp: 'वैकल्पिक। इससे सामग्री, विकल्प और किराने के सुझाव तय होते हैं; यह बिल की सटीक गारंटी नहीं है।',
     customBudget: 'लगभग मासिक भोजन बजट',
@@ -402,6 +410,9 @@ const copy = {
     memberFood: 'Member food preference',
     householdFood: 'Household food preference',
     cookingHabit: 'ನಿಮ್ಮ ಕುಟುಂಬ ಸಾಮಾನ್ಯವಾಗಿ ಊಟವನ್ನು ಹೇಗೆ ತಯಾರಿಸುತ್ತದೆ?',
+    mealTimingsTitle: 'ಐಚ್ಛಿಕ ಸಾಮಾನ್ಯ ಊಟದ ಸಮಯಗಳು',
+    mealTimingsHelp:
+      'ನಿಮ್ಮ ಕುಟುಂಬದ ಅಂದಾಜು ದೈನಂದಿನ ಊಟದ ಸಮಯಗಳನ್ನು ಸೇರಿಸಿ. ಇದರಿಂದ MAMAAI ನಿಮ್ಮ local time ಆಧರಿಸಿ ಮುಂದಿನ ಊಟವನ್ನು ಗುರುತಿಸುತ್ತದೆ. ಇದನ್ನು ಬಿಟ್ಟುಬಿಡಬಹುದು ಅಥವಾ ನಂತರ ಬದಲಿಸಬಹುದು.',
     budgetQuestion: 'ಊಟ ಯೋಜಿಸುವಾಗ MAMAAI ಯಾವ ಬಜೆಟ್ ಮಟ್ಟವನ್ನು ಗಮನದಲ್ಲಿಡಬೇಕು?',
     budgetHelp: 'ಐಚ್ಛಿಕ. ಇದು ಪದಾರ್ಥ, ಪರ್ಯಾಯಗಳು ಮತ್ತು ಕಿರಾಣಿ ಸಲಹೆಗಳಿಗೆ ಮಾರ್ಗದರ್ಶನ; ನಿಖರ ಬಿಲ್ ಭರವಸೆ ಅಲ್ಲ.',
     customBudget: 'ಅಂದಾಜು ಮಾಸಿಕ ಆಹಾರ ಬಜೆಟ್',
@@ -590,6 +601,28 @@ function defaultMealPreferenceInputs(): MealPreferenceInputs {
   return { breakfast: '', lunch: '', snacks: '', dinner: '' };
 }
 
+function defaultMealTimingInputs(): MealTimingInputs {
+  return { breakfast: '', lunch: '', snacks: '', dinner: '' };
+}
+
+function mealTimingInputsFromSaved(saved: unknown): MealTimingInputs {
+  const source = saved && typeof saved === 'object' ? (saved as Record<string, unknown>) : {};
+  return {
+    breakfast: typeof source.breakfast === 'string' ? source.breakfast : '',
+    lunch: typeof source.lunch === 'string' ? source.lunch : '',
+    snacks: typeof source.snacks === 'string' ? source.snacks : '',
+    dinner: typeof source.dinner === 'string' ? source.dinner : '',
+  };
+}
+
+function cleanMealTimings(inputs: MealTimingInputs): MealTimingPattern {
+  return Object.fromEntries(
+    mealSlotOptions
+      .map((slot) => [slot, inputs[slot]?.trim()])
+      .filter(([, value]) => Boolean(value))
+  ) as MealTimingPattern;
+}
+
 function mealPreferenceInputsFromSaved(saved: unknown): MealPreferenceInputs {
   const source = saved && typeof saved === 'object' ? (saved as Record<string, unknown>) : {};
   return {
@@ -706,6 +739,8 @@ export default function FamilyProfilePage() {
     useState<DayWiseFoodRoutinePreference[]>(() => defaultWeeklyRoutine());
   const [mealPreferenceInputs, setMealPreferenceInputs] =
     useState<MealPreferenceInputs>(() => defaultMealPreferenceInputs());
+  const [mealTimingInputs, setMealTimingInputs] =
+    useState<MealTimingInputs>(() => defaultMealTimingInputs());
   const [recentMealHistoryStatus, setRecentMealHistoryStatus] =
     useState<RecentMealHistoryStatus>('skip');
   const [recentMealHistory, setRecentMealHistory] =
@@ -748,6 +783,7 @@ export default function FamilyProfilePage() {
         setWeeklyFoodRoutineStatus(parsedCustomer.weeklyFoodRoutineStatus ?? 'skip');
         setWeeklyFoodRoutine(mergeWeeklyRoutine(parsedCustomer.weeklyFoodRoutine));
         setMealPreferenceInputs(mealPreferenceInputsFromSaved(parsedCustomer.mealTypePreferences));
+        setMealTimingInputs(mealTimingInputsFromSaved(parsedCustomer.mealTimings));
         setRecentMealHistoryStatus(Array.isArray(parsedCustomer.recentMealHistory) && parsedCustomer.recentMealHistory.length ? 'manual' : 'skip');
         setRecentMealHistory(mergeRecentMealHistory(parsedCustomer.recentMealHistory));
         setNonVegPreferredFoods(Array.isArray(parsedCustomer.nonVegPreferredFoods) ? parsedCustomer.nonVegPreferredFoods : []);
@@ -773,6 +809,7 @@ export default function FamilyProfilePage() {
         setWeeklyFoodRoutineStatus(draft.weeklyFoodRoutineStatus ?? 'skip');
         setWeeklyFoodRoutine(mergeWeeklyRoutine(draft.weeklyFoodRoutine));
         setMealPreferenceInputs(draft.mealPreferenceInputs ?? defaultMealPreferenceInputs());
+        setMealTimingInputs(mealTimingInputsFromSaved(draft.mealTimingInputs));
         setRecentMealHistoryStatus(draft.recentMealHistoryStatus === 'add' || draft.recentMealHistoryStatus === 'manual' || draft.recentMealHistoryStatus === 'photo' ? draft.recentMealHistoryStatus === 'add' ? 'manual' : draft.recentMealHistoryStatus : 'skip');
         setRecentMealHistory(mergeRecentMealHistory(draft.recentMealHistory));
         setNonVegPreferredFoods(Array.isArray(draft.nonVegPreferredFoods) ? draft.nonVegPreferredFoods : []);
@@ -820,6 +857,7 @@ export default function FamilyProfilePage() {
           weeklyFoodRoutineStatus,
           weeklyFoodRoutine,
           mealPreferenceInputs,
+          mealTimingInputs,
           recentMealHistoryStatus,
           recentMealHistory,
           nonVegPreferredFoods,
@@ -852,6 +890,7 @@ export default function FamilyProfilePage() {
     weeklyFoodRoutineStatus,
     weeklyFoodRoutine,
     mealPreferenceInputs,
+    mealTimingInputs,
     recentMealHistoryStatus,
     recentMealHistory,
     nonVegPreferredFoods,
@@ -964,6 +1003,10 @@ export default function FamilyProfilePage() {
     setMealPreferenceInputs((current) => ({ ...current, [slot]: value }));
   };
 
+  const updateMealTimingInput = (slot: MealSlot, value: string) => {
+    setMealTimingInputs((current) => ({ ...current, [slot]: value }));
+  };
+
   const updateRecentMealHistory = (day: string, slot: MealSlot, value: string) => {
     setRecentMealHistory((current) =>
       current.map((entry) => (entry.day === day ? { ...entry, [slot]: value } : entry))
@@ -1065,6 +1108,7 @@ export default function FamilyProfilePage() {
         weeklyFoodRoutineStatus,
         weeklyFoodRoutine: weeklyFoodRoutineStatus === 'add' ? cleanWeeklyRoutine(weeklyFoodRoutine) : [],
         mealTypePreferences: cleanMealTypePreferences(mealPreferenceInputs),
+        mealTimings: cleanMealTimings(mealTimingInputs),
         recentMealHistory:
           recentMealHistoryStatus !== 'skip' ? cleanRecentMealHistory(recentMealHistory) : [],
         nonVegPreferredFoods,
@@ -1141,6 +1185,24 @@ export default function FamilyProfilePage() {
                 <option value="other">{t.cookingOptions.other}</option>
               </select>
             </label>
+          </div>
+
+          <div className="mt-5 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+            <h3 className="text-base font-black text-slate-950">{t.mealTimingsTitle}</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{t.mealTimingsHelp}</p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              {mealSlotOptions.map((slot) => (
+                <label key={`${slot}-timing`} className="grid gap-2">
+                  <span className="text-sm font-semibold text-slate-700">{t.mealSlots[slot]}</span>
+                  <input
+                    type="time"
+                    value={mealTimingInputs[slot]}
+                    onChange={(event) => updateMealTimingInput(slot, event.target.value)}
+                    className={inputClassName}
+                  />
+                </label>
+              ))}
+            </div>
           </div>
 
           <div className="mt-5 grid gap-4 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100">

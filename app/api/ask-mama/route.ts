@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { retrieveKnowledgeChunks } from "@/lib/ai/knowledge-retriever";
+import { answerAskMama } from "@/lib/ask-mama/knowledge-base";
 import { getSession } from "@/lib/auth/session";
 import { docClient, TABLE_NAMES } from "@/lib/repositories/dynamo";
 import { GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
@@ -102,9 +103,12 @@ CLIENT PROFILE CONTEXT:
 }
 
 export async function POST(request: Request) {
+  let targetLanguage: AppLanguage = "en";
+  let queryText = "";
+
   try {
     const body = (await request.json()) as RequestPayload;
-    const queryText = (body.question || body.message || "").trim();
+    queryText = (body.question || body.message || "").trim();
 
     if (!queryText) {
       return NextResponse.json(
@@ -115,14 +119,13 @@ export async function POST(request: Request) {
 
     // Resolve target language
     const rawLang = body.responseLanguage || body.language;
-    const targetLanguage: AppLanguage = isAppLanguage(rawLang) ? rawLang : "en";
+    targetLanguage = isAppLanguage(rawLang) ? rawLang : "en";
 
     const session = await getSession();
     const isJudge = Boolean(
       body.isJudgeMode ||
       session?.role === "admin" ||
-      session?.entitlement === "judge" ||
-      session?.role === "judge"
+      session?.entitlement === "judge"
     );
 
     // =========================================================
@@ -218,7 +221,23 @@ ${clientContext}
     // =========================================================
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error("GEMINI_API_KEY is not configured in the runtime environment.");
+      const localAnswer = answerAskMama(queryText, true, targetLanguage);
+      return NextResponse.json({
+        success: true,
+        role: "model",
+        response: localAnswer.answer,
+        answer: localAnswer.answer,
+        responseLanguage: targetLanguage,
+        category: localAnswer.category,
+        suggestions: localAnswer.suggestions,
+        action:
+          localAnswer.action?.type === "add_family"
+            ? "/profile/family"
+            : localAnswer.action?.type === "try_demo"
+              ? "/#planner"
+              : undefined,
+        unresolved: localAnswer.unresolved ?? false,
+      });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -279,6 +298,29 @@ ${clientContext}
   } catch (error) {
     console.error("[Ask MAMA API Exception]:", error);
 
+    if (queryText) {
+      const localAnswer = answerAskMama(queryText, true, targetLanguage);
+      if (!localAnswer.unresolved) {
+        return NextResponse.json({
+          success: true,
+          role: "model",
+          response: localAnswer.answer,
+          answer: localAnswer.answer,
+          responseLanguage: targetLanguage,
+          category: localAnswer.category,
+          suggestions: localAnswer.suggestions,
+          action:
+            localAnswer.action?.type === "add_family"
+              ? "/profile/family"
+              : localAnswer.action?.type === "try_demo"
+                ? "/#planner"
+                : undefined,
+          unresolved: false,
+          fallbackSource: "local_mamaai_knowledge_base",
+        });
+      }
+    }
+
     const fallbackMessages: Record<AppLanguage, string> = {
       hi: "क्षमा करें, अभी आपका उत्तर तैयार करने में समस्या आ रही है। कृपया कुछ समय बाद पुनः प्रयास करें।",
       kn: "ಕ್ಷಮಿಸಿ, ಈ ಸಮಯದಲ್ಲಿ ನಿಮ್ಮ ಪ್ರಶ್ನೆಗೆ ಉತ್ತರಿಸಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
@@ -292,7 +334,7 @@ ${clientContext}
           code: "ASK_MAMA_EXECUTION_FAILURE",
           message: error instanceof Error ? error.message : "Internal processing error.",
         },
-        response: fallbackMessages.en,
+        response: fallbackMessages[targetLanguage],
       },
       { status: 500 }
     );

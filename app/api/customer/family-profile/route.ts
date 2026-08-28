@@ -139,6 +139,14 @@ const familyProfileSchema = z.object({
         dinner: z.array(z.string()).default([]),
       })
       .default({ breakfast: [], lunch: [], snacks: [], dinner: [] }),
+    mealTimings: z
+      .object({
+        breakfast: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional().or(z.literal("")),
+        lunch: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional().or(z.literal("")),
+        snacks: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional().or(z.literal("")),
+        dinner: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional().or(z.literal("")),
+      })
+      .default({}),
     recentMealHistory: z
       .array(
         z.object({
@@ -233,6 +241,9 @@ export async function POST(request: Request) {
             }))
           : [],
       mealTypePreferences: customer.mealTypePreferences,
+      mealTimings: Object.fromEntries(
+        Object.entries(customer.mealTimings ?? {}).filter(([, value]) => Boolean(value))
+      ),
       recentMealHistory: customer.recentMealHistory
         .map((entry) => ({
           day: entry.day,
