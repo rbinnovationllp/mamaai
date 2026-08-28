@@ -36,7 +36,7 @@ type BudgetPreference = 'economical' | 'moderate' | 'flexible' | 'no_specific_li
 type NonVegFrequency = NonNullable<FamilyMemberProfile['nonVegFrequency']>;
 type MealPreferenceInputs = Record<MealSlot, string>;
 type NonVegFoodOption = 'chicken' | 'fish' | 'eggs' | 'mutton_goat' | 'seafood';
-type RecentMealHistoryStatus = 'add' | 'skip';
+type RecentMealHistoryStatus = 'manual' | 'photo' | 'skip';
 
 const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
 const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
@@ -107,11 +107,23 @@ const copy = {
     recentHistoryTitle: 'Optional: what did your family eat in the last 7 days?',
     recentHistoryQuestion: 'Would you like MAMAAI to avoid repeating recent meals?',
     recentHistoryHelp:
-      'Add only what you remember. This is used as a short planning signal, not as a permanent rule.',
+      'Providing the last 7 days helps MAMAAI understand your actual eating pattern, repeated dishes and family favourites. You can type it, upload a clear photo, or skip it.',
     recentHistoryOptions: {
-      add: 'Yes, add recent meals',
+      manual: 'Manual entry',
+      photo: 'Upload photo and review',
       skip: 'Skip for now',
     },
+    recentHistoryPhotoTitle: 'Upload Your Last 7 Days Meal History',
+    recentHistoryPhotoHelp:
+      "If filling this on your phone feels tedious, write your family's meals for the last 7 days clearly on a blank sheet and upload a photo. MAMAAI will read it and prepare entries for your review.",
+    recentHistoryFormat:
+      'Suggested format: Day 1 - Breakfast, Lunch, High Tea/Snacks, Dinner. Repeat up to Day 7.',
+    uploadMealPhoto: 'Choose meal-history photo',
+    extractMealPhoto: 'Read photo and prepare draft',
+    extractingMealPhoto: 'Reading photo...',
+    extractionReview: 'Review and correct the extracted meals before saving.',
+    extractionUnavailable: 'Photo reading is not available right now. You can use manual entry or skip for now.',
+    uncertainField: 'Please check',
     recentHistoryPlaceholder: 'Example: dal rice, dosa, pasta, chicken curry',
     mealPreferenceHints: {
       breakfast: 'Example: idli, poha, eggs, oats, toast',
@@ -265,11 +277,23 @@ const copy = {
     recentHistoryTitle: 'वैकल्पिक: पिछले 7 दिनों में परिवार ने क्या खाया?',
     recentHistoryQuestion: 'क्या MAMAAI हाल के meals को repeat करने से बचाए?',
     recentHistoryHelp:
-      'जो याद हो वही लिखें. यह planning का छोटा signal है, कोई permanent rule नहीं.',
+      'पिछले 7 दिनों की जानकारी से MAMAAI आपकी असली खाने की आदत, दोहराए गए व्यंजन और परिवार की पसंद समझता है। आप इसे लिख सकते हैं, फोटो अपलोड कर सकते हैं या अभी छोड़ सकते हैं।',
     recentHistoryOptions: {
-      add: 'हाँ, हाल के meals जोड़ें',
+      manual: 'खुद भरें',
+      photo: 'फोटो अपलोड करके review करें',
       skip: 'अभी skip करें',
     },
+    recentHistoryPhotoTitle: 'पिछले 7 दिनों की meal history अपलोड करें',
+    recentHistoryPhotoHelp:
+      'अगर मोबाइल पर भरना मुश्किल लग रहा है, तो खाली कागज पर पिछले 7 दिनों के परिवार के भोजन साफ-साफ लिखकर फोटो अपलोड करें। MAMAAI उसे पढ़कर review के लिए entries तैयार करेगा।',
+    recentHistoryFormat:
+      'Suggested format: Day 1 - Breakfast, Lunch, High Tea/Snacks, Dinner. इसी तरह Day 7 तक लिखें।',
+    uploadMealPhoto: 'Meal-history photo चुनें',
+    extractMealPhoto: 'फोटो पढ़कर draft बनाएं',
+    extractingMealPhoto: 'फोटो पढ़ी जा रही है...',
+    extractionReview: 'सेव करने से पहले निकाली गई जानकारी review और correct करें।',
+    extractionUnavailable: 'Photo reading अभी उपलब्ध नहीं है। आप manual entry कर सकते हैं या skip कर सकते हैं।',
+    uncertainField: 'कृपया जांचें',
     recentHistoryPlaceholder: 'उदाहरण: दाल-चावल, डोसा, पास्ता, चिकन करी',
     mealPreferenceHints: {
       breakfast: 'Example: idli, poha, eggs, oats, toast',
@@ -423,11 +447,23 @@ const copy = {
     recentHistoryTitle: 'ಐಚ್ಛಿಕ: ಕಳೆದ 7 ದಿನಗಳಲ್ಲಿ ಕುಟುಂಬ ಏನು ತಿಂದಿದೆ?',
     recentHistoryQuestion: 'MAMAAI ಇತ್ತೀಚಿನ meals repeat ಆಗದಂತೆ ನೋಡಿಕೊಳ್ಳಬೇಕೇ?',
     recentHistoryHelp:
-      'ನಿಮಗೆ ನೆನಪಿರುವುದನ್ನು ಮಾತ್ರ ಬರೆಯಿರಿ. ಇದು planning signal ಮಾತ್ರ, permanent rule ಅಲ್ಲ.',
+      'ಕಳೆದ 7 ದಿನಗಳ ಮಾಹಿತಿ MAMAAIಗೆ ನಿಮ್ಮ ಕುಟುಂಬದ ನಿಜವಾದ ಆಹಾರ ಅಭ್ಯಾಸ, ಮರುಕಳಿಸುವ ತಿನಿಸುಗಳು ಮತ್ತು ಇಷ್ಟಗಳನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳಲು ಸಹಾಯ ಮಾಡುತ್ತದೆ. ನೀವು ಬರೆಯಬಹುದು, ಫೋಟೋ ಅಪ್ಲೋಡ್ ಮಾಡಬಹುದು ಅಥವಾ ಈಗ ಬಿಟ್ಟುಬಿಡಬಹುದು.',
     recentHistoryOptions: {
-      add: 'ಹೌದು, ಇತ್ತೀಚಿನ meals ಸೇರಿಸಿ',
+      manual: 'ಕೈಯಾರೆ ಭರ್ತಿ ಮಾಡಿ',
+      photo: 'ಫೋಟೋ ಅಪ್ಲೋಡ್ ಮಾಡಿ review ಮಾಡಿ',
       skip: 'ಈಗ skip ಮಾಡಿ',
     },
+    recentHistoryPhotoTitle: 'ಕಳೆದ 7 ದಿನಗಳ meal history ಅಪ್ಲೋಡ್ ಮಾಡಿ',
+    recentHistoryPhotoHelp:
+      'ಮೊಬೈಲ್‌ನಲ್ಲಿ ಭರ್ತಿ ಮಾಡುವುದು ಕಷ್ಟವಾಗಿದ್ದರೆ, ಖಾಲಿ ಕಾಗದದಲ್ಲಿ ಕಳೆದ 7 ದಿನಗಳ ಕುಟುಂಬದ ಊಟಗಳನ್ನು ಸ್ಪಷ್ಟವಾಗಿ ಬರೆದು ಫೋಟೋ ಅಪ್ಲೋಡ್ ಮಾಡಿ. MAMAAI ಅದನ್ನು ಓದಿ review ಮಾಡಲು entries ತಯಾರಿಸುತ್ತದೆ.',
+    recentHistoryFormat:
+      'Suggested format: Day 1 - Breakfast, Lunch, High Tea/Snacks, Dinner. ಇದೇ ರೀತಿ Day 7 ವರೆಗೆ ಬರೆಯಿರಿ.',
+    uploadMealPhoto: 'Meal-history photo ಆಯ್ಕೆಮಾಡಿ',
+    extractMealPhoto: 'ಫೋಟೋ ಓದಿ draft ತಯಾರಿಸಿ',
+    extractingMealPhoto: 'ಫೋಟೋ ಓದಲಾಗುತ್ತಿದೆ...',
+    extractionReview: 'ಉಳಿಸುವ ಮೊದಲು ತೆಗೆದ ಮಾಹಿತಿಯನ್ನು review ಮತ್ತು correct ಮಾಡಿ.',
+    extractionUnavailable: 'Photo reading ಈಗ ಲಭ್ಯವಿಲ್ಲ. ನೀವು manual entry ಮಾಡಬಹುದು ಅಥವಾ skip ಮಾಡಬಹುದು.',
+    uncertainField: 'ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ',
     recentHistoryPlaceholder: 'ಉದಾಹರಣೆ: ದಾಲ್-ಅಕ್ಕಿ, ದೋಸೆ, ಪಾಸ್ತಾ, ಚಿಕನ್ ಕರಿ',
     mealPreferenceHints: {
       breakfast: 'Example: idli, poha, eggs, oats, toast',
@@ -582,8 +618,9 @@ function defaultRecentMealHistory(): RecentMealHistoryDay[] {
 
 function mergeRecentMealHistory(saved: unknown): RecentMealHistoryDay[] {
   const savedEntries = Array.isArray(saved) ? saved : [];
-  return weekdayOptions.map((day) => {
-    const match = savedEntries.find((entry) => entry?.day === day);
+  return weekdayOptions.map((day, index) => {
+    const genericDay = `day_${index + 1}`;
+    const match = savedEntries.find((entry) => entry?.day === day || entry?.day === genericDay);
     return {
       day,
       breakfast: typeof match?.breakfast === 'string' ? match.breakfast : '',
@@ -673,6 +710,11 @@ export default function FamilyProfilePage() {
     useState<RecentMealHistoryStatus>('skip');
   const [recentMealHistory, setRecentMealHistory] =
     useState<RecentMealHistoryDay[]>(() => defaultRecentMealHistory());
+  const [mealHistoryImageDataUrl, setMealHistoryImageDataUrl] = useState('');
+  const [mealHistoryPhotoName, setMealHistoryPhotoName] = useState('');
+  const [mealHistoryExtractionStatus, setMealHistoryExtractionStatus] = useState('');
+  const [mealHistoryExtractionError, setMealHistoryExtractionError] = useState('');
+  const [mealHistoryUncertainFields, setMealHistoryUncertainFields] = useState<Record<string, string[]>>({});
   const [nonVegPreferredFoods, setNonVegPreferredFoods] = useState<string[]>([]);
   const [otherNonVegInput, setOtherNonVegInput] = useState('');
   const [nonVegFrequency, setNonVegFrequency] = useState<NonVegFrequency>('occasionally');
@@ -706,7 +748,7 @@ export default function FamilyProfilePage() {
         setWeeklyFoodRoutineStatus(parsedCustomer.weeklyFoodRoutineStatus ?? 'skip');
         setWeeklyFoodRoutine(mergeWeeklyRoutine(parsedCustomer.weeklyFoodRoutine));
         setMealPreferenceInputs(mealPreferenceInputsFromSaved(parsedCustomer.mealTypePreferences));
-        setRecentMealHistoryStatus(Array.isArray(parsedCustomer.recentMealHistory) && parsedCustomer.recentMealHistory.length ? 'add' : 'skip');
+        setRecentMealHistoryStatus(Array.isArray(parsedCustomer.recentMealHistory) && parsedCustomer.recentMealHistory.length ? 'manual' : 'skip');
         setRecentMealHistory(mergeRecentMealHistory(parsedCustomer.recentMealHistory));
         setNonVegPreferredFoods(Array.isArray(parsedCustomer.nonVegPreferredFoods) ? parsedCustomer.nonVegPreferredFoods : []);
         setBudgetPreference(parsedCustomer.budgetPreference ?? 'moderate');
@@ -731,7 +773,7 @@ export default function FamilyProfilePage() {
         setWeeklyFoodRoutineStatus(draft.weeklyFoodRoutineStatus ?? 'skip');
         setWeeklyFoodRoutine(mergeWeeklyRoutine(draft.weeklyFoodRoutine));
         setMealPreferenceInputs(draft.mealPreferenceInputs ?? defaultMealPreferenceInputs());
-        setRecentMealHistoryStatus(draft.recentMealHistoryStatus === 'add' ? 'add' : 'skip');
+        setRecentMealHistoryStatus(draft.recentMealHistoryStatus === 'add' || draft.recentMealHistoryStatus === 'manual' || draft.recentMealHistoryStatus === 'photo' ? draft.recentMealHistoryStatus === 'add' ? 'manual' : draft.recentMealHistoryStatus : 'skip');
         setRecentMealHistory(mergeRecentMealHistory(draft.recentMealHistory));
         setNonVegPreferredFoods(Array.isArray(draft.nonVegPreferredFoods) ? draft.nonVegPreferredFoods : []);
         setOtherNonVegInput(String(draft.otherNonVegInput ?? ''));
@@ -928,6 +970,56 @@ export default function FamilyProfilePage() {
     );
   };
 
+  const handleMealHistoryPhoto = (file?: File) => {
+    setMealHistoryExtractionStatus('');
+    setMealHistoryExtractionError('');
+    setMealHistoryUncertainFields({});
+    if (!file) return;
+    setMealHistoryPhotoName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setMealHistoryImageDataUrl(typeof reader.result === 'string' ? reader.result : '');
+    };
+    reader.onerror = () => setMealHistoryExtractionError(t.extractionUnavailable);
+    reader.readAsDataURL(file);
+  };
+
+  const extractMealHistoryFromPhoto = async () => {
+    if (!mealHistoryImageDataUrl) return;
+    setMealHistoryExtractionStatus(t.extractingMealPhoto);
+    setMealHistoryExtractionError('');
+    setMealHistoryUncertainFields({});
+    try {
+      const response = await fetch('/api/meal-history/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageDataUrl: mealHistoryImageDataUrl,
+          language,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error?.message || t.extractionUnavailable);
+      }
+      const extracted = mergeRecentMealHistory(data.entries);
+      setRecentMealHistory(extracted);
+      const uncertain: Record<string, string[]> = {};
+      if (Array.isArray(data.entries)) {
+        data.entries.forEach((entry: { day?: string; uncertain?: string[] }) => {
+          if (entry.day && Array.isArray(entry.uncertain) && entry.uncertain.length) {
+            uncertain[entry.day] = entry.uncertain;
+          }
+        });
+      }
+      setMealHistoryUncertainFields(uncertain);
+      setMealHistoryExtractionStatus(t.extractionReview);
+    } catch (error) {
+      setMealHistoryExtractionStatus('');
+      setMealHistoryExtractionError(error instanceof Error ? error.message : t.extractionUnavailable);
+    }
+  };
+
   const toggleNonVegPreferredFood = (food: string) => {
     setNonVegPreferredFoods((current) =>
       current.includes(food) ? current.filter((item) => item !== food) : [...current, food]
@@ -974,7 +1066,7 @@ export default function FamilyProfilePage() {
         weeklyFoodRoutine: weeklyFoodRoutineStatus === 'add' ? cleanWeeklyRoutine(weeklyFoodRoutine) : [],
         mealTypePreferences: cleanMealTypePreferences(mealPreferenceInputs),
         recentMealHistory:
-          recentMealHistoryStatus === 'add' ? cleanRecentMealHistory(recentMealHistory) : [],
+          recentMealHistoryStatus !== 'skip' ? cleanRecentMealHistory(recentMealHistory) : [],
         nonVegPreferredFoods,
       };
       const response = await fetch('/api/customer/family-profile', {
@@ -1174,21 +1266,69 @@ export default function FamilyProfilePage() {
               onChange={(event) => setRecentMealHistoryStatus(event.target.value as RecentMealHistoryStatus)}
               className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
             >
-              <option value="add">{t.recentHistoryOptions.add}</option>
+              <option value="manual">{t.recentHistoryOptions.manual}</option>
+              <option value="photo">{t.recentHistoryOptions.photo}</option>
               <option value="skip">{t.recentHistoryOptions.skip}</option>
             </select>
           </label>
 
-          {recentMealHistoryStatus === 'add' ? (
+          {recentMealHistoryStatus === 'photo' ? (
+            <div className="mt-5 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100">
+              <h3 className="text-base font-black text-emerald-950">{t.recentHistoryPhotoTitle}</h3>
+              <p className="mt-2 text-sm leading-6 text-emerald-900">{t.recentHistoryPhotoHelp}</p>
+              <p className="mt-2 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100">
+                {t.recentHistoryFormat}
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                <label className="grid gap-2">
+                  <span className="text-sm font-semibold text-slate-700">{t.uploadMealPhoto}</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={(event) => handleMealHistoryPhoto(event.target.files?.[0])}
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
+                  />
+                  {mealHistoryPhotoName ? <span className="text-xs font-semibold text-emerald-800">{mealHistoryPhotoName}</span> : null}
+                </label>
+                <button
+                  type="button"
+                  onClick={extractMealHistoryFromPhoto}
+                  disabled={!mealHistoryImageDataUrl || mealHistoryExtractionStatus === t.extractingMealPhoto}
+                  className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-60"
+                >
+                  {mealHistoryExtractionStatus === t.extractingMealPhoto ? t.extractingMealPhoto : t.extractMealPhoto}
+                </button>
+              </div>
+              {mealHistoryExtractionStatus && mealHistoryExtractionStatus !== t.extractingMealPhoto ? (
+                <p className="mt-3 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-emerald-900 ring-1 ring-emerald-100">
+                  {mealHistoryExtractionStatus}
+                </p>
+              ) : null}
+              {mealHistoryExtractionError ? (
+                <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+                  {mealHistoryExtractionError}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {recentMealHistoryStatus !== 'skip' ? (
             <div className="mt-5 grid gap-4">
               {recentMealHistory.map((entry) => (
                 <article
                   key={`recent-${entry.day}`}
                   className="grid gap-4 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100"
                 >
-                  <h3 className="text-base font-black text-slate-950">
-                    {t.weekdays[entry.day as keyof typeof t.weekdays]}
-                  </h3>
+                  <div>
+                    <h3 className="text-base font-black text-slate-950">
+                      {t.weekdays[entry.day as keyof typeof t.weekdays] ?? entry.day.replace('_', ' ')}
+                    </h3>
+                    {mealHistoryUncertainFields[entry.day]?.length ? (
+                      <p className="mt-1 text-xs font-bold text-amber-700">
+                        {t.uncertainField}: {mealHistoryUncertainFields[entry.day].join(', ')}
+                      </p>
+                    ) : null}
+                  </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {mealSlotOptions.map((slot) => (
                       <label key={`${entry.day}-${slot}-recent`} className="grid gap-1">
