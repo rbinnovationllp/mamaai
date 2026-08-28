@@ -1,16 +1,20 @@
 import { NextResponse } from "next/server";
-import { answerAskMama } from "@/lib/ask-mama/knowledge-base";
-import { type AppLanguage, isAppLanguage } from "@/lib/i18n";
-import { AskMamaService } from "@/lib/services/ask-mama-service";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { retrieveKnowledgeChunks } from "@/lib/ai/knowledge-retriever";
 import { getSession } from "@/lib/auth/session";
+import { docClient, TABLE_NAMES } from "@/lib/repositories/dynamo";
+import { GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { type AppLanguage, isAppLanguage } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
 interface RequestPayload {
   message?: string;
+  question?: string;
   isJudgeMode?: boolean;
   language?: AppLanguage;
-  history?: Array<{ role: string; parts: string }>;
+  responseLanguage?: AppLanguage;
+  history?: Array<{ role: string; parts: string | string[] }>;
   profileContext?: {
     householdFoodPreference?: string;
     cookingHabit?: string;
@@ -38,187 +42,257 @@ interface RequestPayload {
   };
 }
 
-function isCookingQuestion(message: string): boolean {
-  return /(cook|meal|dinner|lunch|breakfast|snack|high tea|pantry|grocery|ingredient|frozen|ready|family|recipe|substitute|dish|खाना|भोजन|पक|अंडा|शाकाहारी|पैंट्री|किराना|ಊಟ|ಅಡುಗೆ|ತಿಂಡಿ|ಪ್ಯಾಂಟ್ರಿ|ಕಿರಾಣಿ)/i.test(
-    message
-  );
+function getLocalizedSuggestions(language: AppLanguage): string[] {
+  switch (language) {
+    case "hi":
+      return [
+        "आज रात क्या बनाएं?",
+        "मेरी पैंट्री में क्या है?",
+        "प्लान और कीमतें दिखाएं",
+        "पारिवारिक प्रोफाइल कैसे सेट करें?",
+      ];
+    case "kn":
+      return [
+        "ಇಂದು ರಾತ್ರಿ ಏನು ಅಡುಗೆ ಮಾಡುವುದು?",
+        "ನನ್ನ ಪ್ಯಾಂಟ್ರಿಯಲ್ಲಿ ಏನಿದೆ?",
+        "ಯೋಜನೆಗಳು ಮತ್ತು ದರಗಳು",
+        "ಕುಟುಂಬದ ಪ್ರೊಫೈಲ್ ಹೇಗೆ ರಚಿಸುವುದು?",
+      ];
+    case "en":
+    default:
+      return [
+        "What can I cook tonight?",
+        "What is in my pantry?",
+        "Show subscription plans",
+        "How do I set up family profile?",
+      ];
+  }
 }
 
-function localizedProfileValue(kind: "food" | "cooking", value: string | undefined, language: AppLanguage): string {
-  const fallback = {
-    en: "not yet selected",
-    hi: "अभी नहीं चुना गया",
-    kn: "ಇನ್ನೂ ಆಯ್ಕೆಮಾಡಿಲ್ಲ",
-  }[language];
-  if (!value) return fallback;
+function formatClientContext(context: RequestPayload["profileContext"]): string {
+  if (!context) return "No client-side profile context provided.";
 
-  const food: Record<string, string> = ({
-    en: {
-      vegetarian: "Vegetarian",
-      eggetarian: "Eggetarian",
-      non_vegetarian: "Non-Vegetarian",
-      semi_vegetarian: "Mostly Vegetarian / Semi-Vegetarian",
-      vegan: "Vegan",
-      mixed: "Mixed family preferences",
-      other: "Custom preference",
-    },
-    hi: {
-      vegetarian: "शाकाहारी",
-      eggetarian: "एगेटेरियन",
-      non_vegetarian: "मांसाहारी",
-      semi_vegetarian: "अधिकतर शाकाहारी / सेमी-वेज",
-      vegan: "वीगन",
-      mixed: "परिवार में अलग-अलग भोजन पसंद",
-      other: "कस्टम पसंद",
-    },
-    kn: {
-      vegetarian: "ಸಸ್ಯಾಹಾರಿ",
-      eggetarian: "ಎಗ್ಗೆಟೇರಿಯನ್",
-      non_vegetarian: "ಮಾಂಸಾಹಾರಿ",
-      semi_vegetarian: "ಹೆಚ್ಚಾಗಿ ಸಸ್ಯಾಹಾರಿ / ಸೆಮಿ-ವೆಜ್",
-      vegan: "ವೀಗನ್",
-      mixed: "ಕುಟುಂಬದಲ್ಲಿ ವಿಭಿನ್ನ ಆಹಾರ ಇಷ್ಟಗಳು",
-      other: "ಕಸ್ಟಮ್ ಇಷ್ಟ",
-    },
-  }[language] as Record<string, string>) || {};
-
-  const cooking: Record<string, string> = ({
-    en: {
-      fresh_home_cooked: "mostly fresh home-cooked meals",
-      ready_frozen: "mostly ready-made or frozen cooked meals",
-      fresh_ready_mix: "a mix of fresh cooking and ready-made or frozen foods",
-      takeaway_prepared: "mostly prepared meals or takeaway",
-      other: "custom cooking habit",
-    },
-    hi: {
-      fresh_home_cooked: "अधिकतर घर में ताजा बना खाना",
-      ready_frozen: "अधिकतर ready-made या frozen cooked meals",
-      fresh_ready_mix: "ताजा खाना और ready-made/frozen foods का मिश्रण",
-      takeaway_prepared: "अधिकतर बाहर से तैयार खाना या takeaway",
-      other: "कस्टम cooking habit",
-    },
-    kn: {
-      fresh_home_cooked: "ಹೆಚ್ಚಾಗಿ ಮನೆಯಲ್ಲಿ ತಾಜಾ ಅಡುಗೆ",
-      ready_frozen: "ಹೆಚ್ಚಾಗಿ ready-made ಅಥವಾ frozen cooked meals",
-      fresh_ready_mix: "ತಾಜಾ ಅಡುಗೆ ಮತ್ತು ready-made/frozen foods ಮಿಶ್ರಣ",
-      takeaway_prepared: "ಹೆಚ್ಚಾಗಿ ಹೊರಗಿನ prepared meals ಅಥವಾ takeaway",
-      other: "ಕಸ್ಟಮ್ cooking habit",
-    },
-  }[language] as Record<string, string>) || {};
-
-  return (kind === "food" ? food[value] : cooking[value]) ?? value;
-}
-
-function profileAwareAnswer(message: string, context: RequestPayload["profileContext"], language: AppLanguage): string | null {
-  if (!context || !isCookingQuestion(message)) return null;
-
-  const members = context.members?.filter((member) => member.name) ?? [];
-  if (!members.length && !context.householdFoodPreference && !context.cookingHabit) return null;
-
-  const food = localizedProfileValue("food", context.householdFoodPreference, language);
-  const cooking = localizedProfileValue("cooking", context.cookingHabit, language);
-  const memberSummary = members
-    .map((member) => `${member.name}: ${localizedProfileValue("food", member.foodPreference, language)}${member.age ? `, age ${member.age}` : ""}`)
-    .join(", ");
-  const pantryItems = context.pantryItems?.filter((item) => item.name).slice(0, 8) ?? [];
-  const pantrySummary = pantryItems
-    .map((item) => `${item.name}${item.quantity ? ` ${item.quantity}${item.unit ? ` ${item.unit}` : ""}` : ""}`)
-    .join(", ");
-  const mealPreferences = Object.entries(context.mealTypePreferences ?? {})
-    .filter(([, values]) => Array.isArray(values) && values.length)
-    .map(([slot, values]) => `${slot}: ${(values as string[]).join(", ")}`)
+  const members = (context.members || [])
+    .filter((m) => m.name)
+    .map(
+      (m) =>
+        `${m.name} (${m.relation || "Member"}, Age: ${m.age ?? "N/A"}, Diet: ${m.foodPreference || "Veg"}, Allergies: [${(m.allergies || []).join(", ")}], Medical Restrictions: [${(m.doctorAdvisedRestrictions || []).join(", ")}], Dislikes: [${(m.dislikes || []).join(", ")}])`
+    )
     .join("; ");
 
-  if (language === "hi") {
-    return `आपकी सेव की हुई प्रोफाइल के अनुसार परिवार की भोजन पसंद: ${food}; खाना बनाने की आदत: ${cooking}. सदस्य: ${memberSummary || "सदस्यों की भोजन पसंद अभी नहीं जोड़ी गई है"}. ${mealPreferences ? `Meal-wise पसंद: ${mealPreferences}. ` : ""}${pantrySummary ? `Pantry में अभी: ${pantrySummary}. पहले इन्हें use करने वाला plan बनाएं और missing items ही grocery में जोड़ें. ` : ""}MAMAAI इसी आधार पर साझा पारिवारिक भोजन सुझाएगा और एलर्जी/डॉक्टर की पाबंदियों को सख्त नियम मानेगा। अगला कदम: Meal Planner में "आज का पारिवारिक भोजन प्लान करें" दबाएं।`;
-  }
+  const pantry = (context.pantryItems || [])
+    .filter((p) => p.name)
+    .map((p) => `${p.name}: ${p.quantity ?? ""} ${p.unit ?? ""}`.trim())
+    .join(", ");
 
-  if (language === "kn") {
-    return `ನಿಮ್ಮ ಉಳಿಸಿದ ಪ್ರೊಫೈಲ್ ಪ್ರಕಾರ ಕುಟುಂಬದ ಆಹಾರ ಇಷ್ಟ: ${food}; ಅಡುಗೆ ಪದ್ಧತಿ: ${cooking}. ಸದಸ್ಯರು: ${memberSummary || "ಸದಸ್ಯರ ಆಹಾರ ಇಷ್ಟಗಳು ಇನ್ನೂ ಸೇರಿಲ್ಲ"}. ${mealPreferences ? `Meal-wise ಇಷ್ಟಗಳು: ${mealPreferences}. ` : ""}${pantrySummary ? `Pantry ನಲ್ಲಿ ಈಗಿದೆ: ${pantrySummary}. ಮೊದಲು ಇವುಗಳನ್ನು ಬಳಸುವ plan ಮಾಡಿ, missing items ಮಾತ್ರ grocery ಗೆ ಸೇರಿಸಿ. ` : ""}MAMAAI ಇದನ್ನೇ ಆಧಾರ ಮಾಡಿಕೊಂಡು ಸಾಮಾನ್ಯ ಕುಟುಂಬದ ಊಟವನ್ನು ಸೂಚಿಸುತ್ತದೆ ಮತ್ತು ಅಲರ್ಜಿ/ವೈದ್ಯರ ನಿರ್ಬಂಧಗಳನ್ನು ಕಡ್ಡಾಯ ನಿಯಮಗಳಾಗಿ ನೋಡುತ್ತದೆ. ಮುಂದಿನ ಹಂತ: Meal Planner ನಲ್ಲಿ "ಇಂದಿನ ಕುಟುಂಬದ ಊಟವನ್ನು ಯೋಜಿಸಿ" ಒತ್ತಿ.`;
-  }
+  const mealPrefs = Object.entries(context.mealTypePreferences || {})
+    .filter(([, v]) => Array.isArray(v) && v.length)
+    .map(([k, v]) => `${k}: ${(v as string[]).join(", ")}`)
+    .join("; ");
 
-  return `Using your saved profile: household food preference is ${food}; cooking habit is ${cooking}. Members: ${memberSummary || "member food preferences are still missing"}. ${mealPreferences ? `Meal-wise preferences: ${mealPreferences}. ` : ""}${pantrySummary ? `Current pantry: ${pantrySummary}. Prefer a plan that uses these first and adds only missing quantities to groceries. ` : ""}MAMAAI will use this to suggest a practical common family meal while treating allergies and doctor restrictions as hard rules. Next step: open Meal Planner and tap "Plan Today's Family Meal."`;
-}
-
-function localizedSuggestions(language: AppLanguage): string[] {
-  if (language === "hi") {
-    return ["Meal Planner खोलें", "Family Profile पूरी करें", "Subscription plans दिखाएं"];
-  }
-  if (language === "kn") {
-    return ["Meal Planner ತೆರೆಯಿರಿ", "Family Profile ಪೂರ್ಣಗೊಳಿಸಿ", "Subscription plans ತೋರಿಸಿ"];
-  }
-  return ["Open Meal Planner", "Complete Family Profile", "Show subscription plans"];
+  return `
+CLIENT PROFILE CONTEXT:
+- Diet Type: ${context.householdFoodPreference || "Not specified"}
+- Cooking Habit: ${context.cookingHabit || "Not specified"}
+- Family Members: ${members || "No members added yet"}
+- Pantry Stock: ${pantry || "Empty"}
+- Meal Slot Preferences: ${mealPrefs || "None"}
+- Non-Veg Favorites: ${(context.nonVegPreferredFoods || []).join(", ") || "None"}
+`.trim();
 }
 
 export async function POST(request: Request) {
   try {
-    const session = await getSession();
     const body = (await request.json()) as RequestPayload;
-    const message = body.message?.trim();
+    const queryText = (body.question || body.message || "").trim();
 
-    if (!message) {
+    if (!queryText) {
       return NextResponse.json(
         { error: { code: "INVALID_PROMPT", message: "Please provide a valid question." } },
         { status: 400 }
       );
     }
 
-    const language = isAppLanguage(body.language) ? body.language : "en";
-    const isJudgeMode = Boolean(body.isJudgeMode || session?.role === "admin" || session?.entitlement === "judge");
+    // Resolve target language
+    const rawLang = body.responseLanguage || body.language;
+    const targetLanguage: AppLanguage = isAppLanguage(rawLang) ? rawLang : "en";
 
-    // Route 1: Culinary / Ingredient / Meal Planning reasoning via Gemini Service
-    if (isCookingQuestion(message)) {
-      const askMamaService = new AskMamaService();
-      const response = await askMamaService.ask({
-        message,
-        language,
-        profileContext: body.profileContext,
-        history: Array.isArray(body.history) ? body.history : [],
-      });
+    const session = await getSession();
+    const isJudge = Boolean(
+      body.isJudgeMode ||
+      session?.role === "admin" ||
+      session?.entitlement === "judge" ||
+      session?.role === "judge"
+    );
 
-      return NextResponse.json({
-        success: true,
-        role: "model",
-        response,
-        category: "meal_planning",
-        suggestions: localizedSuggestions(language),
-        action: "/planner",
-      });
+    // =========================================================
+    // LAYER A: Retrieve PRD Knowledge Base Chunks (RAG)
+    // =========================================================
+    const matchedChunks = retrieveKnowledgeChunks(queryText, 4);
+    const knowledgeContext = matchedChunks
+      .map(
+        (chunk) =>
+          `[Topic: ${chunk.topic} | Domain: ${chunk.domain} | Status: ${chunk.featureStatus}]\n${chunk.canonicalFacts}`
+      )
+      .join("\n\n");
+
+    // =========================================================
+    // LAYER B: Fetch Live Customer State from DynamoDB / Session
+    // =========================================================
+    let liveDatabaseContext = "Visitor status: Not signed in.";
+
+    if (session?.userId) {
+      try {
+        const userRes = await docClient.send(
+          new GetCommand({
+            TableName: TABLE_NAMES.USERS,
+            Key: { userId: session.userId },
+          })
+        );
+        const user = userRes.Item;
+
+        const pantryRes = await docClient.send(
+          new QueryCommand({
+            TableName: TABLE_NAMES.PANTRY,
+            KeyConditionExpression: "userId = :uid",
+            ExpressionAttributeValues: { ":uid": session.userId },
+            Limit: 12,
+          })
+        );
+        const serverPantry = (pantryRes.Items || [])
+          .map((i) => `${i.name}: ${i.quantity} ${i.unit}`)
+          .join(", ");
+
+        liveDatabaseContext = `
+AUTHENTICATED DATABASE STATE:
+- User ID: ${session.userId}
+- Name: ${user?.name || "Customer"}
+- Active Subscription: ${user?.subscriptionPlan || "Starter (Trial)"} (Status: ${user?.subscriptionStatus || "Active"})
+- Persistent DynamoDB Pantry: ${serverPantry || "Pantry table empty"}
+- Demo/Judge Bypass: ${isJudge ? "Active Evaluator Mode" : "Standard User"}
+`.trim();
+      } catch (dbErr) {
+        console.warn("[Ask MAMA] DynamoDB contextual lookup fallback:", dbErr);
+      }
     }
 
-    // Route 2: Profile overview & prompt guidance
-    const contextualAnswer = profileAwareAnswer(message, body.profileContext, language);
-    if (contextualAnswer) {
-      return NextResponse.json({
-        success: true,
-        role: "model",
-        response: contextualAnswer,
-        category: "meal_planning",
-        suggestions: localizedSuggestions(language),
-        action: "/planner",
-      });
+    const clientContext = formatClientContext(body.profileContext);
+
+    // =========================================================
+    // STRICT MULTILINGUAL GENERATIVE PROMPT ORCHESTRATION
+    // =========================================================
+    const languageDirectives: Record<AppLanguage, string> = {
+      hi: `CRITICAL INSTRUCTION: You MUST formulate your entire response in natural, fluent, and polite HINDI (हिन्दी). Devanagari script is mandatory. Do not answer in English.`,
+      kn: `CRITICAL INSTRUCTION: You MUST formulate your entire response in natural, fluent, and polite KANNADA (ಕನ್ನಡ). Kannada script is mandatory. Do not answer in English.`,
+      en: `CRITICAL INSTRUCTION: Answer clearly and concisely in standard English.`,
+    };
+
+    const systemPrompt = `
+You are "Ask MAMA", the official intelligent AI chatbot and culinary companion for MAMAAI.
+
+LANGUAGE ENFORCEMENT:
+Target Output Language: ${targetLanguage.toUpperCase()}
+${languageDirectives[targetLanguage]}
+
+MAMAAI SYSTEM DIRECTIVES & BEHAVIOR:
+1. Ground your answers strictly in the Verified Knowledge Base and Live Context provided below.
+2. Canonical Brand Names: Keep proper nouns like "MAMAAI", "Family Plus", "Starter", "Premium", "Ask MAMA", "SabSewa Local" in their standard recognizable form.
+3. Feature Life Cycle: If a feature is marked "PLANNED", inform the user that it is an upcoming capability. Do not pretend it is fully active.
+4. Unauthenticated Visitor Handling: If a non-logged-in visitor asks for account-specific information (e.g., "What is in my pantry?"), answer warmly, explain how the feature works in MAMAAI, and guide them to sign in.
+5. Personalized Reasoning: If the user asks for cooking guidance, meal recommendations, or diet advice, cross-reference their family constraints, allergies, member restrictions, and available pantry items.
+
+==================================================
+VERIFIED MAMAAI KNOWLEDGE BASE (PRD RAG):
+==================================================
+${knowledgeContext || "General family meal planning for Indian households."}
+
+==================================================
+LIVE ACCOUNT & CLIENT PROFILE:
+==================================================
+${liveDatabaseContext}
+${clientContext}
+`.trim();
+
+    // =========================================================
+    // GEMINI 2.5 FLASH INFERENCE
+    // =========================================================
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not configured in the runtime environment.");
     }
 
-    // Route 3: Deterministic Knowledge Base (Subscriptions, Tiers, Navigation)
-    const answer = answerAskMama(message, isJudgeMode, language);
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      generationConfig: {
+        temperature: 0.2,
+        topP: 0.8,
+        maxOutputTokens: 800,
+      },
+    });
+
+    const conversationHistory = Array.isArray(body.history)
+      ? body.history.map((h) => ({
+        role: h.role === "assistant" || h.role === "model" ? "model" : "user",
+        parts: [{ text: Array.isArray(h.parts) ? h.parts.join(" ") : String(h.parts) }],
+      }))
+      : [];
+
+    const chat = model.startChat({
+      history: [
+        {
+          role: "user",
+          parts: [{ text: systemPrompt }],
+        },
+        {
+          role: "model",
+          parts: [
+            {
+              text:
+                targetLanguage === "hi"
+                  ? "नमस्ते! मैं MAMAAI की आधिकारिक सहायक MAMA हूँ। मैं आपके परिवार के भोजन नियोजन में कैसे सहायता करूँ?"
+                  : targetLanguage === "kn"
+                    ? "ನಮಸ್ಕಾರ! ನಾನು MAMAAI ನ ಅಧಿಕೃತ ಸಹಾಯಕ MAMA. ನಿಮ್ಮ ಕುಟುಂಬದ ಊಟದ ಯೋಜನೆಗೆ ನಾನು ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?"
+                    : "Hello! I am MAMA, your official assistant for MAMAAI. How can I assist you with your family meal planning today?",
+            },
+          ],
+        },
+        ...conversationHistory,
+      ],
+    });
+
+    const result = await chat.sendMessage(queryText);
+    const generatedAnswer = result.response.text();
 
     return NextResponse.json({
       success: true,
       role: "model",
-      response: answer.answer,
-      category: answer.category,
-      suggestions: answer.suggestions,
-      action: answer.action,
-      unresolved: Boolean(answer.unresolved),
+      response: generatedAnswer,
+      answer: generatedAnswer,
+      responseLanguage: targetLanguage,
+      category: matchedChunks[0]?.domain || "general_inquiry",
+      suggestions: getLocalizedSuggestions(targetLanguage),
+      action: queryText.toLowerCase().includes("plan") ? "/planner" : undefined,
+      matchedKnowledgeIds: matchedChunks.map((c) => c.id),
+      unresolved: false,
     });
   } catch (error) {
-    console.error("[Ask MAMA API Error]:", error);
+    console.error("[Ask MAMA API Exception]:", error);
+
+    const fallbackMessages: Record<AppLanguage, string> = {
+      hi: "क्षमा करें, अभी आपका उत्तर तैयार करने में समस्या आ रही है। कृपया कुछ समय बाद पुनः प्रयास करें।",
+      kn: "ಕ್ಷಮಿಸಿ, ಈ ಸಮಯದಲ್ಲಿ ನಿಮ್ಮ ಪ್ರಶ್ನೆಗೆ ಉತ್ತರಿಸಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      en: "I apologize, but I could not process your request right now. Please try again in a moment.",
+    };
+
     return NextResponse.json(
       {
+        success: false,
         error: {
-          code: "ASK_MAMA_ERROR",
-          message: "Ask MAMA could not process this request.",
+          code: "ASK_MAMA_EXECUTION_FAILURE",
+          message: error instanceof Error ? error.message : "Internal processing error.",
         },
+        response: fallbackMessages.en,
       },
       { status: 500 }
     );
