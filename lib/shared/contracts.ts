@@ -33,10 +33,10 @@ export type DayFoodPreference =
 
 export type MealSlot = "breakfast" | "lunch" | "snacks" | "dinner";
 
-export type AttendanceStatus = "home" | "tiffin" | "eating_out" | "fasting";
+export type MemberMealAttendanceStatus = "home" | "tiffin" | "skip" | "fasting";
 
 export interface MealTimingPattern {
-  breakfast?: string; // "HH:MM" (24h)
+  breakfast?: string; // "HH:MM" 24h format
   lunch?: string;
   snacks?: string;
   dinner?: string;
@@ -577,9 +577,17 @@ export interface CreateFamilyRequest {
   members: CreateFamilyMemberInput[];
 }
 
+export interface DayAttendancePlan {
+  breakfast: Record<string, MemberMealAttendanceStatus>;
+  lunch: Record<string, MemberMealAttendanceStatus>;
+  snacks: Record<string, MemberMealAttendanceStatus>;
+  dinner: Record<string, MemberMealAttendanceStatus>;
+  guestCountBySlot?: Partial<Record<MealSlot, number>>;
+}
+
 export interface TodayAttendanceItem {
   memberId: string;
-  status: AttendanceStatus;
+  status: MemberMealAttendanceStatus;
 }
 
 export interface CreateMealPlanRequest {
@@ -598,6 +606,7 @@ export interface CreateMealPlanRequest {
   previousMeals?: string[];
   mealAttendance?: MealAttendanceEntry[];
   todayAttendance?: TodayAttendanceItem[];
+  dayAttendancePlan?: DayAttendancePlan;
   isExceptionToday?: boolean;
   customMealTimings?: MealTimingPattern;
   highTeaPreference?: HighTeaPreference;
