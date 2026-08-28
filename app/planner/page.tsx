@@ -1,15 +1,17 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { AppPageNav } from '@/components/AppPageNav';
 import { LanguageSelector, useLanguage } from '@/components/LanguageProvider';
+import { MealCard } from '@/components/planner/MealCard';
 import type {
   DayFoodPreference,
   DayWiseFoodRoutinePreference,
   DietType,
   FamilyDietPreference,
   FamilyMealPlan,
+  MealAlternativeOption,
   MealSlot,
   MealTime,
   RecentMealHistoryDay,
@@ -23,6 +25,7 @@ const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
 const CULTURE_STORAGE_KEY = 'mamaai_culture_profile_v1';
 const LAST_PLAN_KEY = 'mamaai_last_successful_plan';
 const DAILY_PLAN_CACHE_KEY = 'mamaai_daily_meal_plan_cache_v1';
+const CURRENT_MEAL_PLAN_KEY = 'mamaai_current_meal_plan';
 const PANTRY_STORAGE_KEY = 'mamaai_pantry_items_v1';
 const FAMILY_LEARNING_KEY = 'mamaai_family_learning_signals_v1';
 const TODAY_ATTENDANCE_KEY = 'mamaai_today_meal_attendance_v1';
@@ -105,6 +108,8 @@ const plannerCopy = {
     generate: "Plan Today's Family Meal",
     generating: 'Generating family food plan...',
     success: "Today's family food plan is ready.",
+    staleWarning: '⚠️ Showing previously saved meal plan. Tap the button above to generate a fresh recommendation for today.',
+    staleBadge: 'Previous Plan',
     noSubscription:
       'If payment or trial is not completed yet, choose a subscription first. Judges can use evaluator access from the subscription page.',
     subscriptionSuccess: 'Subscription verified. You can now generate your family food plan.',
@@ -157,13 +162,13 @@ const plannerCopy = {
     watchVideo: 'Watch How to Cook',
     videoLoading: 'Searching suitable cooking videos...',
     videoEmpty: "We couldn't find a suitable cooking video for this dish right now. Please use the written recipe.",
-    sponsoredVideo: 'प्रायोजित रेसिपी वीडियो / पेड प्रमोशन',
+    sponsoredVideo: 'Sponsored Recipe Video / Paid Promotion',
     videoMatch: {
       exact: 'exact',
       close: 'close',
       fallback: 'fallback',
-      approved: 'स्वीकृत',
-      sponsored: 'प्रायोजित',
+      approved: 'Approved',
+      sponsored: 'Sponsored',
       youtube: 'YouTube',
       fallback_search: 'fallback search',
     },
@@ -200,6 +205,8 @@ const plannerCopy = {
     generate: 'आज का पारिवारिक भोजन प्लान करें',
     generating: 'पारिवारिक भोजन योजना बन रही है...',
     success: 'आज का पारिवारिक भोजन तैयार है।',
+    staleWarning: '⚠️ यह पिछला सेव किया हुआ प्लान है। आज का नया भोजन बनाने के लिए ऊपर बटन दबाएं।',
+    staleBadge: 'पिछला प्लान',
     noSubscription:
       'अगर भुगतान या ट्रायल पूरा नहीं है, तो पहले सब्सक्रिप्शन चुनें। जज सब्सक्रिप्शन पेज से मूल्यांकन एक्सेस इस्तेमाल कर सकते हैं।',
     subscriptionSuccess: 'सब्सक्रिप्शन सत्यापित हो गया है। अब आप अपने परिवार का भोजन प्लान बना सकते हैं।',
@@ -295,6 +302,8 @@ const plannerCopy = {
     generate: 'ಇಂದಿನ ಕುಟುಂಬದ ಊಟವನ್ನು ಯೋಜಿಸಿ',
     generating: 'ಕುಟುಂಬದ ಊಟದ ಯೋಜನೆ ಸಿದ್ಧವಾಗುತ್ತಿದೆ...',
     success: 'ಇಂದಿನ ಕುಟುಂಬದ ಊಟ ಸಿದ್ಧವಾಗಿದೆ.',
+    staleWarning: '⚠️ ಇದು ಹಿಂದಿನ ಊಟದ ಪ್ಲಾನ್ ಆಗಿದೆ. ಇಂದಿನ ಹೊಸ ಊಟವನ್ನು ಯೋಜಿಸಲು ಮೇಲಿನ ಬಟನ್ ಒತ್ತಿರಿ.',
+    staleBadge: 'ಹಿಂದಿನ ಪ್ಲಾನ್',
     noSubscription:
       'ಪಾವತಿ ಅಥವಾ ಟ್ರಯಲ್ ಪೂರ್ಣವಾಗಿರದಿದ್ದರೆ ಮೊದಲು ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಆಯ್ಕೆಮಾಡಿ. ಜಡ್ಜ್‌ಗಳು ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಪೇಜ್‌ನಿಂದ ಮೌಲ್ಯಮಾಪನ ಪ್ರವೇಶ ಬಳಸಬಹುದು.',
     subscriptionSuccess: 'ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್ ಪರಿಶೀಲಿಸಲಾಗಿದೆ. ಈಗ ನಿಮ್ಮ ಕುಟುಂಬದ ಊಟದ ಯೋಜನೆ ರಚಿಸಬಹುದು.',
@@ -386,7 +395,7 @@ function currentLocalHour() {
 }
 
 function browserTimeZone() {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
 }
 
 function nextMealTimeForHour(hour: number): MealTime {
@@ -427,8 +436,8 @@ function attendanceForAllMembers(members: HouseholdMember[], status: MemberMealA
 }
 
 function availabilityForMember(entry: MealAttendanceDraft[MealTime], memberId: string): MemberMealAvailability {
-  if (entry.tiffinMemberIds.includes(memberId)) return 'tiffin';
-  if (entry.participatingMemberIds.includes(memberId)) return 'home';
+  if (entry?.tiffinMemberIds?.includes(memberId)) return 'tiffin';
+  if (entry?.participatingMemberIds?.includes(memberId)) return 'home';
   return 'away';
 }
 
@@ -437,8 +446,8 @@ function patchMealAvailability(
   memberId: string,
   status: MemberMealAvailability
 ) {
-  const participating = new Set(entry.participatingMemberIds);
-  const tiffin = new Set(entry.tiffinMemberIds);
+  const participating = new Set(entry?.participatingMemberIds ?? []);
+  const tiffin = new Set(entry?.tiffinMemberIds ?? []);
   if (status === 'away') {
     participating.delete(memberId);
     tiffin.delete(memberId);
@@ -625,8 +634,7 @@ function weeklyRoutineNotes(customer: CustomerAccount, selectedMealTime: MealTim
   const slot = mealSlotForMealTime(selectedMealTime);
   const mealPreference = entry.meals?.[slot];
   const notes = [
-    `Saved weekly food routine for ${weekday}: day preference ${routineLabel(entry.preference)}${
-      mealPreference ? `; ${slot} preference ${routineLabel(mealPreference)}` : ''
+    `Saved weekly food routine for ${weekday}: day preference ${routineLabel(entry.preference)}${mealPreference ? `; ${slot} preference ${routineLabel(mealPreference)}` : ''
     }. Treat this as an important preference, not an absolute command.`,
     'Latest explicit user request for this meal should override the saved weekly routine for this occasion.',
   ];
@@ -665,8 +673,8 @@ function recentMealHistoryNotes(customer: CustomerAccount, selectedMealTime: Mea
     .slice(0, 18);
 
   return [
-    `Recent same-meal history: ${slotMeals.length ? slotMeals.join('; ') : 'not specified'}. Avoid repeating these unless the user explicitly asks.`,
-    `Compact recent family meal history: ${allMeals.join('; ')}. Use this for repetition control only; latest user request and safety restrictions override history.`,
+    `Recent same-meal history: ${slotMeals.length ? slotMeals.join('; ') : 'not specified'}. Avoid repeating these dishes.`,
+    `Compact recent family meal history: ${allMeals.join('; ')}. Use this for repetition control.`,
   ];
 }
 
@@ -974,15 +982,7 @@ function writeCachedMealPlan(cacheKey: string, mealPlan: FamilyMealPlan, signatu
     nextCache[cacheKey] = { savedAt: new Date().toISOString(), signature, mealPlan };
     window.localStorage.setItem(DAILY_PLAN_CACHE_KEY, JSON.stringify(nextCache));
   } catch {
-    // Caching saves cost but should never block meal planning.
-  }
-}
-
-function clearDailyPlanCache() {
-  try {
-    window.localStorage.removeItem(DAILY_PLAN_CACHE_KEY);
-  } catch {
-    // Cache is only an optimization.
+    // Cache write error ignored
   }
 }
 
@@ -1002,13 +1002,6 @@ function readLocalLearningSignals(): Array<{
   }
 }
 
-function previousMealsForPlanning(mealTime: MealTime, currentMealName?: string) {
-  const learnedMeals = readLocalLearningSignals()
-    .filter((signal) => signal.mealTime === mealTime && (signal.outcome === 'rejected' || signal.outcome === 'cooked'))
-    .map((signal) => signal.mealName);
-  return [...new Set([currentMealName, ...learnedMeals].filter(Boolean) as string[])].slice(-10);
-}
-
 function saveLocalLearningSignal(signal: {
   mealName: string;
   mealTime: MealTime;
@@ -1020,33 +1013,51 @@ function saveLocalLearningSignal(signal: {
     const existing = raw ? (JSON.parse(raw) as typeof signal[]) : [];
     window.localStorage.setItem(FAMILY_LEARNING_KEY, JSON.stringify([...existing.slice(-30), signal]));
   } catch {
-    // Learning signals are useful but should never block user flow.
+    // Learning signal write error ignored
   }
 }
 
 export default function PlannerPage() {
   const { language } = useLanguage();
   const t = plannerCopy[language] ?? plannerCopy.en;
+
   const [members, setMembers] = useState<HouseholdMember[]>([]);
   const [customer, setCustomer] = useState<CustomerAccount>({});
   const [culture, setCulture] = useState<CultureProfile>({});
   const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
+
+  // Interactive Planning States
   const [plannerMode, setPlannerMode] = useState<PlannerMode>('next_meal');
+  const [autoMealTime, setAutoMealTime] = useState<MealTime>(() => nextMealTimeForHour(currentLocalHour()));
   const [selectedMealTime, setSelectedMealTime] = useState<MealTime>(() => nextMealTimeForHour(currentLocalHour()));
   const [mealAttendance, setMealAttendance] = useState<MealAttendanceDraft>(() => emptyAttendanceDraft());
+
+  // Plan Lifecycle State
+  const [mealPlan, setMealPlan] = useState<FamilyMealPlan | null>(null);
+  const [isStalePlan, setIsStalePlan] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
-  const [mealPlan, setMealPlan] = useState<FamilyMealPlan | null>(null);
-  const [videoSearch, setVideoSearch] = useState<RecipeVideoSearchResponse | null>(null);
-  const [videoStatus, setVideoStatus] = useState('');
+  const [mealWish, setMealWish] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isReplacingMeal, setIsReplacingMeal] = useState(false);
   const [isLoadingServerProfile, setIsLoadingServerProfile] = useState(true);
   const [lastPlan, setLastPlan] = useState('');
   const [feedbackStatus, setFeedbackStatus] = useState('');
-  const [mealWish, setMealWish] = useState('');
+  const [videoSearch, setVideoSearch] = useState<RecipeVideoSearchResponse | null>(null);
+  const [videoStatus, setVideoStatus] = useState('');
+
   const remainingMealTimes = useMemo(() => remainingMealTimesForHour(currentLocalHour()), []);
 
+  // 1. Resolve Local Time on Mount
+  useEffect(() => {
+    const nextSlot = nextMealTimeForHour(currentLocalHour());
+    setAutoMealTime(nextSlot);
+    if (plannerMode === 'next_meal') {
+      setSelectedMealTime(nextSlot);
+    }
+  }, [plannerMode]);
+
+  // 2. Hydrate Client Storage & Backend Profile
   useEffect(() => {
     let cancelled = false;
 
@@ -1054,9 +1065,7 @@ export default function PlannerPage() {
       const savedMembers = window.localStorage.getItem(HOUSEHOLD_STORAGE_KEY);
       if (savedMembers) {
         const parsed = JSON.parse(savedMembers);
-        if (Array.isArray(parsed)) {
-          setMembers(parsed.filter((member) => member?.name));
-        }
+        if (Array.isArray(parsed)) setMembers(parsed.filter((m) => m?.name));
       }
 
       const savedCustomer = window.localStorage.getItem(CUSTOMER_STORAGE_KEY);
@@ -1068,12 +1077,23 @@ export default function PlannerPage() {
       const savedPantry = window.localStorage.getItem(PANTRY_STORAGE_KEY);
       if (savedPantry) {
         const parsedPantry = JSON.parse(savedPantry);
-        if (Array.isArray(parsedPantry)) {
-          setPantryItems(parsedPantry.filter((item) => item?.name));
-        }
+        if (Array.isArray(parsedPantry)) setPantryItems(parsedPantry.filter((item) => item?.name));
       }
 
       setLastPlan(window.localStorage.getItem(LAST_PLAN_KEY) ?? '');
+
+      // Check current plan and validate against today's date
+      const savedPlanRaw = window.localStorage.getItem(CURRENT_MEAL_PLAN_KEY);
+      if (savedPlanRaw) {
+        const parsedPlan: FamilyMealPlan = JSON.parse(savedPlanRaw);
+        if (parsedPlan?.targetDate === todayLocalDate()) {
+          setMealPlan(parsedPlan);
+          setIsStalePlan(false);
+        } else {
+          setMealPlan(parsedPlan);
+          setIsStalePlan(true); // Tag previous day's plan
+        }
+      }
     } catch {
       setMembers([]);
     }
@@ -1085,19 +1105,28 @@ export default function PlannerPage() {
         const data = await response.json();
         if (cancelled || !data.authenticated) return;
 
-        const serverCustomer = hydrateCustomerFromServer(data.customer);
-        if (Object.keys(serverCustomer).length) {
-          setCustomer(serverCustomer);
-          window.localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(serverCustomer));
+        if (data.customer) {
+          setCustomer(data.customer);
+          window.localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(data.customer));
         }
 
-        const serverMembers = normalizeServerFamilyMembers(data.familyProfile?.members);
-        if (serverMembers.length) {
-          setMembers(serverMembers);
-          window.localStorage.setItem(HOUSEHOLD_STORAGE_KEY, JSON.stringify(serverMembers));
+        if (Array.isArray(data.familyProfile?.members) && data.familyProfile.members.length) {
+          const normalized = data.familyProfile.members.map((m: any) => ({
+            id: m.memberId || m.id,
+            name: m.name,
+            relation: m.relationship || m.relation || 'Family member',
+            age: m.age,
+            activityLevel: m.activityLevel,
+            foodPreference: m.dietType || m.foodPreference,
+            allergies: m.allergies || [],
+            doctorAdvisedRestrictions: m.doctorRestrictions || m.doctorAdvisedRestrictions || [],
+            dislikes: m.dislikes || [],
+          }));
+          setMembers(normalized);
+          window.localStorage.setItem(HOUSEHOLD_STORAGE_KEY, JSON.stringify(normalized));
         }
       } catch {
-        // If the signed session is absent, localStorage/manual profile remains the fallback.
+        // Local state fallback active
       } finally {
         if (!cancelled) setIsLoadingServerProfile(false);
       }
@@ -1109,7 +1138,7 @@ export default function PlannerPage() {
     };
   }, []);
 
-
+  // 3. Load Pantry Items from Server
   useEffect(() => {
     let cancelled = false;
 
@@ -1131,7 +1160,7 @@ export default function PlannerPage() {
         setPantryItems(serverItems);
         window.localStorage.setItem(PANTRY_STORAGE_KEY, JSON.stringify(serverItems));
       } catch {
-        // Local pantry fallback is already loaded above.
+        // Pantry fallback active
       }
     }
 
@@ -1141,11 +1170,12 @@ export default function PlannerPage() {
     };
   }, []);
 
+  // 4. Attendance Initialization
   useEffect(() => {
     setMealAttendance((current) => {
       const next = emptyAttendanceDraft();
       const memberIds = members.map((member) => member.id);
-      (Object.keys(next) as MealTime[]).forEach((mealTime) => {
+      dailyScheduleMealTimes.forEach((mealTime) => {
         const existing = current[mealTime] ?? { participatingMemberIds: [], tiffinMemberIds: [] };
         const participating = existing.participatingMemberIds.filter((memberId) => memberIds.includes(memberId));
         next[mealTime] = {
@@ -1157,6 +1187,7 @@ export default function PlannerPage() {
     });
   }, [members]);
 
+  // 5. Restore Attendance from Storage
   useEffect(() => {
     if (!members.length) return;
     try {
@@ -1183,10 +1214,11 @@ export default function PlannerPage() {
         });
       }
     } catch {
-      // Today's attendance is a convenience cache only.
+      // Ignore cache restore errors
     }
   }, [members]);
 
+  // 6. Persist Attendance Changes
   useEffect(() => {
     if (!members.length) return;
     try {
@@ -1196,9 +1228,11 @@ export default function PlannerPage() {
         JSON.stringify({ date: today, attendance: mealAttendance })
       );
     } catch {
-      // Attendance persistence should not block planning.
+      // Ignore write errors
     }
   }, [mealAttendance, members.length]);
+
+  const activeMealSlot = plannerMode === 'next_meal' ? autoMealTime : selectedMealTime;
 
   const setMealAvailability = (mealTime: MealTime, memberId: string, status: MemberMealAvailability) => {
     setMealAttendance((current) => {
@@ -1246,20 +1280,27 @@ export default function PlannerPage() {
         return next;
       });
     } catch {
-      // Ignore invalid saved patterns.
+      // Ignore invalid saved patterns
     }
   };
 
   const suggestedPlan = useMemo(() => planFromMemberCount(members.length), [members.length]);
   const canGenerate = members.length > 0;
   const membersMissingAge = members.filter((member) => typeof member.age !== 'number' || Number.isNaN(member.age));
-  const generatePlan = async () => {
+
+  // 7. Active Generation Action
+  const generatePlan = async (cravingOverride?: string) => {
     if (!canGenerate || isGenerating) return;
     if (membersMissingAge.length) {
       setError(t.incompleteText);
       return;
     }
-    const activeAttendanceForValidation = mealAttendance[selectedMealTime] ?? { participatingMemberIds: members.map((member) => member.id), tiffinMemberIds: [] };
+
+    const activeAttendanceForValidation = mealAttendance[activeMealSlot] ?? {
+      participatingMemberIds: members.map((member) => member.id),
+      tiffinMemberIds: [],
+    };
+
     if (!activeAttendanceForValidation.participatingMemberIds.length) {
       setError(t.selectOneMember);
       return;
@@ -1268,24 +1309,17 @@ export default function PlannerPage() {
     setIsGenerating(true);
     setError('');
     setStatus(t.generating);
-    setMealPlan(null);
     setVideoSearch(null);
     setVideoStatus('');
 
     try {
       const userId = customer.userId || `customer_${Date.now()}`;
       const targetDate = todayLocalDate();
-      const activeAttendance = mealAttendance[selectedMealTime] ?? { participatingMemberIds: members.map((member) => member.id), tiffinMemberIds: [] };
-      const attendanceSignature = attendanceSignatureForSchedule(mealAttendance);
-      const signature = `${stableContextSignature({ members, customer, culture, language })}|attendance:${attendanceSignature}|pantry:${pantrySummary(pantryItems)}`;
-      const cacheKey = dailyPlanCacheKey({ userId, targetDate, mealTime: selectedMealTime, signature });
-      const cachedMealPlan = readCachedMealPlan(cacheKey, { targetDate, mealTime: selectedMealTime, signature });
-      if (cachedMealPlan) {
-        setMealPlan(adjustGroceryForPantry(cachedMealPlan, pantryItems, t.alreadyInPantry, language));
-        setStatus(t.success);
-        setIsGenerating(false);
-        return;
-      }
+      const activeAttendance = mealAttendance[activeMealSlot] ?? {
+        participatingMemberIds: members.map((member) => member.id),
+        tiffinMemberIds: [],
+      };
+
       const country = culture.country?.trim() || 'India';
       const region = culture.region?.trim() || 'Karnataka';
       const city = culture.city?.trim() || region;
@@ -1296,6 +1330,8 @@ export default function PlannerPage() {
           customer.cookingHabit ?? 'fresh_home_cooked',
         ])
       ).slice(0, 12);
+
+      // Create/Sync Family Context
       const familyResponse = await fetch('/api/families', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1312,21 +1348,21 @@ export default function PlannerPage() {
               ...cultureNotes(culture),
               ...cookingHabitNotes(customer.cookingHabit),
               ...budgetNotes(customer),
-              ...mealTypePreferenceNotes(customer, selectedMealTime),
-              ...recentMealHistoryNotes(customer, selectedMealTime),
-              ...weeklyRoutineNotes(customer, selectedMealTime, targetDate),
+              ...mealTypePreferenceNotes(customer, activeMealSlot),
+              ...recentMealHistoryNotes(customer, activeMealSlot),
+              ...weeklyRoutineNotes(customer, activeMealSlot, targetDate),
               ...(pantryItems.length
-                ? [`Saved pantry stock available: ${pantrySummary(pantryItems)}. Prefer using available pantry items where safe and practical, and only list missing quantities in grocery guidance.`]
+                ? [`Saved pantry stock available: ${pantrySummary(pantryItems)}. Prefer using available pantry items where safe.`]
                 : []),
               ...(customer.nonVegPreferredFoods?.length
-                ? [`Explicit family non-vegetarian food preferences: ${customer.nonVegPreferredFoods.join(', ')}. Do not add other meat categories unless the family requested them.`]
+                ? [`Explicit non-veg preferences: ${customer.nonVegPreferredFoods.join(', ')}.`]
                 : []),
               ...attendanceNotesForSchedule(mealAttendance, members, t.meals),
               activeAttendance.tiffinMemberIds.length
                 ? `Packed meal/tiffin needed for: ${members
-                    .filter((member) => activeAttendance.tiffinMemberIds.includes(member.id))
-                    .map((member) => member.name)
-                    .join(', ')}. Prefer travel-friendly, less-messy portions and keep safety restrictions unchanged.`
+                  .filter((member) => activeAttendance.tiffinMemberIds.includes(member.id))
+                  .map((member) => member.name)
+                  .join(', ')}.`
                 : 'No packed meal/tiffin requested for this selected meal.',
             ],
             weeklyFoodRoutineStatus: customer.weeklyFoodRoutineStatus ?? 'skip',
@@ -1358,7 +1394,7 @@ export default function PlannerPage() {
               age: member.age as number,
               gender: 'prefer_not_to_say',
               activityLevel: member.activityLevel ?? 'moderate',
-              goals: ['Balanced home meal', ...nonVegNotes(member, selectedMealTime)],
+              goals: ['Balanced home meal', ...nonVegNotes(member, activeMealSlot)],
               dietType: memberDietTypeFor(member.foodPreference),
               nonVegFrequency: member.nonVegFrequency,
               nonVegAvoidDays: member.nonVegAvoidDays ?? [],
@@ -1389,30 +1425,31 @@ export default function PlannerPage() {
           }),
         }),
       });
+
       const familyData = await familyResponse.json();
       if (!familyResponse.ok) {
         throw new Error(familyData.error?.message || 'Unable to prepare family profile for planning.');
       }
 
       const createdMembers = familyData.members ?? [];
-      const mealResponse = await fetch('/api/meal-plans', {
+      const excludeDishes = mealPlan?.commonMeal?.name ? [mealPlan.commonMeal.name] : [];
+
+      // Generate Fresh Meal Plan
+      const mealResponse = await fetch('/api/meal-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           familyId: familyData.family.familyId,
           planType: 'daily',
-          mealTime: selectedMealTime,
-          mealTimeContext: {
-            timeZone: browserTimeZone(),
-            locale: language,
-            country: familyData.family.country,
-            region: familyData.family.state,
-            city: familyData.family.city,
-            localHour: new Date().getHours(),
-          },
+          mealTime: activeMealSlot,
+          userPromptOverride: cravingOverride || mealWish,
+          excludeDishes,
+          userLocalTime: new Date().toISOString(),
+          userTimeZone: browserTimeZone(),
+          targetDate,
           mealAttendance: [
             {
-              mealTime: selectedMealTime,
+              mealTime: activeMealSlot,
               participatingMemberIds: createdMembers
                 .filter((member: { name: string }) => {
                   const original = members.find((item) => item.name === member.name);
@@ -1430,10 +1467,9 @@ export default function PlannerPage() {
               enabled: true,
             },
           ],
-          userPlanningMode: 'new_user_next_meal',
-          targetDate,
         }),
       });
+
       const mealData = await mealResponse.json();
       if (!mealResponse.ok) {
         throw new Error(mealData.error?.message || 'Unable to generate family food plan.');
@@ -1441,22 +1477,74 @@ export default function PlannerPage() {
 
       const pantryAdjustedPlan = adjustGroceryForPantry(mealData.mealPlan, pantryItems, t.alreadyInPantry, language);
       setMealPlan(pantryAdjustedPlan);
-      writeCachedMealPlan(cacheKey, pantryAdjustedPlan, signature);
+      setIsStalePlan(false);
+      window.localStorage.setItem(CURRENT_MEAL_PLAN_KEY, JSON.stringify(pantryAdjustedPlan));
       window.localStorage.setItem(LAST_PLAN_KEY, suggestedPlan);
       setLastPlan(suggestedPlan);
+
       trackAnalyticsEvent('meal_plan_generated', {
         category: suggestedPlan,
-        label: selectedMealTime,
+        label: activeMealSlot,
       });
       setStatus(t.success);
-    } catch (err) {
+    } catch (err: any) {
       setStatus('');
-      setError(err instanceof Error ? err.message : 'Unable to generate family food plan.');
+      setError(err.message || 'Unable to generate family food plan.');
     } finally {
       setIsGenerating(false);
     }
   };
 
+  // 8. Single-Slot Meal Replacement
+  const handleShowAnotherOption = async (userCraving?: string) => {
+    if (!mealPlan) return;
+    setIsReplacingMeal(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/meal-plan/replace-slot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          familyId: mealPlan.familyId,
+          mealPlanId: mealPlan.mealPlanId,
+          rejectedDish: mealPlan.commonMeal.name,
+          targetSlot: activeMealSlot,
+          userPromptOverride: userCraving || mealWish,
+          language,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Replacement failed');
+      const data = await res.json();
+      const updatedPlan = adjustGroceryForPantry(data.mealPlan, pantryItems, t.alreadyInPantry, language);
+      setMealPlan(updatedPlan);
+      setIsStalePlan(false);
+      window.localStorage.setItem(CURRENT_MEAL_PLAN_KEY, JSON.stringify(updatedPlan));
+      setStatus(t.anotherOptionSuccess);
+    } catch (err: any) {
+      setError(err.message || 'Could not find another option');
+    } finally {
+      setIsReplacingMeal(false);
+    }
+  };
+
+  const handleSelectAlternative = (alt: MealAlternativeOption) => {
+    if (!mealPlan) return;
+    const updated: FamilyMealPlan = {
+      ...mealPlan,
+      commonMeal: {
+        ...mealPlan.commonMeal,
+        name: alt.title,
+        description: alt.description,
+        prepTimeMinutes: alt.prepTimeMinutes,
+      },
+    };
+    setMealPlan(updated);
+    window.localStorage.setItem(CURRENT_MEAL_PLAN_KEY, JSON.stringify(updated));
+  };
+
+  // 9. Recipe Video Search
   const watchHowToCook = async () => {
     if (!mealPlan) return;
     setVideoStatus(t.videoLoading);
@@ -1488,6 +1576,7 @@ export default function PlannerPage() {
     setVideoStatus(data.results?.length ? data.note : t.videoEmpty);
   };
 
+  // 10. Feedback Submission
   const submitMealFeedback = async (outcome: 'cooked' | 'liked' | 'rejected') => {
     if (!mealPlan) return;
     const rating = outcome === 'liked' ? 'loved' : outcome === 'rejected' ? 'dont_suggest_again' : 'good';
@@ -1568,6 +1657,7 @@ export default function PlannerPage() {
                 </div>
               </div>
 
+              {/* Meal Selection Controls */}
               <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
                 <label className="grid gap-2">
                   <span className="text-sm font-semibold text-slate-700">{t.meal}</span>
@@ -1588,14 +1678,22 @@ export default function PlannerPage() {
                 </label>
                 <button
                   type="button"
-                  onClick={generatePlan}
+                  onClick={() => generatePlan()}
                   disabled={isGenerating}
-                  className="rounded-2xl bg-emerald-700 px-6 py-4 text-base font-bold text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-60"
+                  className="rounded-2xl bg-emerald-800 px-6 py-4 text-base font-bold text-white shadow-md transition hover:bg-emerald-900 disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  {isGenerating ? t.generating : t.generate}
+                  {isGenerating ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>{t.generating}</span>
+                    </>
+                  ) : (
+                    <span>{t.generate}</span>
+                  )}
                 </button>
               </div>
 
+              {/* Planning Mode Selector */}
               <div className="mt-5 grid gap-4 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
                 <div>
                   <p className="text-sm font-black text-slate-800">{t.plannerMode}</p>
@@ -1606,11 +1704,10 @@ export default function PlannerPage() {
                         setPlannerMode('next_meal');
                         setSelectedMealTime(nextMealTimeForHour(currentLocalHour()));
                       }}
-                      className={`rounded-2xl px-4 py-3 text-left text-sm font-bold ring-1 ${
-                        plannerMode === 'next_meal'
-                          ? 'bg-emerald-700 text-white ring-emerald-700'
-                          : 'bg-white text-slate-700 ring-slate-200'
-                      }`}
+                      className={`rounded-2xl px-4 py-3 text-left text-sm font-bold ring-1 ${plannerMode === 'next_meal'
+                        ? 'bg-emerald-800 text-white ring-emerald-800 shadow-sm'
+                        : 'bg-white text-slate-700 ring-slate-200'
+                        }`}
                     >
                       {t.nextMealMode}
                       <span className="mt-1 block text-xs opacity-80">
@@ -1620,11 +1717,10 @@ export default function PlannerPage() {
                     <button
                       type="button"
                       onClick={() => setPlannerMode('specific_meal')}
-                      className={`rounded-2xl px-4 py-3 text-left text-sm font-bold ring-1 ${
-                        plannerMode === 'specific_meal'
-                          ? 'bg-emerald-700 text-white ring-emerald-700'
-                          : 'bg-white text-slate-700 ring-slate-200'
-                      }`}
+                      className={`rounded-2xl px-4 py-3 text-left text-sm font-bold ring-1 ${plannerMode === 'specific_meal'
+                        ? 'bg-emerald-800 text-white ring-emerald-800 shadow-sm'
+                        : 'bg-white text-slate-700 ring-slate-200'
+                        }`}
                     >
                       {t.specificMealMode}
                       <span className="mt-1 block text-xs opacity-80">
@@ -1634,6 +1730,7 @@ export default function PlannerPage() {
                   </div>
                 </div>
 
+                {/* Today Attendance Matrix */}
                 <div>
                   <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
                     <div>
@@ -1657,13 +1754,15 @@ export default function PlannerPage() {
                     {dailyScheduleMealTimes.map((mealTime) => {
                       const entry = mealAttendance[mealTime] ?? { participatingMemberIds: [], tiffinMemberIds: [] };
                       return (
-                        <article key={`schedule-${mealTime}`} className={`rounded-2xl p-4 ring-1 ${
-                          mealTime === selectedMealTime ? 'bg-emerald-50 ring-emerald-200' : 'bg-white ring-slate-200'
-                        }`}>
+                        <article key={`schedule-${mealTime}`} className={`rounded-2xl p-4 ring-1 ${mealTime === activeMealSlot ? 'bg-emerald-50 ring-emerald-200' : 'bg-white ring-slate-200'
+                          }`}>
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <button
                               type="button"
-                              onClick={() => setSelectedMealTime(mealTime)}
+                              onClick={() => {
+                                setPlannerMode('specific_meal');
+                                setSelectedMealTime(mealTime);
+                              }}
                               className="text-left text-base font-black text-slate-950"
                             >
                               {mealLabel(mealTime, t.meals)}
@@ -1685,18 +1784,17 @@ export default function PlannerPage() {
                                 <div key={`${mealTime}-${member.id}`} className="rounded-xl bg-slate-50 p-3 ring-1 ring-slate-100">
                                   <p className="text-sm font-black text-slate-800">{member.name}</p>
                                   <div className="mt-2 grid grid-cols-3 gap-2">
-                                    {(['home', 'tiffin', 'away'] as MemberMealAvailability[]).map((status) => (
+                                    {(['home', 'tiffin', 'away'] as MemberMealAvailability[]).map((avail) => (
                                       <button
-                                        key={`${mealTime}-${member.id}-${status}`}
+                                        key={`${mealTime}-${member.id}-${avail}`}
                                         type="button"
-                                        onClick={() => setMealAvailability(mealTime, member.id, status)}
-                                        className={`rounded-xl px-2 py-2 text-xs font-black ring-1 ${
-                                          availability === status
-                                            ? 'bg-emerald-700 text-white ring-emerald-700'
-                                            : 'bg-white text-slate-700 ring-slate-200'
-                                        }`}
+                                        onClick={() => setMealAvailability(mealTime, member.id, avail)}
+                                        className={`rounded-xl px-2 py-2 text-xs font-black ring-1 ${availability === avail
+                                          ? 'bg-emerald-700 text-white ring-emerald-700'
+                                          : 'bg-white text-slate-700 ring-slate-200'
+                                          }`}
                                       >
-                                        {status === 'home' ? t.homeMeal : status === 'tiffin' ? t.tiffinMeal : t.awayMeal}
+                                        {avail === 'home' ? t.homeMeal : avail === 'tiffin' ? t.tiffinMeal : t.awayMeal}
                                       </button>
                                     ))}
                                   </div>
@@ -1710,10 +1808,6 @@ export default function PlannerPage() {
                   </div>
                 </div>
               </div>
-
-              <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
-                {t.noSubscription}
-              </p>
             </section>
 
             {status ? (
@@ -1723,197 +1817,174 @@ export default function PlannerPage() {
               <p className="mb-6 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</p>
             ) : null}
 
-            {mealPlan ? (
-              <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-                <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">
-                    {mealLabel(mealPlan.commonMeal.mealTime, t.meals)} | {mealPlan.targetDate}
-                  </p>
-                  <h2 className="mt-2 text-3xl font-black text-slate-950">{mealPlan.commonMeal.name}</h2>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">{mealPlan.commonMeal.description}</p>
+            {/* Stale Cache Alert */}
+            {isStalePlan && mealPlan && (
+              <div className="mb-6 rounded-2xl bg-amber-50 border border-amber-200 p-4 flex items-center justify-between">
+                <span className="text-xs text-amber-900 font-medium">{t.staleWarning}</span>
+                <span className="text-[10px] font-bold uppercase bg-amber-200 text-amber-900 px-2 py-1 rounded-full">
+                  {t.staleBadge} ({mealPlan.targetDate})
+                </span>
+              </div>
+            )}
 
-                  <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                    <InfoTile label={t.prep} value={`${mealPlan.commonMeal.prepTimeMinutes} ${t.minute}`} />
-                    <InfoTile label={t.difficulty} value={difficultyLabel(mealPlan.commonMeal.difficulty, t.difficulties)} />
-                    <InfoTile label={t.cost} value={`₹${mealPlan.estimatedCost.mealCost.amount}`} />
-                  </div>
+            {/* Render Output Meal Plan */}
+            {mealPlan && (
+              <section className="space-y-6">
+                <MealCard
+                  dishName={mealPlan.commonMeal.name}
+                  description={mealPlan.commonMeal.description}
+                  prepTimeMinutes={mealPlan.commonMeal.prepTimeMinutes}
+                  costInr={mealPlan.estimatedCost.mealCost.amount}
+                  recipeSteps={mealPlan.commonMeal.recipe.steps}
+                  alternatives={mealPlan.commonMeal.alternativeOptions}
+                  language={language}
+                  onSelectAlternative={handleSelectAlternative}
+                  onShowAnotherOption={handleShowAnotherOption}
+                />
 
-                  {mealPlan.commonMeal.components?.length ? (
+                <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+                  <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+                    <h3 className="text-base font-bold text-slate-950">{t.recipe}</h3>
+                    <ol className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
+                      {mealPlan.commonMeal.recipe.steps.map((step, index) => (
+                        <li key={`${step}-${index}`}>{index + 1}. {step}</li>
+                      ))}
+                    </ol>
+
+                    {/* YouTube Video Assist */}
                     <div className="mt-6 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100">
-                      <h3 className="text-sm font-black text-emerald-950">{t.mealComponents}</h3>
-                      <div className="mt-3 grid gap-3">
-                        {mealPlan.commonMeal.components.map((component) => (
-                          <div key={component.componentId} className="rounded-xl bg-white p-3 text-sm ring-1 ring-emerald-100">
-                            <p className="font-black text-emerald-950">{component.label}</p>
-                            <p className="mt-1 text-xs font-semibold text-emerald-800">
-                              {t.servesMembers}: {component.memberIds
-                                .map((memberId) => members.find((member) => member.id === memberId)?.name)
-                                .filter(Boolean)
-                                .join(', ') || t.members}
-                            </p>
-                            {component.notes.length ? <p className="mt-1 text-xs text-slate-600">{component.notes.join(' ')}</p> : null}
+                      <button
+                        type="button"
+                        onClick={watchHowToCook}
+                        className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-800"
+                      >
+                        {t.watchVideo}
+                      </button>
+                      {videoStatus ? <p className="mt-3 text-sm font-semibold text-emerald-900">{videoStatus}</p> : null}
+                      {videoSearch?.results?.length ? (
+                        <div className="mt-3 grid gap-2">
+                          {videoSearch.results.map((video) => (
+                            <a
+                              key={video.url}
+                              href={video.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="rounded-xl bg-white p-3 text-sm font-semibold text-emerald-950 ring-1 ring-emerald-100 block"
+                            >
+                              {video.sponsored ? <span className="mb-1 block text-xs uppercase text-amber-700">{t.sponsoredVideo}</span> : null}
+                              <span>{video.title}</span>
+                              <small className="mt-1 block text-slate-600">
+                                {video.channelTitle} {video.language ? `| ${videoLanguageLabel(video.language, language)}` : ''}
+                              </small>
+                            </a>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {/* Feedback Options */}
+                    <div className="mt-6 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                      <h3 className="text-sm font-black text-slate-950">{t.feedbackTitle}</h3>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => submitMealFeedback('cooked')}
+                          className="rounded-full bg-white px-4 py-2 text-xs font-black text-slate-700 ring-1 ring-slate-200"
+                        >
+                          {t.cooked}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => submitMealFeedback('liked')}
+                          className="rounded-full bg-emerald-700 px-4 py-2 text-xs font-black text-white"
+                        >
+                          {t.liked}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => submitMealFeedback('rejected')}
+                          className="rounded-full bg-white px-4 py-2 text-xs font-black text-red-700 ring-1 ring-red-100"
+                        >
+                          {t.rejected}
+                        </button>
+                      </div>
+                      {feedbackStatus ? <p className="mt-3 text-xs font-semibold text-emerald-800">{feedbackStatus}</p> : null}
+                    </div>
+                  </article>
+
+                  <div className="grid gap-6">
+                    {/* Portion Guidance */}
+                    <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+                      <h3 className="text-lg font-bold text-slate-950">{t.portions}</h3>
+                      <div className="mt-4 grid gap-3">
+                        {mealPlan.memberCustomizations.map((item) => (
+                          <div key={item.memberId} className="rounded-2xl bg-slate-50 p-4">
+                            <p className="font-bold text-slate-950">{item.memberName}</p>
+                            <p className="mt-1 text-sm text-slate-700">{item.portionGuidance}</p>
+                            <p className="mt-1 text-sm text-slate-600">{item.modification}</p>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  ) : null}
+                    </article>
 
-                  <h3 className="mt-6 text-lg font-bold text-slate-950">{t.recipe}</h3>
-                  <ol className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
-                    {mealPlan.commonMeal.recipe.steps.map((step, index) => (
-                      <li key={`${step}-${index}`}>{index + 1}. {step}</li>
-                    ))}
-                  </ol>
-
-                  <div className="mt-6 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100">
-                    <button
-                      type="button"
-                      onClick={watchHowToCook}
-                      className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-800"
-                    >
-                      {t.watchVideo}
-                    </button>
-                    {videoStatus ? <p className="mt-3 text-sm font-semibold text-emerald-900">{videoStatus}</p> : null}
-                    {videoSearch?.results?.length ? (
-                      <div className="mt-3 grid gap-2">
-                        {videoSearch.results.map((video) => (
-                          <a
-                            key={video.url}
-                            href={video.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-xl bg-white p-3 text-sm font-semibold text-emerald-950 ring-1 ring-emerald-100"
-                          >
-                            {video.sponsored ? <span className="mb-1 block text-xs uppercase text-amber-700">{t.sponsoredVideo}</span> : null}
-                            <span>{video.title}</span>
-                            <small className="mt-1 block text-slate-600">
-                              {video.channelTitle} {video.language ? `| ${videoLanguageLabel(video.language, language)}` : ''} |{' '}
-                              {t.videoMatch[(video.matchQuality ?? video.source) as keyof typeof t.videoMatch] ??
-                                video.matchQuality ??
-                                video.source}
-                            </small>
-                            <small className="mt-1 block text-slate-500">{video.thirdPartyDisclaimer}</small>
-                          </a>
+                    {/* Grocery Deficit Engine */}
+                    <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+                      <h3 className="text-lg font-bold text-slate-950">{t.grocery}</h3>
+                      {pantryItems.length ? (
+                        <p className="mt-2 text-xs font-bold uppercase tracking-wide text-emerald-700">
+                          {t.pantryUsed}: {pantryItems.length}
+                        </p>
+                      ) : null}
+                      <div className="mt-4 grid gap-3">
+                        {mealPlan.groceryItems.slice(0, 8).map((item) => (
+                          <div key={item.itemId} className="flex items-start justify-between gap-3 rounded-2xl bg-emerald-50 p-3 text-sm">
+                            <span className="font-bold text-emerald-950">{item.name}</span>
+                            <span className="text-right text-emerald-800">
+                              {item.quantityToPurchase}
+                              {item.pantryQuantity ? (
+                                <small className="block text-[11px] text-emerald-700">{t.pantryUsed}: {item.pantryQuantity}</small>
+                              ) : null}
+                            </span>
+                          </div>
                         ))}
                       </div>
-                    ) : null}
-                  </div>
 
-                  <div className="mt-6 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                    <h3 className="text-sm font-black text-slate-950">{t.feedbackTitle}</h3>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => submitMealFeedback('cooked')}
-                        className="rounded-full bg-white px-4 py-2 text-xs font-black text-slate-700 ring-1 ring-slate-200"
-                      >
-                        {t.cooked}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => submitMealFeedback('liked')}
-                        className="rounded-full bg-emerald-700 px-4 py-2 text-xs font-black text-white"
-                      >
-                        {t.liked}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => submitMealFeedback('rejected')}
-                        className="rounded-full bg-white px-4 py-2 text-xs font-black text-red-700 ring-1 ring-red-100"
-                      >
-                        {t.rejected}
-                      </button>
-                    </div>
-                    {feedbackStatus ? <p className="mt-3 text-xs font-semibold text-emerald-800">{feedbackStatus}</p> : null}
-                  </div>
-                </article>
-
-                <div className="grid gap-6">
-                  <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-                    <h3 className="text-lg font-bold text-slate-950">{t.portions}</h3>
-                    <div className="mt-4 grid gap-3">
-                      {mealPlan.memberCustomizations.map((item) => (
-                        <div key={item.memberId} className="rounded-2xl bg-slate-50 p-4">
-                          <p className="font-bold text-slate-950">{item.memberName}</p>
-                          <p className="mt-1 text-sm text-slate-700">{item.portionGuidance}</p>
-                          <p className="mt-1 text-sm text-slate-600">{item.modification}</p>
+                      {/* SabSewa Local Hand-Off */}
+                      {isIndiaLike(culture) ? (
+                        <div className="mt-5 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
+                          <h4 className="text-sm font-black text-amber-950">{t.sabsewaTitle}</h4>
+                          <p className="mt-2 text-xs leading-5 text-amber-900">{t.sabsewaText}</p>
+                          <a
+                            href="https://www.sabsewa.in"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-3 inline-flex rounded-full bg-amber-600 px-4 py-2 text-xs font-black text-white"
+                          >
+                            {t.sabsewaCta}
+                          </a>
                         </div>
-                      ))}
-                    </div>
-                  </article>
+                      ) : null}
+                    </article>
 
-                  <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-                    <h3 className="text-lg font-bold text-slate-950">{t.grocery}</h3>
-                    {pantryItems.length ? (
-                      <p className="mt-2 text-xs font-bold uppercase tracking-wide text-emerald-700">
-                        {t.pantryUsed}: {pantryItems.length}
-                      </p>
-                    ) : null}
-                    <div className="mt-4 grid gap-3">
-                      {mealPlan.groceryItems.slice(0, 8).map((item) => (
-                        <div key={item.itemId} className="flex items-start justify-between gap-3 rounded-2xl bg-emerald-50 p-3 text-sm">
-                          <span className="font-bold text-emerald-950">{item.name}</span>
-                          <span className="text-right text-emerald-800">
-                            {item.quantityToPurchase}
-                            {item.pantryQuantity ? (
-                              <small className="block text-[11px] text-emerald-700">{t.pantryUsed}: {item.pantryQuantity}</small>
-                            ) : null}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    {isIndiaLike(culture) ? (
-                      <div className="mt-5 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
-                        <h4 className="text-sm font-black text-amber-950">{t.sabsewaTitle}</h4>
-                        <p className="mt-2 text-xs leading-5 text-amber-900">{t.sabsewaText}</p>
-                        <a
-                          href="https://www.sabsewa.in"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-3 inline-flex rounded-full bg-amber-600 px-4 py-2 text-xs font-black text-white"
-                        >
-                          {t.sabsewaCta}
-                        </a>
-                        <p className="mt-3 text-xs font-semibold text-amber-900">{t.sabsewaInvite}</p>
+                    {/* Fruits & Hydration */}
+                    <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+                      <h3 className="text-lg font-bold text-slate-950">{t.fruit}</h3>
+                      <div className="mt-4 grid gap-3 text-sm text-slate-700">
+                        {mealPlan.fruits.slice(0, 4).map((item) => (
+                          <p key={item.memberId}><strong>{item.memberName}:</strong> {item.fruit}, {item.portion}</p>
+                        ))}
+                        {mealPlan.hydration.slice(0, 3).map((item) => (
+                          <p key={`h-${item.memberId}`}><strong>{item.memberName}:</strong> {item.guidance}</p>
+                        ))}
                       </div>
-                    ) : null}
-                  </article>
-
-                  <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-                    <h3 className="text-lg font-bold text-slate-950">{t.fruit}</h3>
-                    <div className="mt-4 grid gap-3 text-sm text-slate-700">
-                      {mealPlan.fruits.slice(0, 4).map((item) => (
-                        <p key={item.memberId}><strong>{item.memberName}:</strong> {item.fruit}, {item.portion}</p>
-                      ))}
-                      {mealPlan.hydration.slice(0, 3).map((item) => (
-                        <p key={`h-${item.memberId}`}><strong>{item.memberName}:</strong> {item.guidance}</p>
-                      ))}
-                    </div>
-                  </article>
+                    </article>
+                  </div>
                 </div>
               </section>
-            ) : null}
+            )}
           </>
         )}
       </div>
     </main>
   );
 }
-
-function InfoTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-xs font-bold uppercase text-slate-500">{label}</p>
-      <p className="mt-1 text-lg font-black capitalize text-slate-950">{value}</p>
-    </div>
-  );
-}
-
-
-
-
-
-
-
-
-
