@@ -33,7 +33,7 @@ export const mealTimeSchema = z.enum([
 
 export const mealSlotSchema = z.enum(["breakfast", "lunch", "snacks", "dinner"]);
 
-export const attendanceStatusSchema = z.enum(["home", "tiffin", "eating_out", "fasting"]);
+export const memberMealAttendanceStatusSchema = z.enum(["home", "tiffin", "skip", "fasting"]);
 
 export const mealTimingPatternSchema = z
   .object({
@@ -542,7 +542,15 @@ const mealAttendanceEntrySchema = z.object({
 
 export const todayAttendanceItemSchema = z.object({
   memberId: z.string().min(1),
-  status: attendanceStatusSchema,
+  status: memberMealAttendanceStatusSchema,
+});
+
+export const dayAttendancePlanSchema = z.object({
+  breakfast: z.record(z.string(), memberMealAttendanceStatusSchema),
+  lunch: z.record(z.string(), memberMealAttendanceStatusSchema),
+  snacks: z.record(z.string(), memberMealAttendanceStatusSchema),
+  dinner: z.record(z.string(), memberMealAttendanceStatusSchema),
+  guestCountBySlot: z.record(mealSlotSchema, z.number().int().nonnegative()).optional(),
 });
 
 const highTeaPreferenceSchema = z.object({
@@ -564,6 +572,7 @@ export const createMealPlanRequestSchema = z.object({
   userLocalTime: z.string().optional(),
   userTimeZone: z.string().optional(),
   todayAttendance: z.array(todayAttendanceItemSchema).optional(),
+  dayAttendancePlan: dayAttendancePlanSchema.optional(),
   isExceptionToday: z.boolean().default(false),
   customMealTimings: mealTimingPatternSchema,
   mealAttendance: z.array(mealAttendanceEntrySchema).optional(),
@@ -656,7 +665,9 @@ export type CreateFamilyInput = z.infer<typeof createFamilyInputSchema>;
 export type CreateFamilyMemberInput = z.infer<typeof createFamilyMemberInputSchema>;
 export type CreateFamilyRequest = z.infer<typeof createFamilyRequestSchema>;
 export type FamilyMealPlan = z.infer<typeof familyMealPlanSchema>;
+export type MemberMealAttendanceStatus = z.infer<typeof memberMealAttendanceStatusSchema>;
 export type TodayAttendanceItem = z.infer<typeof todayAttendanceItemSchema>;
+export type DayAttendancePlan = z.infer<typeof dayAttendancePlanSchema>;
 export type CreateMealPlanRequest = z.infer<typeof createMealPlanRequestSchema>;
 export type SubscriptionPlanRequest = z.infer<typeof subscriptionPlanRequestSchema>;
 export type CreateRazorpaySubscription = z.infer<typeof createRazorpaySubscriptionSchema>;
