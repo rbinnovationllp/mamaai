@@ -873,6 +873,36 @@ function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
     : "";
   const regionFit = `${input.family.city}, ${input.family.state}, ${input.family.country} friendly${cuisineFit}${localContext}${preferenceFit}${recentFit}${cookingFit}`;
 
+  if (!hasExplicitMealPreference && mealTime === "breakfast" && recentHistoryIncludes(input, mealTime, ["poha"])) {
+    return completeMeal({
+      mealId,
+      name: "Ragi Dosa with Vegetable Sambar and Curd",
+      mealTime,
+      description: "A familiar South Indian family meal with millet base, vegetable sambar, curd, and optional paneer support.",
+      ingredients: milletDosaIngredients(),
+      prepTimeMinutes: 35,
+      difficulty: "medium",
+      regionFit,
+      nutritionIntent: "Selected before diet-template fallback to avoid repeating the family's recent breakfast history.",
+      nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime)
+    });
+  }
+
+  if (!hasExplicitMealPreference && mealTime === "dinner" && recentHistoryIncludes(input, mealTime, ["khichdi", "kichdi", "moong dal khichdi"])) {
+    return completeMeal({
+      mealId,
+      name: "Roti, Masoor Dal, Seasonal Sabzi and Curd",
+      mealTime,
+      description: "A practical dinner plate that avoids repeating a recent khichdi-style meal while keeping one adaptable family table.",
+      ingredients: rotiDalIngredients(),
+      prepTimeMinutes: 35,
+      difficulty: "easy",
+      regionFit,
+      nutritionIntent: "Selected before diet-template fallback to avoid accidental repeated dinner recommendations.",
+      nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime)
+    });
+  }
+
   if (mealTime === "high_tea" || mealTime === "evening_snack" || mealTime === "snack") {
     if (input.family.dietPreference === "vegan") {
       return completeMeal({
