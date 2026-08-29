@@ -12,7 +12,10 @@ interface AlternativeOption {
 interface Props {
     dishName: string;
     description: string;
+    mealLabel: string;
+    targetDate: string;
     prepTimeMinutes: number;
+    difficulty?: string;
     costInr: number;
     recipeSteps: string[];
     alternatives?: AlternativeOption[];
@@ -24,7 +27,10 @@ interface Props {
 export function MealCard({
     dishName,
     description,
+    mealLabel,
+    targetDate,
     prepTimeMinutes,
+    difficulty,
     costInr,
     recipeSteps,
     alternatives = [],
@@ -45,8 +51,12 @@ export function MealCard({
             alternativesHeader: "Quick Alternatives",
             selectAlt: "Choose this meal",
             prep: "Prep Time",
+            difficulty: "Difficulty",
+            easy: "Easy",
             cost: "Est. Cost",
             mins: "mins",
+            cancel: "Cancel",
+            planning: "Planning...",
         },
         hi: {
             anotherOption: "यह पसंद नहीं है — दूसरा विकल्प दिखाएँ",
@@ -56,8 +66,12 @@ export function MealCard({
             alternativesHeader: "अन्य उपलब्ध विकल्प",
             selectAlt: "इसे चुनें",
             prep: "तैयारी",
+            difficulty: "कठिनाई",
+            easy: "आसान",
             cost: "लागत",
             mins: "मिनट",
+            cancel: "रद्द करें",
+            planning: "योजना बन रही है...",
         },
         kn: {
             anotherOption: "ಇದು ಬೇಡ — ಬೇರೆ ಆಯ್ಕೆ ತೋರಿಸಿ",
@@ -67,8 +81,12 @@ export function MealCard({
             alternativesHeader: "ಇತರ ಲಭ್ಯವಿರುವ ಆಯ್ಕೆಗಳು",
             selectAlt: "ಇದನ್ನು ಆಯ್ಕೆಮಾಡಿ",
             prep: "ಸಿದ್ಧತೆ",
+            difficulty: "ಕಷ್ಟದ ಮಟ್ಟ",
+            easy: "ಸುಲಭ",
             cost: "ವೆಚ್ಚ",
             mins: "ನಿಮಿಷ",
+            cancel: "ರದ್ದುಮಾಡಿ",
+            planning: "ಯೋಜನೆ ಮಾಡಲಾಗುತ್ತಿದೆ...",
         },
     }[language];
 
@@ -83,7 +101,7 @@ export function MealCard({
     return (
         <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm max-w-xl mx-auto">
             <div className="flex items-center justify-between text-xs text-emerald-700 font-semibold mb-2">
-                <span>रात का खाना | {new Date().toISOString().slice(0, 10)}</span>
+                <span>{mealLabel} | {targetDate}</span>
             </div>
 
             <h1 className="text-2xl font-bold text-slate-900 leading-tight mb-2">{dishName}</h1>
@@ -95,8 +113,8 @@ export function MealCard({
                     <span className="text-sm font-bold text-slate-800">{prepTimeMinutes} {labels.mins}</span>
                 </div>
                 <div className="bg-slate-50 p-3 rounded-2xl">
-                    <span className="text-[11px] text-slate-400 block">कठिनाई</span>
-                    <span className="text-sm font-bold text-slate-800">आसान</span>
+                    <span className="text-[11px] text-slate-400 block">{labels.difficulty}</span>
+                    <span className="text-sm font-bold text-slate-800">{difficulty || labels.easy}</span>
                 </div>
                 <div className="bg-slate-50 p-3 rounded-2xl">
                     <span className="text-[11px] text-slate-400 block">{labels.cost}</span>
@@ -159,7 +177,7 @@ export function MealCard({
                                 onClick={() => setShowCravingInput(false)}
                                 className="w-1/3 py-2 text-xs text-slate-600 bg-white border border-slate-200 rounded-xl"
                             >
-                                Cancel
+                                {labels.cancel}
                             </button>
                             <button
                                 type="button"
@@ -167,7 +185,7 @@ export function MealCard({
                                 onClick={handleSwap}
                                 className="w-2/3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition"
                             >
-                                {loading ? "Planning..." : labels.swapBtn}
+                                {loading ? labels.planning : labels.swapBtn}
                             </button>
                         </div>
                     </div>

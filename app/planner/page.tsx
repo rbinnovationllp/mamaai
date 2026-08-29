@@ -1071,6 +1071,18 @@ function writeCachedMealPlan(cacheKey: string, mealPlan: FamilyMealPlan, signatu
   }
 }
 
+function alignMealPlanToActiveRequest(plan: FamilyMealPlan, mealTime: MealTime, targetDate: string): FamilyMealPlan {
+  if (plan.commonMeal.mealTime === mealTime && plan.targetDate === targetDate) return plan;
+  return {
+    ...plan,
+    targetDate,
+    commonMeal: {
+      ...plan.commonMeal,
+      mealTime,
+    },
+  };
+}
+
 function readLocalLearningSignals(): Array<{
   mealName: string;
   mealTime: MealTime;
@@ -1327,6 +1339,28 @@ export default function PlannerPage() {
   const activeMealLabel = mealLabel(activeMealSlot, t.meals);
   const activeGenerateLabel = t.planMealNow.replace('{meal}', activeMealLabel);
 
+  useEffect(() => {
+    if (!mealPlan) return;
+    if (mealPlan.commonMeal.mealTime !== activeMealSlot || mealPlan.targetDate !== activeTargetDate) {
+      setMealPlan(null);
+      setIsStalePlan(false);
+      setStatus('');
+      setVideoSearch(null);
+      setVideoStatus('');
+    }
+  }, [activeMealSlot, activeTargetDate, mealPlan]);
+
+  const selectMealToPlan = (mealTime: MealTime) => {
+    setPlannerMode('specific_meal');
+    setSelectedMealTime(mealTime);
+    setMealPlan(null);
+    setIsStalePlan(false);
+    setStatus('');
+    setError('');
+    setVideoSearch(null);
+    setVideoStatus('');
+  };
+
   const setMealAvailability = (mealTime: MealTime, memberId: string, status: MemberMealAvailability) => {
     setMealAttendance((current) => {
       const existing = current[mealTime] ?? { participatingMemberIds: [], tiffinMemberIds: [] };
@@ -1402,6 +1436,8 @@ export default function PlannerPage() {
     setIsGenerating(true);
     setError('');
     setStatus(t.generating);
+    setMealPlan(null);
+    setIsStalePlan(false);
     setVideoSearch(null);
     setVideoStatus('');
 
@@ -1536,6 +1572,7 @@ export default function PlannerPage() {
           familyId: familyData.family.familyId,
           planType: 'daily',
           mealTime: activeMealSlot,
+          preferredLanguage: language,
           userPromptOverride: cravingOverride || mealWish,
           previousMeals: previousMealsForPlanning(activeMealSlot, mealPlan?.commonMeal?.name),
           excludeDishes,
@@ -1571,7 +1608,8 @@ export default function PlannerPage() {
         'We could not prepare this meal plan right now. Please try again.'
       );
 
-      const pantryAdjustedPlan = adjustGroceryForPantry(mealData.mealPlan, pantryItems, t.alreadyInPantry, language);
+      const alignedPlan = alignMealPlanToActiveRequest(mealData.mealPlan, activeMealSlot, targetDate);
+      const pantryAdjustedPlan = adjustGroceryForPantry(alignedPlan, pantryItems, t.alreadyInPantry, language);
       setMealPlan(pantryAdjustedPlan);
       setIsStalePlan(false);
       window.localStorage.setItem(CURRENT_MEAL_PLAN_KEY, JSON.stringify(pantryAdjustedPlan));
@@ -1599,16 +1637,15 @@ export default function PlannerPage() {
     setError('');
 
     try {
-      const res = await fetch('/api/meal-plan/replace-slot', {
+      const res = await fetch(`/api/meal-plans/${mealPlan.mealPlanId}/replace`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          familyId: mealPlan.familyId,
-          mealPlanId: mealPlan.mealPlanId,
-          rejectedDish: mealPlan.commonMeal.name,
-          targetSlot: activeMealSlot,
+          reason: userCraving ? 'dont_like_it' : 'ate_recently',
           userPromptOverride: userCraving || mealWish,
-          language,
+          previousMeals: previousMealsForPlanning(activeMealSlot, mealPlan.commonMeal.name),
+          excludeDishes: [mealPlan.commonMeal.name],
+          preferredLanguage: language,
         }),
       });
 
@@ -1772,10 +1809,7 @@ export default function PlannerPage() {
                       <button
                         key={`choose-${mealTime}`}
                         type="button"
-                        onClick={() => {
-                          setPlannerMode('specific_meal');
-                          setSelectedMealTime(mealTime);
-                        }}
+                        onClick={() => selectMealToPlan(mealTime)}
                         className={`rounded-2xl px-3 py-3 text-sm font-black ring-1 ${activeMealSlot === mealTime
                           ? 'bg-emerald-800 text-white ring-emerald-800 shadow-sm'
                           : 'bg-white text-slate-700 ring-slate-200'
@@ -1816,10 +1850,7 @@ export default function PlannerPage() {
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <button
                               type="button"
-                              onClick={() => {
-                                setPlannerMode('specific_meal');
-                                setSelectedMealTime(mealTime);
-                              }}
+                              onClick={() => selectMealToPlan(mealTime)}
                               className="text-left text-base font-black text-slate-950"
                             >
                               {mealLabel(mealTime, t.meals)}
@@ -1906,7 +1937,10 @@ export default function PlannerPage() {
                 <MealCard
                   dishName={mealPlan.commonMeal.name}
                   description={mealPlan.commonMeal.description}
+                  mealLabel={mealLabel(mealPlan.commonMeal.mealTime, t.meals)}
+                  targetDate={mealPlan.targetDate}
                   prepTimeMinutes={mealPlan.commonMeal.prepTimeMinutes}
+                  difficulty={difficultyLabel(mealPlan.commonMeal.difficulty, t.difficulties)}
                   costInr={mealPlan.estimatedCost.mealCost.amount}
                   recipeSteps={mealPlan.commonMeal.recipe.steps}
                   alternatives={mealPlan.commonMeal.alternativeOptions}
