@@ -1,7 +1,7 @@
-import { GetCommand, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { DeleteCommand, GetCommand, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { createId } from "./in-memory-store";
 import { getMamaAiTableName, mamaAiDynamoDb } from "./dynamodb-client";
-import type { Family, FamilyMealPlan, FamilyMember } from "@/lib/shared/contracts";
+import type { Family, FamilyMealPlan, FamilyMember, WeeklyFamilyMealPlan } from "@/lib/shared/contracts";
 
 function nowIso() {
   return new Date().toISOString();
@@ -111,6 +111,74 @@ export class FamilyMealRepository {
       })
     );
     return response.Item?.record as FamilyMealPlan | undefined;
+  }
+
+  async saveWeeklyMealPlan(plan: WeeklyFamilyMealPlan): Promise<WeeklyFamilyMealPlan> {
+    const updatedAt = nowIso();
+    await mamaAiDynamoDb.send(
+      new PutCommand({
+        TableName: getMamaAiTableName(),
+        Item: {
+          PK: familyPk(plan.familyId),
+          SK: `WEEKLY_PLAN#${plan.weekStartDate}`,
+          GSI1PK: `FAMILY_WEEKLY_PLANS#${plan.familyId}`,
+          GSI1SK: `${plan.weekStartDate}#${plan.planVersion}`,
+          GSI2PK: `WEEKLY_PLAN_DATE#${plan.weekStartDate}`,
+          GSI2SK: updatedAt,
+          entityType: "weekly_meal_plan",
+          record: plan,
+          updatedAt,
+        },
+      })
+    );
+    return plan;
+  }
+
+  async getWeeklyMealPlan(familyId: string, weekStartDate: string): Promise<WeeklyFamilyMealPlan | undefined> {
+    const response = await mamaAiDynamoDb.send(
+      new GetCommand({
+        TableName: getMamaAiTableName(),
+        Key: {
+          PK: familyPk(familyId),
+          SK: `WEEKLY_PLAN#${weekStartDate}`,
+        },
+      })
+    );
+    return response.Item?.record as WeeklyFamilyMealPlan | undefined;
+  }
+
+  async tryBeginWeeklyMealPlanGeneration(familyId: string, weekStartDate: string): Promise<boolean> {
+    try {
+      await mamaAiDynamoDb.send(
+        new PutCommand({
+          TableName: getMamaAiTableName(),
+          Item: {
+            PK: familyPk(familyId),
+            SK: `WEEKLY_PLAN_LOCK#${weekStartDate}`,
+            entityType: "weekly_meal_plan_generation_lock",
+            createdAt: nowIso(),
+            expiresAt: Math.floor(Date.now() / 1000) + 15 * 60,
+          },
+          ConditionExpression: "attribute_not_exists(PK)",
+        })
+      );
+      return true;
+    } catch (error) {
+      if ((error as { name?: string }).name === "ConditionalCheckFailedException") return false;
+      throw error;
+    }
+  }
+
+  async endWeeklyMealPlanGeneration(familyId: string, weekStartDate: string): Promise<void> {
+    await mamaAiDynamoDb.send(
+      new DeleteCommand({
+        TableName: getMamaAiTableName(),
+        Key: {
+          PK: familyPk(familyId),
+          SK: `WEEKLY_PLAN_LOCK#${weekStartDate}`,
+        },
+      })
+    );
   }
 
   createFamilyId() {

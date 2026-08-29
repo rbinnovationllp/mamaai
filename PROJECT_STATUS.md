@@ -1,8 +1,23 @@
-﻿# MAMA AI Project Status
+# MAMA AI Project Status
 
 ## Current Launch Snapshot - August 14, 2026
 
 Overall status: controlled hackathon launch and colleague payment testing candidate, pending final deployed Razorpay verification.
+
+
+## Weekly Procurement and Global Planning Update - August 29, 2026
+
+- Added a persisted Monday-Sunday weekly meal-plan architecture behind `/api/weekly-meal-plans`.
+- Weekly plans are keyed by `familyId + weekStartDate` so refreshes reuse the saved plan instead of creating duplicate weeks.
+- Added a DynamoDB generation lock (`WEEKLY_PLAN_LOCK#weekStartDate`) so simultaneous tabs or repeated requests do not start duplicate weekly generation.
+- Added Saturday/Sunday lazy preparation in the planner: when a paid/trial user with a saved family opens MAMAAI on Saturday or Sunday, the app prepares or reuses the next Monday-Sunday plan and shows a visible next-week readiness banner.
+- Added next-week procurement intelligence from the saved weekly plan: buy/check in advance, Monday-Tuesday items, midweek/later items, buy-close-to-cooking items, and tomorrow ingredient reminders.
+- Midweek meal replacement now recalculates the selected weekly slot, weekly grocery requirements, procurement schedule, tomorrow reminders, and SabSewa Local shopping handoff from the updated selected meal.
+- Added customer-profile recovery for weekly planning so a persisted family profile can rebuild the meal-planning family context across devices/PWA sessions.
+- Global planning now routes international/non-Indian family contexts into global meal candidate pools instead of falling back to Indian lunch/dinner defaults. Explicit Indian cuisine/history still keeps Indian/regional planning strong.
+- Global fallback is cost-controlled and deterministic when Gemini is unavailable; weekly results are persisted so the same week is reused.
+
+Remaining QA note: live multi-country QA with real Gemini production output should still be repeated on the deployed site before large-scale paid acquisition. The code path now supports the architecture, but final content quality must be checked with realistic families in India, Canada, UK, UAE and Australia.
 
 ## Production Personalization Update - August 27, 2026
 
@@ -292,3 +307,4 @@ Features demonstrated truthfully:
 Remaining screenshot caveat:
 
 - Several final images are truthful diagrams/feature graphics, not raw live screenshots, because the current app does not expose every concept as a clean standalone public UI screen and because some capabilities remain beta/prototype/test-mode. These are labelled accordingly in the image status chips and manifest.
+

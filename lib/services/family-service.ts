@@ -1,5 +1,6 @@
 import { createId, nowIso, store } from "@/lib/repositories/in-memory-store";
 import { FamilyMealRepository } from "@/lib/repositories/family-meal-repository";
+import { CustomerProfileRepository } from "@/lib/repositories/customer-profile-repository";
 import type { Family, FamilyMember } from "@/lib/shared/contracts";
 import type { CreateFamilyRequest } from "@/lib/shared/schemas";
 import { SubscriptionService } from "./subscription-service";
@@ -7,6 +8,7 @@ import { SubscriptionService } from "./subscription-service";
 export class FamilyService {
   private readonly subscriptionService = new SubscriptionService();
   private readonly repository = new FamilyMealRepository();
+  private readonly customerProfileRepository = new CustomerProfileRepository();
 
   async createFamily(request: CreateFamilyRequest): Promise<{ family: Family; members: FamilyMember[] }> {
     this.subscriptionService.assertMemberLimit(
@@ -15,9 +17,11 @@ export class FamilyService {
     );
 
     const timestamp = nowIso();
+    const customerFamilyProfile = await this.customerProfileRepository.getFamilyProfile(request.userId).catch(() => undefined);
+    const durableFamilyId = customerFamilyProfile?.familyId ?? createId("family");
     const family = {
       ...request.family,
-      familyId: createId("family"),
+      familyId: durableFamilyId,
       userId: request.userId,
       createdAt: timestamp,
       updatedAt: timestamp,

@@ -11,6 +11,7 @@ import type {
   DietType,
   FamilyDietPreference,
   FamilyMealPlan,
+  WeeklyFamilyMealPlan,
   MealAlternativeOption,
   MealSlot,
   MealTimingPattern,
@@ -32,6 +33,8 @@ const FAMILY_LEARNING_KEY = 'mamaai_family_learning_signals_v1';
 const TODAY_ATTENDANCE_KEY = 'mamaai_today_meal_attendance_v1';
 const YESTERDAY_ATTENDANCE_KEY = 'mamaai_yesterday_meal_attendance_v1';
 const REGULAR_WEEKDAY_ATTENDANCE_KEY = 'mamaai_regular_weekday_attendance_v1';
+const WEEKLY_MASTER_PLAN_KEY = 'mamaai_weekly_master_plan_v1';
+const NEXT_WEEK_MASTER_PLAN_KEY = 'mamaai_next_week_master_plan_v1';
 
 type HouseholdMember = {
   id: string;
@@ -51,6 +54,7 @@ type HouseholdMember = {
 
 type CustomerAccount = {
   userId?: string;
+  familyId?: string;
   name?: string;
   mobile?: string;
   email?: string;
@@ -146,6 +150,21 @@ const plannerCopy = {
     chooseAnotherMeal: 'Want to plan something else?',
     generating: 'Generating family food plan...',
     success: "Today's family food plan is ready.",
+    weeklyGenerating: "Preparing this week's stable Monday-Sunday meal plan...",
+    weeklyReady: "Weekly master plan is ready. Showing the selected meal from this week's plan.",
+    nextWeekPreparing: "Preparing next week's Monday-Sunday meal plan and procurement preview...",
+    nextWeekReady: "Next week's meal plan is ready. Review meals and shopping before Monday.",
+    nextWeekTitle: "Next Week's Meal Plan is Ready",
+    nextWeekText: 'Review meals, change unwanted dishes, check pantry, and buy shelf-stable ingredients in advance.',
+    openNextWeek: 'Review Next Week',
+    viewToday: 'Today',
+    viewWeek: 'This Week',
+    weeklyPlanTitle: "This Week's Master Meal Plan",
+    weeklyGroceryTitle: "This Week's Grocery Requirement",
+    procurementTitle: 'Purchase Calendar',
+    tomorrowReminderTitle: 'Ingredients Needed for Tomorrow',
+    sabsewaProcurementTitle: 'Buy Local with SabSewa Local',
+    procurementSafety: 'Freshness depends on storage, climate and ripeness. Buy perishable items closer to cooking day.',
     staleWarning: '⚠️ Showing previously saved meal plan. Tap the button above to generate a fresh recommendation for today.',
     staleBadge: 'Previous Plan',
     noSubscription:
@@ -248,6 +267,21 @@ const plannerCopy = {
     chooseAnotherMeal: 'कुछ और प्लान करना चाहते हैं?',
     generating: 'पारिवारिक भोजन योजना बन रही है...',
     success: 'आज का पारिवारिक भोजन तैयार है।',
+    weeklyGenerating: 'इस सप्ताह का स्थिर सोमवार-रविवार भोजन प्लान तैयार हो रहा है...',
+    weeklyReady: 'साप्ताहिक master plan तैयार है। इसी सप्ताह के प्लान से चुना हुआ meal दिखाया जा रहा है।',
+    nextWeekPreparing: 'अगले सप्ताह का सोमवार-रविवार भोजन प्लान और खरीदारी preview तैयार हो रहा है...',
+    nextWeekReady: 'अगले सप्ताह का भोजन प्लान तैयार है। सोमवार से पहले meals और shopping review कर लें।',
+    nextWeekTitle: 'अगले सप्ताह का भोजन प्लान तैयार है',
+    nextWeekText: 'भोजन देखें, नापसंद dishes बदलें, pantry check करें और shelf-stable सामग्री पहले से खरीदें।',
+    openNextWeek: 'अगला सप्ताह देखें',
+    viewToday: 'आज',
+    viewWeek: 'यह सप्ताह',
+    weeklyPlanTitle: 'इस सप्ताह का मास्टर भोजन प्लान',
+    weeklyGroceryTitle: 'इस सप्ताह की किराने की जरूरत',
+    procurementTitle: 'खरीदारी कैलेंडर',
+    tomorrowReminderTitle: 'कल के लिए जरूरी सामग्री',
+    sabsewaProcurementTitle: 'SabSewa Local से स्थानीय खरीदारी',
+    procurementSafety: 'ताजगी storage, मौसम और ripeness पर निर्भर करती है। जल्दी खराब होने वाली चीजें cooking day के पास खरीदें।',
     staleWarning: '⚠️ यह पिछला सेव किया हुआ प्लान है। आज का नया भोजन बनाने के लिए ऊपर बटन दबाएं।',
     staleBadge: 'पिछला प्लान',
     noSubscription:
@@ -350,6 +384,21 @@ const plannerCopy = {
     chooseAnotherMeal: 'ಬೇರೆ ಊಟವನ್ನು ಯೋಜಿಸಬೇಕೇ?',
     generating: 'ಕುಟುಂಬದ ಊಟದ ಯೋಜನೆ ಸಿದ್ಧವಾಗುತ್ತಿದೆ...',
     success: 'ಇಂದಿನ ಕುಟುಂಬದ ಊಟ ಸಿದ್ಧವಾಗಿದೆ.',
+    weeklyGenerating: 'ಈ ವಾರದ ಸ್ಥಿರ ಸೋಮವಾರ-ಭಾನುವಾರ ಊಟದ ಯೋಜನೆ ಸಿದ್ಧವಾಗುತ್ತಿದೆ...',
+    weeklyReady: 'ವಾರದ master plan ಸಿದ್ಧವಾಗಿದೆ. ಈ ವಾರದ ಯೋಜನೆಯಿಂದ ಆಯ್ದ meal ತೋರಿಸಲಾಗುತ್ತಿದೆ.',
+    nextWeekPreparing: 'ಮುಂದಿನ ವಾರದ ಸೋಮವಾರ-ಭಾನುವಾರ ಊಟದ ಯೋಜನೆ ಮತ್ತು ಖರೀದಿ preview ಸಿದ್ಧವಾಗುತ್ತಿದೆ...',
+    nextWeekReady: 'ಮುಂದಿನ ವಾರದ ಊಟದ ಯೋಜನೆ ಸಿದ್ಧವಾಗಿದೆ. ಸೋಮವಾರಕ್ಕಿಂತ ಮೊದಲು meals ಮತ್ತು shopping ಪರಿಶೀಲಿಸಿ.',
+    nextWeekTitle: 'ಮುಂದಿನ ವಾರದ ಊಟದ ಯೋಜನೆ ಸಿದ್ಧವಾಗಿದೆ',
+    nextWeekText: 'ಊಟಗಳನ್ನು ಪರಿಶೀಲಿಸಿ, ಇಷ್ಟವಿಲ್ಲದ dishes ಬದಲಿಸಿ, pantry check ಮಾಡಿ ಮತ್ತು shelf-stable ಪದಾರ್ಥಗಳನ್ನು ಮುಂಚಿತವಾಗಿ ಖರೀದಿಸಿ.',
+    openNextWeek: 'ಮುಂದಿನ ವಾರ ನೋಡಿ',
+    viewToday: 'ಇಂದು',
+    viewWeek: 'ಈ ವಾರ',
+    weeklyPlanTitle: 'ಈ ವಾರದ ಮಾಸ್ಟರ್ ಊಟದ ಯೋಜನೆ',
+    weeklyGroceryTitle: 'ಈ ವಾರದ grocery ಅವಶ್ಯಕತೆ',
+    procurementTitle: 'ಖರೀದಿ ಕ್ಯಾಲೆಂಡರ್',
+    tomorrowReminderTitle: 'ನಾಳೆಗೆ ಬೇಕಾದ ಪದಾರ್ಥಗಳು',
+    sabsewaProcurementTitle: 'SabSewa Local ಮೂಲಕ ಸ್ಥಳೀಯವಾಗಿ ಖರೀದಿ',
+    procurementSafety: 'ತಾಜಾತನವು storage, ಹವಾಮಾನ ಮತ್ತು ripeness ಮೇಲೆ ಅವಲಂಬಿತವಾಗಿದೆ. ಬೇಗ ಹಾಳಾಗುವ ಪದಾರ್ಥಗಳನ್ನು cooking day ಹತ್ತಿರ ಖರೀದಿಸಿ.',
     staleWarning: '⚠️ ಇದು ಹಿಂದಿನ ಊಟದ ಪ್ಲಾನ್ ಆಗಿದೆ. ಇಂದಿನ ಹೊಸ ಊಟವನ್ನು ಯೋಜಿಸಲು ಮೇಲಿನ ಬಟನ್ ಒತ್ತಿರಿ.',
     staleBadge: 'ಹಿಂದಿನ ಪ್ಲಾನ್',
     noSubscription:
@@ -450,6 +499,19 @@ function addDaysToLocalDate(date: Date, days: number) {
   const copy = new Date(date);
   copy.setDate(copy.getDate() + days);
   return copy.toLocaleDateString('en-CA');
+}
+
+function nextMondayLocalDate(from = new Date()) {
+  const copy = new Date(from);
+  const day = copy.getDay();
+  const distance = day === 0 ? 1 : 8 - day;
+  copy.setDate(copy.getDate() + distance);
+  return copy.toLocaleDateString('en-CA');
+}
+
+function isSaturdayOrSundayLocal(from = new Date()) {
+  const day = from.getDay();
+  return day === 6 || day === 0;
 }
 
 function parseTimeToMinutes(value?: string) {
@@ -968,7 +1030,7 @@ function adjustGroceryForPantry(plan: FamilyMealPlan, pantryItems: PantryItem[],
 
 function isIndiaLike(culture: CultureProfile) {
   const country = normalizeName(culture.country || '');
-  return !country || country.includes('india') || country.includes('bharat');
+  return country.includes('india') || country.includes('bharat');
 }
 
 function stableContextSignature(input: {
@@ -1071,6 +1133,21 @@ function writeCachedMealPlan(cacheKey: string, mealPlan: FamilyMealPlan, signatu
   }
 }
 
+
+function weeklySlotFor(plan: WeeklyFamilyMealPlan | null, targetDate: string, mealTime: MealTime) {
+  return plan?.days
+    .find((day) => day.date === targetDate)
+    ?.meals.find((slot) => slot.mealTime === mealTime) ?? null;
+}
+
+function weeklyDayLabel(day: string, language: string) {
+  const labels: Record<string, Record<string, string>> = {
+    en: { monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday' },
+    hi: { monday: 'सोमवार', tuesday: 'मंगलवार', wednesday: 'बुधवार', thursday: 'गुरुवार', friday: 'शुक्रवार', saturday: 'शनिवार', sunday: 'रविवार' },
+    kn: { monday: 'ಸೋಮವಾರ', tuesday: 'ಮಂಗಳವಾರ', wednesday: 'ಬುಧವಾರ', thursday: 'ಗುರುವಾರ', friday: 'ಶುಕ್ರವಾರ', saturday: 'ಶನಿವಾರ', sunday: 'ಭಾನುವಾರ' },
+  };
+  return labels[language]?.[day] ?? labels.en[day] ?? day;
+}
 function alignMealPlanToActiveRequest(plan: FamilyMealPlan, mealTime: MealTime, targetDate: string): FamilyMealPlan {
   if (plan.commonMeal.mealTime === mealTime && plan.targetDate === targetDate) return plan;
   return {
@@ -1137,6 +1214,11 @@ export default function PlannerPage() {
 
   // Plan Lifecycle State
   const [mealPlan, setMealPlan] = useState<FamilyMealPlan | null>(null);
+  const [weeklyPlan, setWeeklyPlan] = useState<WeeklyFamilyMealPlan | null>(null);
+  const [nextWeekPlan, setNextWeekPlan] = useState<WeeklyFamilyMealPlan | null>(null);
+  const [isPreparingNextWeek, setIsPreparingNextWeek] = useState(false);
+  const [nextWeekStatus, setNextWeekStatus] = useState('');
+  const [plannerView, setPlannerView] = useState<'today' | 'week'>('today');
   const [isStalePlan, setIsStalePlan] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
@@ -1183,6 +1265,12 @@ export default function PlannerPage() {
       setLastPlan(window.localStorage.getItem(LAST_PLAN_KEY) ?? '');
 
       // Check current plan and validate against today's date
+      const savedWeeklyRaw = window.localStorage.getItem(WEEKLY_MASTER_PLAN_KEY);
+      if (savedWeeklyRaw) setWeeklyPlan(JSON.parse(savedWeeklyRaw));
+
+      const savedNextWeeklyRaw = window.localStorage.getItem(NEXT_WEEK_MASTER_PLAN_KEY);
+      if (savedNextWeeklyRaw) setNextWeekPlan(JSON.parse(savedNextWeeklyRaw));
+
       const savedPlanRaw = window.localStorage.getItem(CURRENT_MEAL_PLAN_KEY);
       if (savedPlanRaw) {
         const parsedPlan: FamilyMealPlan = JSON.parse(savedPlanRaw);
@@ -1206,8 +1294,8 @@ export default function PlannerPage() {
         if (cancelled || !data.authenticated) return;
 
         if (data.customer) {
-          setCustomer(data.customer);
-          window.localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(data.customer));
+          setCustomer({ ...data.customer, familyId: data.familyProfile?.familyId });
+          window.localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify({ ...data.customer, familyId: data.familyProfile?.familyId }));
         }
 
         if (Array.isArray(data.familyProfile?.members) && data.familyProfile.members.length) {
@@ -1338,6 +1426,7 @@ export default function PlannerPage() {
   const activeScheduledTime = plannerMode === 'next_meal' ? detectedMealInfo.scheduledTime : undefined;
   const activeMealLabel = mealLabel(activeMealSlot, t.meals);
   const activeGenerateLabel = t.planMealNow.replace('{meal}', activeMealLabel);
+  const activeWeeklySlot = useMemo(() => weeklySlotFor(weeklyPlan, activeTargetDate, activeMealSlot), [weeklyPlan, activeTargetDate, activeMealSlot]);
 
   useEffect(() => {
     if (!mealPlan) return;
@@ -1415,6 +1504,61 @@ export default function PlannerPage() {
   const canGenerate = members.length > 0;
   const membersMissingAge = members.filter((member) => typeof member.age !== 'number' || Number.isNaN(member.age));
 
+  const nextWeekStartDate = useMemo(() => nextMondayLocalDate(), []);
+  const shouldShowNextWeekPreview = isSaturdayOrSundayLocal() && canGenerate && Boolean(customer.familyId);
+
+  useEffect(() => {
+    if (!shouldShowNextWeekPreview || !customer.familyId || isPreparingNextWeek || nextWeekPlan?.weekStartDate === nextWeekStartDate) return;
+    let cancelled = false;
+
+    async function prepareNextWeekPlan() {
+      setIsPreparingNextWeek(true);
+      setNextWeekStatus(t.nextWeekPreparing);
+      try {
+        const response = await fetch('/api/weekly-meal-plans', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            familyId: customer.familyId,
+            userId: customer.userId,
+            planType: 'weekly',
+            preferredLanguage: language,
+            userLocalTime: new Date().toISOString(),
+            userTimeZone: browserTimeZone(),
+            targetDate: nextWeekStartDate,
+            userPlanningMode: 'returning_user_weekly_editable',
+            previousMeals: previousMealsForPlanning(activeMealSlot, mealPlan?.commonMeal?.name),
+            mealTimeContext: {
+              timeZone: browserTimeZone(),
+              locale: language,
+              country: culture.country?.trim() || 'Not specified',
+              region: culture.region?.trim() || 'Home region',
+              city: culture.city?.trim() || culture.region?.trim() || 'Home region',
+              localHour: currentLocalHour(),
+            },
+          }),
+        });
+        const data = await readApiResponse<{ weeklyPlan: WeeklyFamilyMealPlan; reusedExisting?: boolean }>(
+          response,
+          'We could not prepare next week\'s plan right now.'
+        );
+        if (cancelled) return;
+        setNextWeekPlan(data.weeklyPlan);
+        window.localStorage.setItem(NEXT_WEEK_MASTER_PLAN_KEY, JSON.stringify(data.weeklyPlan));
+        setNextWeekStatus(t.nextWeekReady);
+      } catch {
+        if (!cancelled) setNextWeekStatus('');
+      } finally {
+        if (!cancelled) setIsPreparingNextWeek(false);
+      }
+    }
+
+    prepareNextWeekPlan();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeMealSlot, canGenerate, culture.city, culture.country, culture.region, customer.familyId, customer.userId, isPreparingNextWeek, language, mealPlan?.commonMeal?.name, nextWeekPlan?.weekStartDate, nextWeekStartDate, shouldShowNextWeekPreview, t.nextWeekPreparing, t.nextWeekReady]);
+
   // 7. Active Generation Action
   const generatePlan = async (cravingOverride?: string) => {
     if (!canGenerate || isGenerating) return;
@@ -1435,7 +1579,7 @@ export default function PlannerPage() {
 
     setIsGenerating(true);
     setError('');
-    setStatus(t.generating);
+    setStatus(t.weeklyGenerating);
     setMealPlan(null);
     setIsStalePlan(false);
     setVideoSearch(null);
@@ -1449,8 +1593,8 @@ export default function PlannerPage() {
         tiffinMemberIds: [],
       };
 
-      const country = culture.country?.trim() || 'India';
-      const region = culture.region?.trim() || 'Karnataka';
+      const country = culture.country?.trim() || 'Not specified';
+      const region = culture.region?.trim() || 'Home region';
       const city = culture.city?.trim() || region;
       const cuisinePreferences = Array.from(
         new Set([
@@ -1564,13 +1708,13 @@ export default function PlannerPage() {
       const createdMembers = familyData.members ?? [];
       const excludeDishes = mealPlan?.commonMeal?.name ? [mealPlan.commonMeal.name] : [];
 
-      // Generate Fresh Meal Plan
-      const mealResponse = await fetch('/api/meal-plans', {
+      // Generate or reuse the stable Monday-Sunday master plan, then display this slot.
+      const weeklyResponse = await fetch('/api/weekly-meal-plans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           familyId: familyData.family.familyId,
-          planType: 'daily',
+          planType: 'weekly',
           mealTime: activeMealSlot,
           preferredLanguage: language,
           userPromptOverride: cravingOverride || mealWish,
@@ -1580,6 +1724,14 @@ export default function PlannerPage() {
           userTimeZone: browserTimeZone(),
           targetDate,
           scheduledTime: activeScheduledTime,
+          mealTimeContext: {
+            timeZone: browserTimeZone(),
+            locale: language,
+            country,
+            region,
+            city,
+            localHour: currentLocalHour(),
+          },
           mealAttendance: [
             {
               mealTime: activeMealSlot,
@@ -1603,12 +1755,17 @@ export default function PlannerPage() {
         }),
       });
 
-      const mealData = await readApiResponse<{ mealPlan: FamilyMealPlan }>(
-        mealResponse,
-        'We could not prepare this meal plan right now. Please try again.'
+      const weeklyData = await readApiResponse<{ weeklyPlan: WeeklyFamilyMealPlan; reusedExisting?: boolean }>(
+        weeklyResponse,
+        'We could not prepare this weekly meal plan right now. Please try again.'
       );
 
-      const alignedPlan = alignMealPlanToActiveRequest(mealData.mealPlan, activeMealSlot, targetDate);
+      const freshWeeklyPlan = weeklyData.weeklyPlan;
+      setWeeklyPlan(freshWeeklyPlan);
+      window.localStorage.setItem(WEEKLY_MASTER_PLAN_KEY, JSON.stringify(freshWeeklyPlan));
+      const selectedWeeklySlot = weeklySlotFor(freshWeeklyPlan, targetDate, activeMealSlot);
+      if (!selectedWeeklySlot) throw new Error('Selected meal was not found in the weekly master plan.');
+      const alignedPlan = alignMealPlanToActiveRequest(selectedWeeklySlot.selectedOption, activeMealSlot, targetDate);
       const pantryAdjustedPlan = adjustGroceryForPantry(alignedPlan, pantryItems, t.alreadyInPantry, language);
       setMealPlan(pantryAdjustedPlan);
       setIsStalePlan(false);
@@ -1620,7 +1777,7 @@ export default function PlannerPage() {
         category: suggestedPlan,
         label: activeMealSlot,
       });
-      setStatus(t.success);
+      setStatus(t.weeklyReady);
     } catch (err: any) {
       setStatus('');
       console.error('Meal plan request failed:', err);
@@ -1655,6 +1812,29 @@ export default function PlannerPage() {
       setMealPlan(updatedPlan);
       setIsStalePlan(false);
       window.localStorage.setItem(CURRENT_MEAL_PLAN_KEY, JSON.stringify(updatedPlan));
+
+      const activeWeeklySlot = weeklySlotFor(weeklyPlan, updatedPlan.targetDate, updatedPlan.commonMeal.mealTime);
+      if (weeklyPlan && activeWeeklySlot) {
+        const weeklyUpdate = await fetch('/api/weekly-meal-plans', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            familyId: weeklyPlan.familyId,
+            weekStartDate: weeklyPlan.weekStartDate,
+            slotId: activeWeeklySlot.slotId,
+            selectedMealPlan: updatedPlan,
+            reason: userCraving || 'show_another_option',
+          }),
+        });
+        if (weeklyUpdate.ok) {
+          const weeklyUpdateData = await weeklyUpdate.json();
+          if (weeklyUpdateData.weeklyPlan) {
+            setWeeklyPlan(weeklyUpdateData.weeklyPlan);
+            window.localStorage.setItem(WEEKLY_MASTER_PLAN_KEY, JSON.stringify(weeklyUpdateData.weeklyPlan));
+          }
+        }
+      }
+
       setStatus(t.anotherOptionSuccess);
     } catch (err: any) {
       console.error('Meal replacement request failed:', err);
@@ -1682,8 +1862,8 @@ export default function PlannerPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         dishName: mealPlan.commonMeal.recipe.title || mealPlan.commonMeal.name,
-        country: culture.country?.trim() || 'India',
-        region: culture.region?.trim() || 'Karnataka',
+        country: culture.country?.trim() || 'Not specified',
+        region: culture.region?.trim() || 'Home region',
         preferredLanguage: language,
         cuisine: culture.preferredCuisines?.length ? culture.preferredCuisines : ['Home-style'],
         dietaryPreference: familyDietPreferenceFor(customer, members),
@@ -1910,6 +2090,32 @@ export default function PlannerPage() {
               <p className="mb-6 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</p>
             ) : null}
 
+            {shouldShowNextWeekPreview ? (
+              <section className="mb-6 rounded-3xl bg-emerald-50 p-5 shadow-sm ring-1 ring-emerald-200">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-wide text-emerald-700">{nextWeekPlan?.weekStartDate || nextWeekStartDate}</p>
+                    <h2 className="mt-1 text-xl font-black text-slate-950">{t.nextWeekTitle}</h2>
+                    <p className="mt-2 text-sm leading-6 text-slate-700">{nextWeekStatus || t.nextWeekText}</p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!nextWeekPlan}
+                    onClick={() => {
+                      if (!nextWeekPlan) return;
+                      setWeeklyPlan(nextWeekPlan);
+                      setPlannerView('week');
+                      window.localStorage.setItem(WEEKLY_MASTER_PLAN_KEY, JSON.stringify(nextWeekPlan));
+                      setStatus(t.nextWeekReady);
+                    }}
+                    className="rounded-full bg-emerald-800 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-emerald-900 disabled:opacity-50"
+                  >
+                    {isPreparingNextWeek ? t.generating : t.openNextWeek}
+                  </button>
+                </div>
+              </section>
+            ) : null}
+
             {/* Stale Cache Alert */}
             {isStalePlan && mealPlan && (
               <div className="mb-6 rounded-2xl bg-amber-50 border border-amber-200 p-4 flex items-center justify-between">
@@ -1920,6 +2126,145 @@ export default function PlannerPage() {
               </div>
             )}
 
+
+            {weeklyPlan ? (
+              <section className="mb-6 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-xl font-black text-slate-950">{t.weeklyPlanTitle}</h2>
+                  <div className="flex rounded-full bg-slate-100 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setPlannerView('today')}
+                      className={`rounded-full px-4 py-2 text-xs font-black ${plannerView === 'today' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-600'}`}
+                    >
+                      {t.viewToday}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPlannerView('week')}
+                      className={`rounded-full px-4 py-2 text-xs font-black ${plannerView === 'week' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-600'}`}
+                    >
+                      {t.viewWeek}
+                    </button>
+                  </div>
+                </div>
+
+                {plannerView === 'week' ? (
+                  <div className="mt-4 grid gap-3">
+                    {weeklyPlan.days.map((day) => (
+                      <details key={day.date} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100" open={day.date === activeTargetDate}>
+                        <summary className="cursor-pointer text-sm font-black text-slate-900">
+                          {weeklyDayLabel(day.day, language)} | {day.date}
+                        </summary>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          {day.meals.map((slot) => (
+                            <button
+                              key={slot.slotId}
+                              type="button"
+                              onClick={() => {
+                                setPlannerView('today');
+                                setPlannerMode('specific_meal');
+                                setSelectedMealTime(slot.mealTime);
+                                setMealPlan(adjustGroceryForPantry(slot.selectedOption, pantryItems, t.alreadyInPantry, language));
+                              }}
+                              className="rounded-xl bg-white p-3 text-left ring-1 ring-slate-200"
+                            >
+                              <span className="block text-xs font-black uppercase tracking-wide text-emerald-700">{mealLabel(slot.mealTime, t.meals)}</span>
+                              <span className="mt-1 block text-sm font-black text-slate-950">{slot.selectedMealName}</span>
+                              <span className="mt-1 block text-xs text-slate-500">{slot.alternatives.length + 1} options</span>
+                            </button>
+                          ))}
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                ) : activeWeeklySlot ? (
+                  <div className="mt-4 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100">
+                    <p className="text-xs font-black uppercase tracking-wide text-emerald-700">{mealLabel(activeWeeklySlot.mealTime, t.meals)} | {activeWeeklySlot.date}</p>
+                    <p className="mt-1 text-lg font-black text-slate-950">{activeWeeklySlot.selectedMealName}</p>
+                    {activeWeeklySlot.alternatives.length ? (
+                      <div className="mt-3 grid gap-2">
+                        {activeWeeklySlot.alternatives.slice(0, 2).map((alternative) => (
+                          <button
+                            key={`${activeWeeklySlot.slotId}-${alternative.title}`}
+                            type="button"
+                            onClick={() => handleSelectAlternative(alternative)}
+                            className="rounded-xl bg-white px-3 py-2 text-left text-xs font-bold text-slate-700 ring-1 ring-emerald-100"
+                          >
+                            {alternative.title}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {weeklyPlan.weeklyGroceryRequirements.length ? (
+                  <div className="mt-4 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
+                    <h3 className="text-sm font-black text-amber-950">{t.weeklyGroceryTitle}</h3>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {weeklyPlan.weeklyGroceryRequirements.slice(0, 10).map((item) => (
+                        <div key={item.itemId} className="rounded-xl bg-white p-3 text-xs ring-1 ring-amber-100">
+                          <span className="font-black text-slate-900">{item.name}</span>
+                          <span className="block text-slate-600">{item.quantityToPurchase}</span>
+                          {item.freshnessNote ? <span className="mt-1 block text-[11px] leading-4 text-amber-800">{item.freshnessNote}</span> : null}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {weeklyPlan.procurementSchedule?.length ? (
+                  <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-emerald-100">
+                    <h3 className="text-sm font-black text-emerald-950">{t.procurementTitle}</h3>
+                    <div className="mt-3 grid gap-3">
+                      {weeklyPlan.procurementSchedule.map((group) => (
+                        <details key={group.groupId} className="rounded-xl bg-emerald-50 p-3 ring-1 ring-emerald-100" open={group.recommendedWindow === 'buy_this_weekend'}>
+                          <summary className="cursor-pointer text-sm font-black text-emerald-950">
+                            {group.title}{group.recommendedPurchaseDate ? ` | ${group.recommendedPurchaseDate}` : ''}
+                          </summary>
+                          <p className="mt-2 text-xs leading-5 text-emerald-900">{group.description}</p>
+                          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                            {group.items.slice(0, 12).map((item) => (
+                              <div key={`${group.groupId}-${item.itemId}`} className="rounded-lg bg-white p-2 text-xs ring-1 ring-emerald-100">
+                                <span className="font-black text-slate-900">{item.name}</span>
+                                <span className="block text-slate-600">{item.quantityToPurchase}</span>
+                                <span className="block text-[11px] text-slate-500">{item.plannedConsumptionDates?.join(', ')}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-xs leading-5 text-slate-600">{weeklyPlan.procurementSafetyNote || t.procurementSafety}</p>
+                  </div>
+                ) : null}
+
+                {weeklyPlan.tomorrowIngredientReminder?.stillToArrange?.length ? (
+                  <div className="mt-4 rounded-2xl bg-sky-50 p-4 ring-1 ring-sky-100">
+                    <h3 className="text-sm font-black text-sky-950">{t.tomorrowReminderTitle} | {weeklyPlan.tomorrowIngredientReminder.date}</h3>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {weeklyPlan.tomorrowIngredientReminder.stillToArrange.slice(0, 12).map((item) => (
+                        <div key={`tomorrow-${item.itemId}`} className="rounded-xl bg-white p-3 text-xs ring-1 ring-sky-100">
+                          <span className="font-black text-slate-900">{item.name}</span>
+                          <span className="block text-slate-600">{item.quantityToPurchase}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {isIndiaLike(culture) && weeklyPlan.sabSewaShoppingRequirement?.length ? (
+                  <div className="mt-4 rounded-2xl bg-lime-50 p-4 ring-1 ring-lime-100">
+                    <h3 className="text-sm font-black text-lime-950">{t.sabsewaProcurementTitle}</h3>
+                    <p className="mt-2 text-xs leading-5 text-lime-900">{t.sabsewaText}</p>
+                    <a href="https://www.sabsewa.in" target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-full bg-lime-700 px-4 py-2 text-xs font-black text-white">
+                      {t.sabsewaCta}
+                    </a>
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
             {/* Render Output Meal Plan */}
             {mealPlan && (
               <section className="space-y-6">

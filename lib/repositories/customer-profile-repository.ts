@@ -1,5 +1,6 @@
 import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { getMamaAiTableName, mamaAiDynamoDb } from "./dynamodb-client";
+import { createId } from "./in-memory-store";
 import type {
   DayWiseFoodRoutinePreference,
   MealTimingPattern,
@@ -46,6 +47,7 @@ export interface CustomerFamilyMemberProfile {
 
 export interface CustomerFamilyProfileRecord {
   userId: string;
+  familyId: string;
   members: CustomerFamilyMemberProfile[];
   memberCount: number;
   suggestedPlan: "starter" | "premium" | "family_plus";
@@ -142,6 +144,7 @@ export class CustomerProfileRepository {
 
     const record: CustomerFamilyProfileRecord = {
       userId: input.userId,
+      familyId: existing?.familyId ?? createId("family"),
       members: input.members,
       memberCount,
       suggestedPlan,
