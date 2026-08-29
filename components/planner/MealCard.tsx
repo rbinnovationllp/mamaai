@@ -20,7 +20,7 @@ interface Props {
     recipeSteps: string[];
     alternatives?: AlternativeOption[];
     language: "en" | "hi" | "kn";
-    onSelectAlternative: (alt: AlternativeOption) => void;
+    onSelectAlternative: (alt: AlternativeOption) => void | Promise<void>;
     onShowAnotherOption: (userCraving?: string) => Promise<void>;
 }
 
@@ -90,6 +90,12 @@ export function MealCard({
         },
     }[language];
 
+    const handleSelect = async (alt: AlternativeOption) => {
+        setLoading(true);
+        await onSelectAlternative(alt);
+        setLoading(false);
+    };
+
     const handleSwap = async () => {
         setLoading(true);
         await onShowAnotherOption(cravingText);
@@ -137,7 +143,7 @@ export function MealCard({
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={() => onSelectAlternative(alt)}
+                                    onClick={() => handleSelect(alt)}
                                     className="px-3 py-1.5 bg-white border border-emerald-200 text-emerald-700 text-xs font-semibold rounded-lg hover:bg-emerald-50 transition"
                                 >
                                     {labels.selectAlt}

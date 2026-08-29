@@ -1664,19 +1664,8 @@ export default function PlannerPage() {
     }
   };
 
-  const handleSelectAlternative = (alt: MealAlternativeOption) => {
-    if (!mealPlan) return;
-    const updated: FamilyMealPlan = {
-      ...mealPlan,
-      commonMeal: {
-        ...mealPlan.commonMeal,
-        name: alt.title,
-        description: alt.description,
-        prepTimeMinutes: alt.prepTimeMinutes,
-      },
-    };
-    setMealPlan(updated);
-    window.localStorage.setItem(CURRENT_MEAL_PLAN_KEY, JSON.stringify(updated));
+  const handleSelectAlternative = async (alt: MealAlternativeOption) => {
+    await handleShowAnotherOption(alt.title);
   };
 
   // 9. Recipe Video Search

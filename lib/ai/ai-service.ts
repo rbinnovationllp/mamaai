@@ -706,7 +706,7 @@ function buildAlternatives(
       prepTimeMinutes: c.prepTimeMinutes,
       difficulty: c.difficulty,
       ingredientsSummary: c.ingredients.map((i) => i.name).slice(0, 3),
-      reasoning: "Alternative dinner option matching family dietary and speed requirements.",
+      reasoning: `Alternative ${c.mealTime.replace("_", " ")} option matching family dietary and speed requirements.`,
     }));
 }
 
@@ -850,6 +850,144 @@ function estimateForDiet(dietPreference: FamilyDietPreference, mealTime: MealTim
   );
 }
 
+
+function breakfastCandidates(
+  input: GeneratePlanInput,
+  mealId: string,
+  mealTime: MealTime,
+  regionFit: string
+): CommonMealDraft[] {
+  return [
+    {
+      mealId: `${mealId}-poha`,
+      name: "Vegetable Poha with Curd and Fruit",
+      mealTime,
+      description: "A quick Indian breakfast that can be softened, portion-controlled, or protein-supported by member need.",
+      ingredients: pohaIngredients(),
+      prepTimeMinutes: 20,
+      difficulty: "easy",
+      regionFit,
+      nutritionIntent: "Light family breakfast with vegetables, curd, and member-specific portions.",
+      nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
+    },
+    {
+      mealId: `${mealId}-ragi-dosa`,
+      name: "Ragi Dosa with Vegetable Sambar and Curd",
+      mealTime,
+      description: "A familiar South Indian family meal with millet base, vegetable sambar, curd, and optional paneer support.",
+      ingredients: milletDosaIngredients(),
+      prepTimeMinutes: 35,
+      difficulty: "medium",
+      regionFit,
+      nutritionIntent: "Selected to add variety from poha while keeping home-style cooking practical.",
+      nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
+    },
+    {
+      mealId: `${mealId}-besan-chilla`,
+      name: "Besan Chilla with Vegetable Soup and Curd",
+      mealTime,
+      description: "A protein-rich breakfast using besan, vegetables and curd for families wanting a change from grain-heavy mornings.",
+      ingredients: besanChillaSoupIngredients(),
+      prepTimeMinutes: 30,
+      difficulty: "easy",
+      regionFit,
+      nutritionIntent: "Offer a quick pulse-based breakfast alternative with vegetables and controlled portions.",
+      nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
+    },
+  ];
+}
+
+function highTeaCandidates(
+  input: GeneratePlanInput,
+  mealId: string,
+  mealTime: MealTime,
+  regionFit: string
+): CommonMealDraft[] {
+  return [
+    {
+      mealId: `${mealId}-chilla-tea`,
+      name: "High Tea: Vegetable Chilla with Curd, Fruit and Unsweetened Tea",
+      mealTime,
+      description: "A light family high-tea plate that supports children, adults, seniors, and diabetes-aware beverage choices.",
+      ingredients: highTeaIngredients(),
+      prepTimeMinutes: 25,
+      difficulty: "easy",
+      regionFit,
+      nutritionIntent: "Avoid heavy evening snacking while keeping protein, fruit, hydration, and portion control visible.",
+      nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
+    },
+    {
+      mealId: `${mealId}-poha-snack`,
+      name: "Vegetable Poha with Curd and Fruit",
+      mealTime,
+      description: "A light but filling evening snack using poha, vegetables, curd and fruit instead of packaged snacks.",
+      ingredients: pohaIngredients(),
+      prepTimeMinutes: 20,
+      difficulty: "easy",
+      regionFit,
+      nutritionIntent: "Give children and adults a warm snack with vegetables and measured portions.",
+      nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
+    },
+    {
+      mealId: `${mealId}-soup-chilla`,
+      name: "Besan Chilla with Vegetable Soup and Curd",
+      mealTime,
+      description: "A warm high-tea option with besan chilla, vegetable soup and curd for better satiety than biscuits.",
+      ingredients: besanChillaSoupIngredients(),
+      prepTimeMinutes: 30,
+      difficulty: "easy",
+      regionFit,
+      nutritionIntent: "Use pulse protein and vegetables for a practical evening snack plate.",
+      nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
+    },
+  ];
+}
+
+function veganHighTeaCandidates(
+  input: GeneratePlanInput,
+  mealId: string,
+  mealTime: MealTime,
+  regionFit: string
+): CommonMealDraft[] {
+  return [
+    {
+      mealId: `${mealId}-vegan-chilla`,
+      name: "Vegan High Tea: Vegetable Chilla with Peanut Chutney and Fruit",
+      mealTime,
+      description: "A vegan high-tea plate using besan, vegetables, chutney, fruit and herbal beverage without dairy or eggs.",
+      ingredients: veganHighTeaIngredients(),
+      prepTimeMinutes: 25,
+      difficulty: "easy",
+      regionFit,
+      nutritionIntent: "Light plant-based snack with pulse protein, fruit, hydration, and no animal-derived ingredients.",
+      nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
+    },
+    {
+      mealId: `${mealId}-vegan-poha`,
+      name: "Vegan Vegetable Poha with Fruit and Herbal Infusion",
+      mealTime,
+      description: "A dairy-free evening poha snack with vegetables, fruit and a light herbal drink.",
+      ingredients: veganHighTeaIngredients(),
+      prepTimeMinutes: 20,
+      difficulty: "easy",
+      regionFit,
+      nutritionIntent: "Keep high tea filling and plant-based without relying on biscuits or dairy.",
+      nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
+    },
+    {
+      mealId: `${mealId}-vegan-soup`,
+      name: "Vegan Vegetable Soup with Besan Chilla and Fruit",
+      mealTime,
+      description: "A warm vegan snack plate with vegetable soup, besan chilla and fruit for better satiety.",
+      ingredients: veganHighTeaIngredients(),
+      prepTimeMinutes: 30,
+      difficulty: "easy",
+      regionFit,
+      nutritionIntent: "Use plant protein, vegetables and fruit for a practical vegan high-tea option.",
+      nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
+    },
+  ];
+}
 function vegetarianDinnerCandidates(
   input: GeneratePlanInput,
   mealId: string,
@@ -920,10 +1058,82 @@ function vegetarianDinnerCandidates(
   ];
 }
 
+
+function vegetarianLunchCandidates(
+  input: GeneratePlanInput,
+  mealId: string,
+  mealTime: MealTime,
+  regionFit: string
+): CommonMealDraft[] {
+  return [
+    {
+      mealId: `${mealId}-roti-dal`,
+      name: "Roti, Masoor Dal, Seasonal Sabzi and Curd",
+      mealTime,
+      description: "A practical Indian lunch plate that keeps one common family meal while adapting portions for each member.",
+      ingredients: rotiDalIngredients(),
+      prepTimeMinutes: 35,
+      difficulty: "easy",
+      regionFit,
+      nutritionIntent: "Balanced lunch with grains, dal protein, vegetables, curd, and member-specific portion guidance.",
+      nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
+    },
+    {
+      mealId: `${mealId}-pulao-dal`,
+      name: "Vegetable Pulao with Dal and Cucumber Raita",
+      mealTime,
+      description: "A balanced family lunch with vegetable pulao, dal protein and cooling raita, planned for variety without heavy cooking.",
+      ingredients: vegetablePulaoDalIngredients(),
+      prepTimeMinutes: 35,
+      difficulty: "easy",
+      regionFit,
+      nutritionIntent: "Offer rice-based lunch variety with dal protein, vegetables, and controlled portions.",
+      nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
+    },
+    {
+      mealId: `${mealId}-ragi-dosa`,
+      name: "Ragi Dosa with Vegetable Sambar and Curd",
+      mealTime,
+      description: "A familiar South Indian lunch option with millet base, vegetable sambar, curd, and practical family portions.",
+      ingredients: milletDosaIngredients(),
+      prepTimeMinutes: 35,
+      difficulty: "medium",
+      regionFit,
+      nutritionIntent: "Add regional lunch variety while keeping fiber, pulse protein, and member-specific portions visible.",
+      nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
+    },
+  ];
+}
 function firstFreshMeal(candidates: CommonMealDraft[], input: GeneratePlanInput, mealTime: MealTime) {
   return candidates.find((meal) => !isMealRecentlyUsed(input, mealTime, meal.name)) ?? candidates[0];
 }
 
+function requestedCandidate(candidates: CommonMealDraft[], input: GeneratePlanInput) {
+  const prompt = input.userPromptOverride?.toLowerCase().trim();
+  if (!prompt) return undefined;
+  return candidates.find((candidate) => {
+    const name = candidate.name.toLowerCase();
+    const ingredients = candidate.ingredients.map((ingredient) => ingredient.name.toLowerCase()).join(" ");
+    return name.includes(prompt) ||
+      prompt.includes(name) ||
+      (/(poha|पोहा|ಪೊಹಾ)/i.test(prompt) && name.includes("poha")) ||
+      (/(ragi|dosa|रागी|डोसा|ರಾಗಿ|ದೋಸೆ)/i.test(prompt) && (name.includes("ragi") || name.includes("dosa"))) ||
+      (/(besan|chilla|बेसन|चीला|ಬೇಸನ್|ಚಿಲ್ಲಾ)/i.test(prompt) && (name.includes("besan") || name.includes("chilla"))) ||
+      (/(pulao|पुलाव|ಪುಲಾವ್)/i.test(prompt) && name.includes("pulao")) ||
+      (/(roti|dal|sabzi|रोटी|दाल|सब्ज|ರೊಟ್ಟಿ|ದಾಲ್|ತರಕಾರಿ)/i.test(prompt) && (name.includes("roti") || name.includes("dal") || ingredients.includes("dal"))) ||
+      (/(paneer|पनीर|ಪನೀರ್)/i.test(prompt) && (name.includes("paneer") || ingredients.includes("paneer"))) ||
+      (/(khichdi|खिचड़ी|ಖಿಚಡಿ)/i.test(prompt) && name.includes("khichdi"));
+  });
+}
+
+function selectCandidate(candidates: CommonMealDraft[], input: GeneratePlanInput, mealTime: MealTime) {
+  const requested = requestedCandidate(candidates, input);
+  if (requested) return requested;
+  let validCandidates = candidates.filter((candidate) => !isMealRecentlyUsed(input, mealTime, candidate.name));
+  if (!validCandidates.length) validCandidates = candidates;
+  const index = Math.abs(dinnerRotationIndex(input)) % validCandidates.length;
+  return validCandidates[index];
+}
 function mealAttendanceFor(input: GeneratePlanInput, mealTime: MealTime) {
   return (
     input.mealAttendance?.find((entry) => entry.enabled && entry.mealTime === mealTime) ??
@@ -1081,71 +1291,24 @@ function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
     : "";
   const regionFit = `${input.family.city}, ${input.family.state}, ${input.family.country} friendly${cuisineFit}${localContext}${preferenceFit}${recentFit}${cookingFit}`;
 
-  // 1. High Tea / Snacks
+  // 1. High Tea / Snacks Selection & Variety Rotation
   if (mealTime === "high_tea" || mealTime === "evening_snack" || mealTime === "snack") {
-    if (input.family.dietPreference === "vegan") {
-      return completeMeal({
-        mealId,
-        name: "Vegan High Tea: Vegetable Chilla with Peanut Chutney and Fruit",
-        mealTime,
-        description: "A vegan high-tea plate using besan, vegetables, chutney, fruit and herbal beverage without dairy or eggs.",
-        ingredients: veganHighTeaIngredients(),
-        prepTimeMinutes: 25,
-        difficulty: "easy",
-        regionFit,
-        nutritionIntent: "Light plant-based snack with pulse protein, fruit, hydration, and no animal-derived ingredients.",
-        nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
-      });
-    }
-    return completeMeal({
-      mealId,
-      name: "High Tea: Vegetable Chilla with Curd, Fruit and Unsweetened Tea",
-      mealTime,
-      description: "A light family high-tea plate that supports children, adults, seniors, and diabetes-aware beverage choices.",
-      ingredients: highTeaIngredients(),
-      prepTimeMinutes: 25,
-      difficulty: "easy",
-      regionFit,
-      nutritionIntent: "Avoid heavy evening snacking while keeping protein, fruit, hydration, and portion control visible.",
-      nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
-    });
+    const snackCandidates = input.family.dietPreference === "vegan"
+      ? veganHighTeaCandidates(input, mealId, mealTime, regionFit)
+      : highTeaCandidates(input, mealId, mealTime, regionFit);
+    const selectedSnack = selectCandidate(snackCandidates, input, mealTime);
+    return completeMeal(selectedSnack, buildAlternatives(selectedSnack, snackCandidates));
   }
 
   // 2. Specialized Diet Checks
   const dietMeal = mealForDiet(input, mealId, mealTime, regionFit);
   if (dietMeal) return completeMeal(dietMeal);
 
-  // 3. Breakfast Selection
+  // 3. Breakfast Selection & Variety Rotation
   if (mealTime === "breakfast") {
-    if (
-      preferenceIncludes(input, mealTime, ["dosa", "idli", "sambar", "south indian"]) ||
-      recentHistoryIncludes(input, mealTime, ["poha"])
-    ) {
-      return completeMeal({
-        mealId,
-        name: "Ragi Dosa with Vegetable Sambar and Curd",
-        mealTime,
-        description: "A familiar South Indian family meal with millet base, vegetable sambar, curd, and optional paneer support.",
-        ingredients: milletDosaIngredients(),
-        prepTimeMinutes: 35,
-        difficulty: "medium",
-        regionFit,
-        nutritionIntent: "Selected to add variety from poha while keeping home-style cooking practical.",
-        nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
-      });
-    }
-    return completeMeal({
-      mealId,
-      name: "Vegetable Poha with Curd and Fruit",
-      mealTime,
-      description: "A quick Indian breakfast that can be softened, portion-controlled, or protein-supported by member need.",
-      ingredients: pohaIngredients(),
-      prepTimeMinutes: 20,
-      difficulty: "easy",
-      regionFit,
-      nutritionIntent: "Light family breakfast with vegetables, curd, and member-specific portions.",
-      nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
-    });
+    const candidates = breakfastCandidates(input, mealId, mealTime, regionFit);
+    const selected = selectCandidate(candidates, input, mealTime);
+    return completeMeal(selected, buildAlternatives(selected, candidates));
   }
 
   // 4. Dinner Selection & Variety Rotation
@@ -1184,19 +1347,30 @@ function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
     return completeMeal(selected, alternatives);
   }
 
-  // 5. Default Lunch Selection
-  return completeMeal({
-    mealId,
-    name: "Roti, Masoor Dal, Seasonal Sabzi and Curd",
-    mealTime: "lunch",
-    description: "A practical Indian lunch plate that keeps one common family meal while adapting portions for each member.",
-    ingredients: rotiDalIngredients(),
-    prepTimeMinutes: 35,
-    difficulty: "easy",
-    regionFit,
-    nutritionIntent: "Balanced lunch with grains, dal protein, vegetables, curd, and member-specific portion guidance.",
-    nutritionEstimate: estimateForDiet(input.family.dietPreference, "lunch"),
-  });
+  // 5. Default Lunch Selection & Variety Rotation
+  const lunchCandidates = vegetarianLunchCandidates(input, mealId, mealTime, regionFit);
+  if (input.userPromptOverride) {
+    const promptLower = input.userPromptOverride.toLowerCase();
+    const requestedLunch = lunchCandidates.find((candidate) => {
+      const candidateName = candidate.name.toLowerCase();
+      return candidateName.includes(promptLower) ||
+        ((promptLower.includes("pulao") || promptLower.includes("पुलाव") || promptLower.includes("ಪುಲಾವ್")) && candidateName.includes("pulao")) ||
+        (promptLower.includes("ragi") && candidateName.includes("ragi")) ||
+        (promptLower.includes("dosa") && candidateName.includes("dosa")) ||
+        (promptLower.includes("रागी") && candidateName.includes("ragi")) ||
+        (promptLower.includes("डोसा") && candidateName.includes("dosa")) ||
+        (promptLower.includes("ರಾಗಿ") && candidateName.includes("ragi")) ||
+        (promptLower.includes("ದೋಸೆ") && candidateName.includes("dosa")) ||
+        (promptLower.includes("roti") && candidateName.includes("roti")) ||
+        (promptLower.includes("रोटी") && candidateName.includes("roti")) ||
+        (promptLower.includes("ರೊಟ್ಟಿ") && candidateName.includes("roti"));
+    });
+    if (requestedLunch) return completeMeal(requestedLunch, buildAlternatives(requestedLunch, lunchCandidates));
+  }
+  let validLunchCandidates = lunchCandidates.filter((c) => !isMealRecentlyUsed(input, mealTime, c.name));
+  if (!validLunchCandidates.length) validLunchCandidates = lunchCandidates;
+  const selectedLunch = validLunchCandidates[0];
+  return completeMeal(selectedLunch, buildAlternatives(selectedLunch, lunchCandidates));
 }
 
 function budgetWarning(family: Family, estimatedMealCost: number, estimatedDailyCost: number) {
@@ -1248,6 +1422,8 @@ const mealNameTranslations = {
     "Roti, Masoor Dal, Seasonal Sabzi and Curd": "रोटी, मसूर दाल, मौसमी सब्जी और दही",
     "Vegetable Pulao with Dal and Cucumber Raita": "दाल और खीरे के रायते के साथ सब्जी पुलाव",
     "Besan Chilla with Vegetable Soup and Curd": "सब्जी सूप और दही के साथ बेसन चीला",
+    "Vegan Vegetable Poha with Fruit and Herbal Infusion": "फल और हर्बल पेय के साथ वीगन सब्जी पोहा",
+    "Vegan Vegetable Soup with Besan Chilla and Fruit": "बेसन चीला और फल के साथ वीगन सब्जी सूप",
   },
   kn: {
     "Paneer Bhurji with Whole Wheat Roti, Dal Tadka and Salad": "ಗೋಧಿ ರೊಟ್ಟಿ, ದಾಲ್ ತಡ್ಕಾ ಮತ್ತು ಸಲಾಡ್ ಜೊತೆಗೆ ಪನೀರ್ ಭುರ್ಜಿ",
@@ -1268,6 +1444,8 @@ const mealNameTranslations = {
     "Roti, Masoor Dal, Seasonal Sabzi and Curd": "ರೊಟ್ಟಿ, ಮಸೂರ್ ದಾಲ್, ಋತುಮಾನ ತರಕಾರಿ ಮತ್ತು ಮೊಸರು",
     "Vegetable Pulao with Dal and Cucumber Raita": "ದಾಲ್ ಮತ್ತು ಸೌತೆಕಾಯಿ ರೈತ ಜೊತೆ ತರಕಾರಿ ಪುಲಾವ್",
     "Besan Chilla with Vegetable Soup and Curd": "ತರಕಾರಿ ಸೂಪ್ ಮತ್ತು ಮೊಸರು ಜೊತೆ ಬೇಸನ್ ಚಿಲ್ಲಾ",
+    "Vegan Vegetable Poha with Fruit and Herbal Infusion": "ಹಣ್ಣು ಮತ್ತು ಹರ್ಬಲ್ ಪಾನೀಯದೊಂದಿಗೆ ವೀಗನ್ ತರಕಾರಿ ಪೊಹಾ",
+    "Vegan Vegetable Soup with Besan Chilla and Fruit": "ಬೇಸನ್ ಚಿಲ್ಲಾ ಮತ್ತು ಹಣ್ಣಿನೊಂದಿಗೆ ವೀಗನ್ ತರಕಾರಿ ಸೂಪ್",
   },
 } satisfies Record<Exclude<OutputLanguage, "en">, Record<string, string>>;
 
@@ -1459,6 +1637,20 @@ function translateText(text: string | undefined, language: OutputLanguage): stri
       "सब्जियों, दही और सदस्य-विशेष हिस्सों वाला हल्का पारिवारिक नाश्ता।",
     "Balanced lunch with grains, dal protein, vegetables, curd, and member-specific portion guidance.":
       "अनाज, दाल प्रोटीन, सब्जियों, दही और सदस्य-विशेष हिस्सों के मार्गदर्शन वाला संतुलित दोपहर का भोजन।",
+    "A protein-rich breakfast using besan, vegetables and curd for families wanting a change from grain-heavy mornings.":
+      "अनाज-प्रधान सुबह से बदलाव चाहने वाले परिवारों के लिए बेसन, सब्जियों और दही वाला प्रोटीन-युक्त नाश्ता।",
+    "A light but filling evening snack using poha, vegetables, curd and fruit instead of packaged snacks.":
+      "पैकेट स्नैक्स के बजाय पोहा, सब्जियों, दही और फल वाला हल्का लेकिन पेट भरने वाला शाम का नाश्ता।",
+    "A warm high-tea option with besan chilla, vegetable soup and curd for better satiety than biscuits.":
+      "बिस्कुट से बेहतर संतुष्टि देने वाला बेसन चीला, सब्जी सूप और दही का गरम हाई टी विकल्प।",
+    "A balanced family lunch with vegetable pulao, dal protein and cooling raita, planned for variety without heavy cooking.":
+      "ज्यादा भारी पकाने के बिना विविधता देने वाला सब्जी पुलाव, दाल प्रोटीन और ठंडे रायते का संतुलित पारिवारिक दोपहर भोजन।",
+    "A familiar South Indian lunch option with millet base, vegetable sambar, curd, and practical family portions.":
+      "मिलेट बेस, सब्जी सांभर, दही और व्यावहारिक पारिवारिक हिस्सों वाला परिचित दक्षिण भारतीय दोपहर भोजन।",
+    "A dairy-free evening poha snack with vegetables, fruit and a light herbal drink.":
+      "सब्जियों, फल और हल्के हर्बल पेय के साथ डेयरी-रहित शाम का पोहा नाश्ता।",
+    "A warm vegan snack plate with vegetable soup, besan chilla and fruit for better satiety.":
+      "बेहतर संतुष्टि के लिए सब्जी सूप, बेसन चीला और फल वाली गरम वीगन स्नैक प्लेट।",
     "Nutrition values are estimates and should not be treated as medical advice.":
       "पोषण संबंधी आंकड़े अनुमान हैं और इन्हें चिकित्सा सलाह नहीं माना जाना चाहिए।",
     "Known allergies and doctor restrictions must be reviewed before cooking.":
@@ -1538,6 +1730,20 @@ function translateText(text: string | undefined, language: OutputLanguage): stri
       "ತರಕಾರಿಗಳು, ಮೊಸರು ಮತ್ತು ಸದಸ್ಯರಿಗನುಗುಣ ಭಾಗಗಳಿರುವ ಹಗುರವಾದ ಕುಟುಂಬದ ಉಪಹಾರ.",
     "Balanced lunch with grains, dal protein, vegetables, curd, and member-specific portion guidance.":
       "ಧಾನ್ಯಗಳು, ದಾಲ್ ಪ್ರೋಟೀನ್, ತರಕಾರಿಗಳು, ಮೊಸರು ಮತ್ತು ಸದಸ್ಯರಿಗನುಗುಣ ಭಾಗ ಮಾರ್ಗದರ್ಶನದೊಂದಿಗೆ ಸಮತೋಲನ ಮಧ್ಯಾಹ್ನದ ಊಟ.",
+    "A protein-rich breakfast using besan, vegetables and curd for families wanting a change from grain-heavy mornings.":
+      "ಧಾನ್ಯ ಆಧಾರಿತ ಬೆಳಗಿನ ಆಹಾರದಿಂದ ಬದಲಾವಣೆ ಬಯಸುವ ಕುಟುಂಬಗಳಿಗೆ ಬೇಸನ್, ತರಕಾರಿ ಮತ್ತು ಮೊಸರಿನ ಪ್ರೋಟೀನ್-ಯುಕ್ತ ಉಪಹಾರ.",
+    "A light but filling evening snack using poha, vegetables, curd and fruit instead of packaged snacks.":
+      "ಪ್ಯಾಕೆಟ್ ಸ್ನ್ಯಾಕ್ಸ್ ಬದಲು ಪೊಹಾ, ತರಕಾರಿ, ಮೊಸರು ಮತ್ತು ಹಣ್ಣಿನ ಹಗುರವಾದರೂ ಹೊಟ್ಟೆತುಂಬುವ ಸಂಜೆ ತಿಂಡಿ.",
+    "A warm high-tea option with besan chilla, vegetable soup and curd for better satiety than biscuits.":
+      "ಬಿಸ್ಕತ್‌ಗಿಂತ ಹೆಚ್ಚು ತೃಪ್ತಿ ನೀಡುವ ಬೇಸನ್ ಚಿಲ್ಲಾ, ತರಕಾರಿ ಸೂಪ್ ಮತ್ತು ಮೊಸರಿನ ಬಿಸಿ ಹೈ ಟೀ ಆಯ್ಕೆ.",
+    "A balanced family lunch with vegetable pulao, dal protein and cooling raita, planned for variety without heavy cooking.":
+      "ಹೆಚ್ಚು ಭಾರಿ ಅಡುಗೆ ಇಲ್ಲದೆ ವೈವಿಧ್ಯ ನೀಡುವ ತರಕಾರಿ ಪುಲಾವ್, ದಾಲ್ ಪ್ರೋಟೀನ್ ಮತ್ತು ತಂಪಾದ ರೈತದ ಸಮತೋಲನ ಕುಟುಂಬ ಮಧ್ಯಾಹ್ನದ ಊಟ.",
+    "A familiar South Indian lunch option with millet base, vegetable sambar, curd, and practical family portions.":
+      "ಮಿಲ್ಲೆಟ್ ಬೇಸ್, ತರಕಾರಿ ಸಾಂಬಾರ್, ಮೊಸರು ಮತ್ತು ಪ್ರಾಯೋಗಿಕ ಕುಟುಂಬ ಭಾಗಗಳೊಂದಿಗೆ ಪರಿಚಿತ ದಕ್ಷಿಣ ಭಾರತೀಯ ಮಧ್ಯಾಹ್ನದ ಊಟ.",
+    "A dairy-free evening poha snack with vegetables, fruit and a light herbal drink.":
+      "ತರಕಾರಿಗಳು, ಹಣ್ಣು ಮತ್ತು ಹಗುರ ಹರ್ಬಲ್ ಪಾನೀಯದೊಂದಿಗೆ ಡೈರಿ-ರಹಿತ ಸಂಜೆ ಪೊಹಾ ತಿಂಡಿ.",
+    "A warm vegan snack plate with vegetable soup, besan chilla and fruit for better satiety.":
+      "ಉತ್ತಮ ತೃಪ್ತಿಗಾಗಿ ತರಕಾರಿ ಸೂಪ್, ಬೇಸನ್ ಚಿಲ್ಲಾ ಮತ್ತು ಹಣ್ಣಿನ ಬಿಸಿ ವೀಗನ್ ತಿಂಡಿ ತಟ್ಟೆ.",
     "Nutrition values are estimates and should not be treated as medical advice.":
       "ಪೋಷಕಾಂಶದ ಮೌಲ್ಯಗಳು ಅಂದಾಜುಗಳು; ಅವನ್ನು ವೈದ್ಯಕೀಯ ಸಲಹೆಯಾಗಿ ಪರಿಗಣಿಸಬಾರದು.",
     "Known allergies and doctor restrictions must be reviewed before cooking.":
