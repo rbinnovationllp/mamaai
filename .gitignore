@@ -47,6 +47,7 @@ web_modules/
 
 # Next.js, Vercel & Build Caches
 .next/
+.next.locked-*
 .vercel/
 
 # Other framework/build output
