@@ -57,7 +57,7 @@ export function mondayForDate(targetDate: string) {
 function slotAttendance(request: CreateMealPlanRequest, mealTime: MealTime): MealAttendanceEntry[] | undefined {
   if (request.mealAttendance?.length) {
     const existing = request.mealAttendance.find((entry) => entry.mealTime === mealTime);
-    return existing ? [{ ...existing, mealTime }] : request.mealAttendance;
+    if (existing) return [{ ...existing, mealTime }];
   }
 
   if (!request.dayAttendancePlan) return undefined;

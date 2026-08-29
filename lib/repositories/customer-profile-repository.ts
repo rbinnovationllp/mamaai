@@ -3,6 +3,7 @@ import { getMamaAiTableName, mamaAiDynamoDb } from "./dynamodb-client";
 import { createId } from "./in-memory-store";
 import type {
   DayWiseFoodRoutinePreference,
+  DayAttendancePlan,
   MealTimingPattern,
   MealTypePreferenceProfile,
   RecentMealHistoryDay,
@@ -24,6 +25,7 @@ export interface CustomerAccountRecord {
   mealTypePreferences?: MealTypePreferenceProfile;
   mealTimings?: MealTimingPattern;
   recentMealHistory?: RecentMealHistoryDay[];
+  regularAttendancePattern?: DayAttendancePlan;
   nonVegPreferredFoods?: string[];
   createdAt: string;
   updatedAt: string;
@@ -76,6 +78,7 @@ export class CustomerProfileRepository {
     mealTypePreferences?: CustomerAccountRecord["mealTypePreferences"];
     mealTimings?: CustomerAccountRecord["mealTimings"];
     recentMealHistory?: CustomerAccountRecord["recentMealHistory"];
+    regularAttendancePattern?: CustomerAccountRecord["regularAttendancePattern"];
     nonVegPreferredFoods?: CustomerAccountRecord["nonVegPreferredFoods"];
   }): Promise<CustomerAccountRecord> {
     const timestamp = nowIso();
@@ -95,6 +98,7 @@ export class CustomerProfileRepository {
       mealTypePreferences: input.mealTypePreferences ?? existing?.mealTypePreferences ?? {},
       mealTimings: input.mealTimings ?? existing?.mealTimings ?? {},
       recentMealHistory: input.recentMealHistory ?? existing?.recentMealHistory ?? [],
+      regularAttendancePattern: input.regularAttendancePattern ?? existing?.regularAttendancePattern,
       nonVegPreferredFoods: input.nonVegPreferredFoods ?? existing?.nonVegPreferredFoods ?? [],
       createdAt: existing?.createdAt ?? timestamp,
       updatedAt: timestamp,
