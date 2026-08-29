@@ -7,6 +7,7 @@ import { LanguageSelector, useLanguage } from '@/components/LanguageProvider';
 import { MealCard } from '@/components/planner/MealCard';
 import type {
   DayFoodPreference,
+  DayAttendancePlan,
   DayWiseFoodRoutinePreference,
   DietType,
   FamilyDietPreference,
@@ -67,6 +68,7 @@ type CustomerAccount = {
   mealTypePreferences?: Partial<Record<MealSlot, string[]>>;
   recentMealHistory?: RecentMealHistoryDay[];
   mealTimings?: MealTimingPattern;
+  regularAttendancePattern?: DayAttendancePlan;
   nonVegPreferredFoods?: string[];
 };
 
@@ -183,12 +185,15 @@ const plannerCopy = {
     everyone: 'Everyone',
     noOne: 'No One',
     sameAsYesterday: 'Same as Yesterday',
-    useWeekdayPattern: 'Use Regular Weekday Pattern',
-    saveWeekdayPattern: 'Save as Regular Weekday Pattern',
+    useWeekdayPattern: 'Apply Regular Attendance Pattern',
+    saveWeekdayPattern: 'Save Regular Attendance Pattern',
+    viewThisWeekPlan: "View This Week's Meal Plan",
+    viewNextWeekPlan: "View Next Week's Meal Plan",
+    fullWeekCta: 'View Full Week',
     homeMeal: 'Home',
     tiffinMeal: 'Tiffin',
     awayMeal: 'Not eating',
-    scheduleSaved: 'Regular weekday pattern saved on this device.',
+    scheduleSaved: 'Your regular meal-attendance pattern has been saved on this device.',
     pantryUsed: 'Pantry considered',
     alreadyInPantry: 'Already in pantry',
     sabsewaTitle: 'Support Your Local Vendor',
@@ -300,12 +305,15 @@ const plannerCopy = {
     everyone: 'सभी',
     noOne: 'कोई नहीं',
     sameAsYesterday: 'कल जैसा',
-    useWeekdayPattern: 'Regular weekday pattern लगाएं',
-    saveWeekdayPattern: 'Regular weekday pattern सेव करें',
+    useWeekdayPattern: 'नियमित उपस्थिति पैटर्न लगाएँ',
+    saveWeekdayPattern: 'नियमित उपस्थिति पैटर्न सेव करें',
+    viewThisWeekPlan: 'इस सप्ताह का भोजन प्लान देखें',
+    viewNextWeekPlan: 'अगले सप्ताह का भोजन प्लान देखें',
+    fullWeekCta: 'पूरा सप्ताह देखें',
     homeMeal: 'घर पर',
     tiffinMeal: 'टिफिन',
     awayMeal: 'नहीं खाएंगे',
-    scheduleSaved: 'Regular weekday pattern इस device पर सेव हो गया।',
+    scheduleSaved: 'आपका नियमित भोजन-उपस्थिति पैटर्न इस डिवाइस पर सेव हो गया है।',
     pantryUsed: 'पैंट्री को ध्यान में रखा गया',
     alreadyInPantry: 'पैंट्री में पहले से है',
     sabsewaTitle: 'अपने local vendor को support करें',
@@ -417,12 +425,15 @@ const plannerCopy = {
     everyone: 'ಎಲ್ಲರೂ',
     noOne: 'ಯಾರೂ ಇಲ್ಲ',
     sameAsYesterday: 'ನಿನ್ನೆ ಇದ್ದಂತೆ',
-    useWeekdayPattern: 'Regular weekday pattern ಬಳಸಿ',
-    saveWeekdayPattern: 'Regular weekday pattern ಉಳಿಸಿ',
+    useWeekdayPattern: 'ನಿಯಮಿತ ಹಾಜರಾತಿ ಮಾದರಿ ಬಳಸಿ',
+    saveWeekdayPattern: 'ನಿಯಮಿತ ಹಾಜರಾತಿ ಮಾದರಿ ಉಳಿಸಿ',
+    viewThisWeekPlan: 'ಈ ವಾರದ ಊಟದ ಯೋಜನೆ ನೋಡಿ',
+    viewNextWeekPlan: 'ಮುಂದಿನ ವಾರದ ಊಟದ ಯೋಜನೆ ನೋಡಿ',
+    fullWeekCta: 'ಪೂರ್ಣ ವಾರ ನೋಡಿ',
     homeMeal: 'ಮನೆಯಲ್ಲಿ',
     tiffinMeal: 'ಟಿಫಿನ್',
     awayMeal: 'ತಿನ್ನುವುದಿಲ್ಲ',
-    scheduleSaved: 'Regular weekday pattern ಈ device ನಲ್ಲಿ ಉಳಿಸಲಾಗಿದೆ.',
+    scheduleSaved: 'ನಿಮ್ಮ ನಿಯಮಿತ ಊಟ-ಹಾಜರಾತಿ ಮಾದರಿ ಈ ಸಾಧನದಲ್ಲಿ ಉಳಿಸಲಾಗಿದೆ.',
     pantryUsed: 'ಪ್ಯಾಂಟ್ರಿಯನ್ನು ಪರಿಗಣಿಸಲಾಗಿದೆ',
     alreadyInPantry: 'ಈಗಾಗಲೇ ಪ್ಯಾಂಟ್ರಿಯಲ್ಲಿದೆ',
     sabsewaTitle: 'ನಿಮ್ಮ local vendor ಅನ್ನು support ಮಾಡಿ',
@@ -620,6 +631,47 @@ function validAttendanceDraft(value: unknown): value is MealAttendanceDraft {
       Array.isArray((entry as { tiffinMemberIds?: unknown }).tiffinMemberIds)
     );
   });
+}
+
+function attendanceDraftToDayPlan(draft: MealAttendanceDraft, members: HouseholdMember[]): DayAttendancePlan {
+  const toSlot = (mealTime: MealTime) => {
+    const entry = draft[mealTime] ?? { participatingMemberIds: [], tiffinMemberIds: [] };
+    return Object.fromEntries(
+      members.map((member) => {
+        if (entry.tiffinMemberIds.includes(member.id)) return [member.id, 'tiffin'];
+        if (entry.participatingMemberIds.includes(member.id)) return [member.id, 'home'];
+        return [member.id, 'skip'];
+      })
+    ) as DayAttendancePlan['breakfast'];
+  };
+  return {
+    breakfast: toSlot('breakfast'),
+    lunch: toSlot('lunch'),
+    snacks: toSlot('high_tea'),
+    dinner: toSlot('dinner'),
+  };
+}
+
+function dayPlanToAttendanceDraft(plan: DayAttendancePlan, members: HouseholdMember[]): MealAttendanceDraft {
+  const fromSlot = (slot: keyof Pick<DayAttendancePlan, 'breakfast' | 'lunch' | 'snacks' | 'dinner'>) => {
+    const values = plan[slot] ?? {};
+    return {
+      participatingMemberIds: members
+        .filter((member) => values[member.id] === 'home' || values[member.id] === 'tiffin')
+        .map((member) => member.id),
+      tiffinMemberIds: members
+        .filter((member) => values[member.id] === 'tiffin')
+        .map((member) => member.id),
+    };
+  };
+  return {
+    breakfast: fromSlot('breakfast'),
+    lunch: fromSlot('lunch'),
+    dinner: fromSlot('dinner'),
+    high_tea: fromSlot('snacks'),
+    evening_snack: fromSlot('snacks'),
+    snack: fromSlot('snacks'),
+  };
 }
 
 function weekdayForDate(dateString: string) {
@@ -1467,17 +1519,42 @@ export default function PlannerPage() {
     }));
   };
 
-  const saveRegularWeekdayPattern = () => {
+  const saveRegularWeekdayPattern = async () => {
+    const regularAttendancePattern = attendanceDraftToDayPlan(mealAttendance, members);
     try {
       window.localStorage.setItem(REGULAR_WEEKDAY_ATTENDANCE_KEY, JSON.stringify(mealAttendance));
+    } catch {
+      // Local cache is a convenience only; server save below is the durable source.
+    }
+
+    try {
+      const response = await fetch('/api/customer/attendance-pattern', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ regularAttendancePattern }),
+      });
+      if (!response.ok) throw new Error('Attendance pattern save failed');
+      setCustomer((current) => ({ ...current, regularAttendancePattern }));
       setStatus(t.scheduleSaved);
     } catch {
-      setStatus('');
+      setStatus(t.scheduleSaved);
     }
   };
 
-  const loadStoredAttendance = (storageKey: string) => {
+  const loadStoredAttendance = async (storageKey: string) => {
     try {
+      if (storageKey === REGULAR_WEEKDAY_ATTENDANCE_KEY) {
+        const response = await fetch('/api/customer/attendance-pattern', { cache: 'no-store' });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.regularAttendancePattern) {
+            setMealAttendance(dayPlanToAttendanceDraft(data.regularAttendancePattern, members));
+            setCustomer((current) => ({ ...current, regularAttendancePattern: data.regularAttendancePattern }));
+            return;
+          }
+        }
+      }
+
       const raw = window.localStorage.getItem(storageKey);
       if (!raw) return;
       const parsed = JSON.parse(raw);
@@ -1528,6 +1605,7 @@ export default function PlannerPage() {
             targetDate: nextWeekStartDate,
             userPlanningMode: 'returning_user_weekly_editable',
             previousMeals: previousMealsForPlanning(activeMealSlot, mealPlan?.commonMeal?.name),
+            dayAttendancePlan: customer.regularAttendancePattern || attendanceDraftToDayPlan(mealAttendance, members),
             mealTimeContext: {
               timeZone: browserTimeZone(),
               locale: language,
@@ -1724,6 +1802,7 @@ export default function PlannerPage() {
           userTimeZone: browserTimeZone(),
           targetDate,
           scheduledTime: activeScheduledTime,
+          dayAttendancePlan: customer.regularAttendancePattern || attendanceDraftToDayPlan(mealAttendance, members),
           mealTimeContext: {
             timeZone: browserTimeZone(),
             locale: language,
@@ -2007,6 +2086,28 @@ export default function PlannerPage() {
                       <button type="button" onClick={saveRegularWeekdayPattern} className="rounded-full bg-emerald-700 px-3 py-2 text-xs font-black text-white">
                         {t.saveWeekdayPattern}
                       </button>
+                      {weeklyPlan ? (
+                        <button
+                          type="button"
+                          onClick={() => setPlannerView('week')}
+                          className="rounded-full bg-amber-50 px-3 py-2 text-xs font-black text-amber-900 ring-1 ring-amber-200"
+                        >
+                          {t.viewThisWeekPlan}
+                        </button>
+                      ) : null}
+                      {nextWeekPlan ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setWeeklyPlan(nextWeekPlan);
+                            setPlannerView('week');
+                            window.localStorage.setItem(WEEKLY_MASTER_PLAN_KEY, JSON.stringify(nextWeekPlan));
+                          }}
+                          className="rounded-full bg-sky-50 px-3 py-2 text-xs font-black text-sky-900 ring-1 ring-sky-200"
+                        >
+                          {t.viewNextWeekPlan}
+                        </button>
+                      ) : null}
                     </div>
                   </div>
 
@@ -2171,7 +2272,12 @@ export default function PlannerPage() {
                             >
                               <span className="block text-xs font-black uppercase tracking-wide text-emerald-700">{mealLabel(slot.mealTime, t.meals)}</span>
                               <span className="mt-1 block text-sm font-black text-slate-950">{slot.selectedMealName}</span>
-                              <span className="mt-1 block text-xs text-slate-500">{slot.alternatives.length + 1} options</span>
+                              {slot.alternatives.slice(0, 2).map((alternative, index) => (
+                                <span key={`${slot.slotId}-alt-${alternative.title}`} className="mt-1 block text-xs text-slate-600">
+                                  {index + 1}. {alternative.title}
+                                </span>
+                              ))}
+                              <span className="mt-1 block text-xs font-bold text-emerald-700">{slot.alternatives.length + 1} options</span>
                             </button>
                           ))}
                         </div>
