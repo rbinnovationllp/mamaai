@@ -30,6 +30,22 @@ MAMA AI is an AI-powered Family Food Operating System for household meal plannin
 
 Latest personalization updates include mixed-diet joint-family planning and optional family budget preference. MAMAAI can now plan a common base meal with vegetarian, eggetarian, vegan, or non-vegetarian add-ons only for the members who need them, while using the saved budget level to guide ingredient choice, grocery recommendations, substitutions, and frequency of premium ingredients.
 
+
+## Weekly Meal Planning, Procurement, and Global Family Support
+
+MAMAAI now uses a persisted weekly planning flow for production-style use:
+
+- A Monday-Sunday master plan is stored by `familyId + weekStartDate`.
+- The planner reuses an existing weekly plan on refresh instead of regenerating meals.
+- A DynamoDB lock prevents duplicate weekly generation when multiple requests arrive together.
+- On Saturday/Sunday, the app can automatically prepare or reuse the next week's plan when the saved paid/trial family opens the planner.
+- Weekly procurement sections are derived from the actual selected meals, not from generic nationality assumptions.
+- Tomorrow's ingredient reminder comes from the saved weekly plan.
+- If a user selects another meal midweek, the weekly grocery/procurement view recalculates from the changed slot.
+- International family contexts now use global meal candidate pools when family preference/history points away from Indian cuisine. Indian families and Indian-food-preferring families still receive Indian/regional planning.
+
+The production-safe fallback is deterministic and cost-controlled if Gemini is unavailable. Deployed multi-country QA should still be done before broad advertising to confirm content quality for India, Canada, UK, UAE, Australia and other target markets.
+
 ## Core Idea
 
 MAMA AI generates:
@@ -360,3 +376,4 @@ https://github.com/rbinnovationllp/mamaai
 
 - Support: support@mamaai.in
 - Owner: rbinnovationllp@gmail.com
+

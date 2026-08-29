@@ -560,6 +560,105 @@ export interface FamilyMealPlan {
   updatedAt: string;
 }
 
+export type WeeklyMealPlanStatus = "planned" | "selected" | "changed" | "locked" | "completed";
+
+export interface WeeklyMealPlanSlot {
+  slotId: ID;
+  date: string;
+  day: "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
+  mealTime: MealTime;
+  primaryOption: FamilyMealPlan;
+  alternatives: MealAlternativeOption[];
+  selectedOption: FamilyMealPlan;
+  originalMealName: string;
+  selectedMealName: string;
+  actualMealName?: string;
+  status: WeeklyMealPlanStatus;
+  userChangeReason?: MealReplacementReason | string;
+  lockedAt?: string;
+  updatedAt: string;
+}
+
+export type ProcurementPurchaseWindow = "buy_this_weekend" | "buy_monday_tuesday" | "buy_midweek" | "buy_later_this_week" | "buy_day_before" | "buy_same_day";
+
+export interface WeeklyGroceryRequirement {
+  itemId: ID;
+  name: string;
+  category: Ingredient["category"];
+  totalQuantity: string;
+  quantityToPurchase: string;
+  purchaseWindow: "buy_in_advance" | "buy_fresh";
+  procurementWindow?: ProcurementPurchaseWindow;
+  storageCharacteristic?: "shelf_stable" | "longer_keeping_produce" | "fresh_short_window" | "leafy_or_highly_perishable" | "dairy_or_chilled" | "protein_or_non_veg" | "other";
+  purchasePriority?: "high" | "medium" | "low";
+  plannedConsumptionDates?: string[];
+  pantryQuantity?: string;
+  remainingQuantity?: string;
+  freshnessNote?: string;
+  estimatedCost: Money;
+  mealReferences: Array<{ date: string; mealTime: MealTime; mealName: string }>;
+}
+
+export interface ProcurementScheduleGroup {
+  groupId: ID;
+  title: string;
+  description: string;
+  recommendedPurchaseDate?: string;
+  recommendedWindow: ProcurementPurchaseWindow;
+  items: WeeklyGroceryRequirement[];
+}
+
+export interface TomorrowIngredientReminder {
+  date: string;
+  meals: Array<{
+    mealTime: MealTime;
+    mealName: string;
+    items: WeeklyGroceryRequirement[];
+  }>;
+  stillToArrange: WeeklyGroceryRequirement[];
+}
+
+export interface SabSewaShoppingRequirement {
+  shoppingDate: string;
+  itemCategory: Ingredient["category"];
+  itemName: string;
+  requiredQuantity: string;
+  unit?: string;
+  preferredPurchaseWindow: ProcurementPurchaseWindow;
+}
+export interface WeeklyFamilyMealPlan {
+  weekPlanId: ID;
+  familyId: ID;
+  userId?: ID;
+  weekStartDate: string;
+  weekEndDate: string;
+  timezone: string;
+  preferredLanguage: string;
+  planVersion: number;
+  generatedAt: string;
+  updatedAt: string;
+  status: "active" | "archived";
+  days: Array<{
+    date: string;
+    day: WeeklyMealPlanSlot["day"];
+    meals: WeeklyMealPlanSlot[];
+  }>;
+  weeklyGroceryRequirements: WeeklyGroceryRequirement[];
+  procurementSchedule?: ProcurementScheduleGroup[];
+  tomorrowIngredientReminder?: TomorrowIngredientReminder;
+  sabSewaShoppingRequirement?: SabSewaShoppingRequirement[];
+  procurementSafetyNote?: string;
+  changeLog: Array<{
+    changedAt: string;
+    date: string;
+    mealTime: MealTime;
+    originalMealName: string;
+    selectedMealName: string;
+    reason?: string;
+    planVersion: number;
+  }>;
+}
+
 export interface CreateFamilyInput {
   name: string;
   country: string;

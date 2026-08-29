@@ -1104,6 +1104,142 @@ function vegetarianLunchCandidates(
     },
   ];
 }
+
+function simpleIngredients(items: Array<[string, string, Ingredient["category"], number]>): Ingredient[] {
+  return items.map(([name, quantity, category, cost]) => ({ name, quantity, category, estimatedCost: money(cost) }));
+}
+
+function globalCandidateIngredients(kind: "oats" | "wrap" | "mediterranean" | "pasta" | "soup" | "ricebowl" | "snack" | "eggs" | "chicken" | "vegan") {
+  const catalog = {
+    oats: [
+      ["Oats", "2 cups", "grains", 70],
+      ["Milk or fortified plant milk", "750 ml", "dairy", 90],
+      ["Banana or seasonal fruit", "5 pieces", "fruits", 90],
+      ["Nuts or seeds", "0.5 cup", "protein", 80],
+    ],
+    wrap: [
+      ["Whole grain wraps or bread", "8 pieces", "grains", 120],
+      ["Hummus or bean spread", "1.5 cups", "protein", 110],
+      ["Cucumber and salad vegetables", "4 cups", "vegetables", 120],
+      ["Yogurt or fruit side", "4 portions", "dairy", 100],
+    ],
+    mediterranean: [
+      ["Rice, couscous or whole grain base", "3 cups", "grains", 110],
+      ["Chickpeas or beans", "2 cups", "pulses", 95],
+      ["Roasted vegetables", "5 cups", "vegetables", 180],
+      ["Yogurt dip or tahini sauce", "1 cup", "dairy", 100],
+    ],
+    pasta: [
+      ["Whole wheat pasta", "500 g", "grains", 130],
+      ["Tomato sauce", "2 cups", "vegetables", 90],
+      ["Mixed vegetables", "4 cups", "vegetables", 150],
+      ["Cheese or bean protein", "1 cup", "protein", 120],
+    ],
+    soup: [
+      ["Seasonal vegetables", "5 cups", "vegetables", 170],
+      ["Lentils or beans", "1.5 cups", "pulses", 90],
+      ["Whole grain bread", "6 slices", "grains", 90],
+      ["Fruit", "4 portions", "fruits", 100],
+    ],
+    ricebowl: [
+      ["Rice or quinoa", "3 cups", "grains", 130],
+      ["Beans or tofu", "2 cups", "protein", 150],
+      ["Mixed vegetables", "5 cups", "vegetables", 170],
+      ["Yogurt, salsa or light sauce", "1 cup", "dairy", 80],
+    ],
+    snack: [
+      ["Fruit", "5 portions", "fruits", 120],
+      ["Yogurt or plant yogurt", "4 portions", "dairy", 120],
+      ["Nuts, seeds or roasted chickpeas", "1 cup", "protein", 120],
+    ],
+    eggs: [
+      ["Eggs", "8 pieces", "protein", 120],
+      ["Whole grain toast or wraps", "8 pieces", "grains", 120],
+      ["Salad vegetables", "4 cups", "vegetables", 140],
+      ["Fruit", "4 portions", "fruits", 100],
+    ],
+    chicken: [
+      ["Chicken or preferred lean protein", "700 g", "protein", 260],
+      ["Rice, potatoes or whole grain base", "3 cups", "grains", 110],
+      ["Seasonal vegetables", "5 cups", "vegetables", 170],
+      ["Yogurt or sauce side", "1 cup", "dairy", 90],
+    ],
+    vegan: [
+      ["Tofu, beans or lentils", "2.5 cups", "protein", 180],
+      ["Rice, pasta or whole grain base", "3 cups", "grains", 130],
+      ["Seasonal vegetables", "5 cups", "vegetables", 170],
+      ["Fruit", "4 portions", "fruits", 100],
+    ],
+  } as const;
+  return simpleIngredients(catalog[kind] as unknown as Array<[string, string, Ingredient["category"], number]>);
+}
+
+function shouldUseGlobalCandidatePool(input: GeneratePlanInput) {
+  const joined = [
+    input.family.country,
+    input.family.state,
+    input.family.city,
+    ...(input.family.cuisinePreferences ?? []),
+    ...(input.family.localIngredientAvailabilityNotes ?? []),
+    ...recentMealsFor(input, input.mealTime ?? "lunch"),
+  ].join(" ").toLowerCase();
+  const explicitIndian = /india|bharat|indian|punjabi|gujarati|bengali|marathi|south indian|north indian|karnataka|bengaluru|bangalore|dal|roti|sabzi|khichdi|poha|dosa|idli|paneer/.test(joined);
+  const clearlyOutsideIndia = /usa|united states|canada|uk|united kingdom|europe|australia|middle east|uae|dubai|africa|singapore|london|toronto|new york|mediterranean|british|continental|western|mexican|italian|thai|japanese|korean/.test(joined);
+  return clearlyOutsideIndia && !explicitIndian;
+}
+
+function globalCandidates(
+  input: GeneratePlanInput,
+  mealId: string,
+  mealTime: MealTime,
+  regionFit: string
+): CommonMealDraft[] {
+  const diet = input.family.dietPreference;
+  const proteinMeal = diet === "vegan"
+    ? { name: "Vegan Grain Bowl with Beans, Vegetables and Fruit", kind: "vegan" as const }
+    : diet === "eggetarian"
+      ? { name: "Egg and Whole Grain Plate with Salad and Fruit", kind: "eggs" as const }
+      : diet === "non_vegetarian"
+        ? { name: "Lean Protein Rice Bowl with Vegetables and Yogurt Side", kind: "chicken" as const }
+        : { name: "Mediterranean Chickpea Grain Bowl with Roasted Vegetables", kind: "mediterranean" as const };
+
+  const pools: Record<string, Array<{ suffix: string; name: string; description: string; kind: Parameters<typeof globalCandidateIngredients>[0]; prep: number }>> = {
+    breakfast: [
+      { suffix: "oats", name: "Oats with Fruit, Nuts and Yogurt", description: "A globally familiar breakfast that follows family preference, budget and portion needs without assuming Indian food habits.", kind: "oats", prep: 15 },
+      { suffix: "eggs", name: diet === "vegan" ? "Vegan Toast with Bean Spread, Fruit and Seeds" : "Egg or Bean Toast Plate with Fruit", description: "A practical breakfast for households that use toast, eggs, beans or plant protein based on their selected diet.", kind: diet === "vegan" ? "vegan" : "eggs", prep: 20 },
+      { suffix: "wrap", name: "Whole Grain Breakfast Wrap with Fruit", description: "A quick breakfast wrap that can be made vegetarian, egg-based or vegan from the family profile.", kind: "wrap", prep: 20 },
+    ],
+    lunch: [
+      { suffix: "grain-bowl", name: proteinMeal.name, description: "A flexible lunch bowl chosen from family food history and cuisine preferences instead of country stereotypes.", kind: proteinMeal.kind, prep: 30 },
+      { suffix: "wrap", name: "Whole Grain Wraps with Hummus, Salad and Fruit", description: "A lunch or tiffin-friendly option for families that prefer practical packed meals or mixed fresh cooking.", kind: "wrap", prep: 25 },
+      { suffix: "pasta", name: "Vegetable Pasta with Protein Side and Salad", description: "A familiar international lunch option with vegetables, protein and member-specific portions.", kind: "pasta", prep: 30 },
+    ],
+    high_tea: [
+      { suffix: "snack", name: "Fruit, Yogurt and Nuts Snack Plate", description: "A light snack that avoids assuming Indian high-tea habits and adapts to the family's actual routine.", kind: "snack", prep: 10 },
+      { suffix: "soup", name: "Vegetable Soup Cup with Whole Grain Toast", description: "A warm snack for families preferring light evening food, with dairy or vegan adjustments as needed.", kind: "soup", prep: 25 },
+      { suffix: "wrap", name: "Mini Whole Grain Wraps with Salad Filling", description: "A small high-tea option that can also work as a packed snack for children or working members.", kind: "wrap", prep: 20 },
+    ],
+    dinner: [
+      { suffix: "mediterranean", name: proteinMeal.name, description: "A balanced dinner shaped by the family's selected cuisines, history, pantry and budget rather than Indian defaults.", kind: proteinMeal.kind, prep: 35 },
+      { suffix: "pasta", name: "Vegetable Pasta with Salad and Protein Option", description: "A practical dinner for international or mixed-cuisine families, with vegetarian, vegan or non-veg protein as selected.", kind: "pasta", prep: 30 },
+      { suffix: "soup", name: "Vegetable and Lentil Soup with Whole Grain Bread", description: "A lighter dinner option for families preferring simple fresh cooking or cold-weather comfort meals.", kind: "soup", prep: 35 },
+    ],
+  };
+
+  const key = mealTime === "snack" || mealTime === "evening_snack" ? "high_tea" : mealTime;
+  return (pools[key] ?? pools.lunch).map((candidate) => ({
+    mealId: `${mealId}-global-${candidate.suffix}`,
+    name: candidate.name,
+    mealTime,
+    description: candidate.description,
+    ingredients: globalCandidateIngredients(candidate.kind),
+    prepTimeMinutes: candidate.prep,
+    difficulty: "easy",
+    regionFit: `${regionFit}. Global mode: residence is context, but explicit family choices and recent actual meals come first.`,
+    nutritionIntent: "Provide culturally flexible family meal planning while respecting safety, diet, attendance, budget and recent meal history.",
+    nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
+  }));
+}
 function firstFreshMeal(candidates: CommonMealDraft[], input: GeneratePlanInput, mealTime: MealTime) {
   return candidates.find((meal) => !isMealRecentlyUsed(input, mealTime, meal.name)) ?? candidates[0];
 }
@@ -1290,6 +1426,12 @@ function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
     ? `. Explicit family ${mealSlotForMealTime(mealTime)} preferences: ${statedPreferences.join(", ")}`
     : "";
   const regionFit = `${input.family.city}, ${input.family.state}, ${input.family.country} friendly${cuisineFit}${localContext}${preferenceFit}${recentFit}${cookingFit}`;
+
+  if (shouldUseGlobalCandidatePool(input)) {
+    const candidates = globalCandidates(input, mealId, mealTime, regionFit);
+    const selected = selectCandidate(candidates, input, mealTime);
+    return completeMeal(selected, buildAlternatives(selected, candidates));
+  }
 
   // 1. High Tea / Snacks Selection & Variety Rotation
   if (mealTime === "high_tea" || mealTime === "evening_snack" || mealTime === "snack") {
