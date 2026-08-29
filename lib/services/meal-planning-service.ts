@@ -137,6 +137,8 @@ export class MealPlanningService {
       mealAttendance,
       highTeaPreference: request.highTeaPreference,
       userPlanningMode: request.userPlanningMode,
+      userPromptOverride: request.userPromptOverride,
+      excludeDishes: request.excludeDishes,
       previousMeals: request.previousMeals,
       targetDate: request.targetDate ?? new Date().toISOString().slice(0, 10),
     });
@@ -147,7 +149,10 @@ export class MealPlanningService {
       throw new Error(`Meal plan failed safety validation: ${safety.errors.join(" ")}`);
     }
 
-    const mealPlan = this.aiService.localizeFamilyMealPlan(generatedMealPlan, request.mealTimeContext?.locale);
+    const mealPlan = this.aiService.localizeFamilyMealPlan(
+      generatedMealPlan,
+      request.preferredLanguage || request.mealTimeContext?.locale
+    );
 
     // Save to in-memory fallback and persist to DynamoDB
     store.mealPlans.push(mealPlan);
@@ -189,6 +194,8 @@ export class MealPlanningService {
       targetDate: existing.targetDate,
       replacement: true,
       replacementReason: request.reason,
+      userPromptOverride: request.userPromptOverride,
+      excludeDishes: request.excludeDishes,
       excludedMealNames: [
         existing.commonMeal.name,
         ...(request.dislikedFoods ?? []),

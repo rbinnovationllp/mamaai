@@ -1463,6 +1463,34 @@ function translateText(text: string | undefined, language: OutputLanguage): stri
       "पोषण संबंधी आंकड़े अनुमान हैं और इन्हें चिकित्सा सलाह नहीं माना जाना चाहिए।",
     "Known allergies and doctor restrictions must be reviewed before cooking.":
       "खाना बनाने से पहले ज्ञात एलर्जी और डॉक्टर की पाबंदियां अवश्य जांचें।",
+    "senior-friendly portion, adjusted for appetite, chewing comfort and digestion rather than age alone":
+      "वरिष्ठ सदस्य के लिए नरम और पचने में आसान हिस्सा; केवल उम्र नहीं, बल्कि भूख, चबाने की सुविधा और पाचन के अनुसार समायोजित।",
+    "Prepare dal, rice, and vegetables separately so portions can be adjusted.":
+      "दाल, चावल और सब्जियां अलग-अलग तैयार करें ताकि हिस्से जरूरत के अनुसार समायोजित किए जा सकें।",
+    "Keep curd on the side for members who tolerate dairy.":
+      "जो सदस्य डेयरी ले सकते हैं, उनके लिए दही अलग से रखें।",
+    "Prepare dal with mild spices and enough water for the family texture preference.":
+      "परिवार की पसंद के अनुसार दाल को हल्के मसालों और पर्याप्त पानी के साथ पकाएं।",
+    "Cook roti and seasonal vegetable sabzi separately.":
+      "रोटी और मौसमी सब्जी अलग-अलग बनाएं।",
+    "Keep curd and optional protein add-ons on the side.":
+      "दही और वैकल्पिक प्रोटीन जोड़ने वाली चीजें अलग से रखें।",
+    "Remove or replace any ingredient flagged in a member adjustment.":
+      "किसी सदस्य के लिए चिन्हित अनुपयुक्त सामग्री को हटाएं या बदलें।",
+    "Serve member-specific portions using the MAMA Family Table.":
+      "MAMA Family Table के अनुसार हर सदस्य को उसके लिए उपयुक्त हिस्सा परोसें।",
+    "Keep curd, fruit, and tea separate so portions can be adjusted for each member.":
+      "दही, फल और चाय अलग रखें ताकि हर सदस्य के हिस्से अलग से समायोजित किए जा सकें।",
+    "Keep curd, paneer, egg, chicken, and other optional protein add-ons separate when family preferences differ.":
+      "जब परिवार की पसंद अलग-अलग हो, तो दही, पनीर, अंडा, चिकन और अन्य वैकल्पिक प्रोटीन अलग रखें।",
+    "YouTube integration is planned; verify ingredients against family restrictions.":
+      "YouTube वीडियो सुविधा नियोजित है; सामग्री को परिवार की पाबंदियों के अनुसार जरूर जांचें।",
+    "MAMAAI approved recipe-video mapping. Still verify ingredients against your saved family restrictions before cooking.":
+      "MAMAAI द्वारा स्वीकृत रेसिपी-वीडियो मैपिंग। पकाने से पहले सामग्री को अपनी सेव की हुई पारिवारिक पाबंदियों से मिलाकर जरूर जांचें।",
+    "Sponsored Recipe Video / Paid Promotion. MAMAAI labels paid placements clearly; verify ingredients against your saved family restrictions.":
+      "Sponsored Recipe Video / Paid Promotion। MAMAAI paid placements को स्पष्ट रूप से लेबल करता है; पकाने से पहले सामग्री को परिवार की पाबंदियों से मिलाकर जरूर जांचें।",
+    "Stored approved recipe-video mapping used first. Sponsored placements are labelled when present.":
+      "पहले सेव की हुई स्वीकृत रेसिपी-वीडियो मैपिंग उपयोग की जाती है। Sponsored placements होने पर उन्हें स्पष्ट रूप से लेबल किया जाता है।",
     [mandatoryDisclaimer]:
       "MAMAAI भोजन योजना में मदद करता है, लेकिन यह डॉक्टर, डाइटीशियन या पशु-चिकित्सक की सलाह का विकल्प नहीं है। एलर्जी, बीमारी, गर्भावस्था, बच्चों, बुजुर्गों और पालतू सदस्यों के लिए आवश्यक होने पर विशेषज्ञ से सलाह लें।",
   };
@@ -1514,11 +1542,78 @@ function translateText(text: string | undefined, language: OutputLanguage): stri
       "ಪೋಷಕಾಂಶದ ಮೌಲ್ಯಗಳು ಅಂದಾಜುಗಳು; ಅವನ್ನು ವೈದ್ಯಕೀಯ ಸಲಹೆಯಾಗಿ ಪರಿಗಣಿಸಬಾರದು.",
     "Known allergies and doctor restrictions must be reviewed before cooking.":
       "ಅಡುಗೆ ಮಾಡುವ ಮೊದಲು ತಿಳಿದಿರುವ ಅಲರ್ಜಿಗಳು ಮತ್ತು ವೈದ್ಯರ ನಿರ್ಬಂಧಗಳನ್ನು ಅವಶ್ಯವಾಗಿ ಪರಿಶೀಲಿಸಿ.",
+    "senior-friendly portion, adjusted for appetite, chewing comfort and digestion rather than age alone":
+      "ಹಿರಿಯ ಸದಸ್ಯರಿಗೆ ಮೃದುವಾದ, ಜೀರ್ಣಕ್ಕೆ ಸುಲಭವಾದ ಭಾಗ; ವಯಸ್ಸಿನ ಜೊತೆಗೆ ಹಸಿವು, ಚವಚವನೆ ಮತ್ತು ಜೀರ್ಣಶಕ್ತಿಯನ್ನೂ ಗಮನಿಸಿ ಹೊಂದಿಸಲಾಗಿದೆ.",
+    "Prepare dal, rice, and vegetables separately so portions can be adjusted.":
+      "ಭಾಗಗಳನ್ನು ಅಗತ್ಯಕ್ಕೆ ತಕ್ಕಂತೆ ಹೊಂದಿಸಲು ದಾಲ್, ಅಕ್ಕಿ ಮತ್ತು ತರಕಾರಿಗಳನ್ನು ಪ್ರತ್ಯೇಕವಾಗಿ ತಯಾರಿಸಿ.",
+    "Keep curd on the side for members who tolerate dairy.":
+      "ಡೈರಿ ತಾಳುವ ಸದಸ್ಯರಿಗೆ ಮೊಸರನ್ನು ಪ್ರತ್ಯೇಕವಾಗಿ ಇಡಿ.",
+    "Prepare dal with mild spices and enough water for the family texture preference.":
+      "ಕುಟುಂಬ ಇಷ್ಟಪಡುವ ತಳಿಗೆ ತಕ್ಕಂತೆ ದಾಲ್ ಅನ್ನು ಸೌಮ್ಯ ಮಸಾಲೆ ಮತ್ತು ಸಾಕಷ್ಟು ನೀರಿನಿಂದ ಬೇಯಿಸಿ.",
+    "Cook roti and seasonal vegetable sabzi separately.":
+      "ರೊಟ್ಟಿ ಮತ್ತು ಋತುಮಾನ ತರಕಾರಿ ಸಬ್ಜಿಯನ್ನು ಪ್ರತ್ಯೇಕವಾಗಿ ತಯಾರಿಸಿ.",
+    "Keep curd and optional protein add-ons on the side.":
+      "ಮೊಸರು ಮತ್ತು ಐಚ್ಛಿಕ ಪ್ರೋಟೀನ್ ಸೇರಿಕೆಗಳನ್ನು ಪ್ರತ್ಯೇಕವಾಗಿ ಇಡಿ.",
+    "Remove or replace any ingredient flagged in a member adjustment.":
+      "ಸದಸ್ಯರ ಹೊಂದಾಣಿಕೆಯಲ್ಲಿ ಗುರುತಿಸಿದ ಯಾವುದೇ ಪದಾರ್ಥವನ್ನು ತೆಗೆದುಹಾಕಿ ಅಥವಾ ಬದಲಿಸಿ.",
+    "Serve member-specific portions using the MAMA Family Table.":
+      "MAMA Family Table ಪ್ರಕಾರ ಪ್ರತಿಯೊಬ್ಬ ಸದಸ್ಯನಿಗೆ ಸೂಕ್ತ ಭಾಗವನ್ನು ನೀಡಿ.",
+    "Keep curd, fruit, and tea separate so portions can be adjusted for each member.":
+      "ಪ್ರತಿಯೊಬ್ಬ ಸದಸ್ಯನಿಗೆ ಭಾಗಗಳನ್ನು ಹೊಂದಿಸಲು ಮೊಸರು, ಹಣ್ಣು ಮತ್ತು ಚಹಾವನ್ನು ಪ್ರತ್ಯೇಕವಾಗಿ ಇಡಿ.",
+    "Keep curd, paneer, egg, chicken, and other optional protein add-ons separate when family preferences differ.":
+      "ಕುಟುಂಬದ ಇಷ್ಟಗಳು ಬೇರೆಯಾದರೆ ಮೊಸರು, ಪನೀರ್, ಮೊಟ್ಟೆ, ಚಿಕನ್ ಮತ್ತು ಇತರ ಐಚ್ಛಿಕ ಪ್ರೋಟೀನ್ ಸೇರಿಕೆಗಳನ್ನು ಪ್ರತ್ಯೇಕವಾಗಿ ಇಡಿ.",
+    "YouTube integration is planned; verify ingredients against family restrictions.":
+      "YouTube ವೀಡಿಯೊ ಸೌಲಭ್ಯ ಯೋಜನೆಯಲ್ಲಿದೆ; ಪದಾರ್ಥಗಳನ್ನು ಕುಟುಂಬದ ನಿರ್ಬಂಧಗಳೊಂದಿಗೆ ಪರಿಶೀಲಿಸಿ.",
+    "MAMAAI approved recipe-video mapping. Still verify ingredients against your saved family restrictions before cooking.":
+      "MAMAAI ಅನುಮೋದಿಸಿದ ರೆಸಿಪಿ-ವೀಡಿಯೊ ಮ್ಯಾಪಿಂಗ್. ಅಡುಗೆ ಮಾಡುವ ಮೊದಲು ಪದಾರ್ಥಗಳನ್ನು ಉಳಿಸಿರುವ ಕುಟುಂಬದ ನಿರ್ಬಂಧಗಳೊಂದಿಗೆ ಪರಿಶೀಲಿಸಿ.",
+    "Sponsored Recipe Video / Paid Promotion. MAMAAI labels paid placements clearly; verify ingredients against your saved family restrictions.":
+      "Sponsored Recipe Video / Paid Promotion. MAMAAI paid placements ಅನ್ನು ಸ್ಪಷ್ಟವಾಗಿ ಗುರುತಿಸುತ್ತದೆ; ಪದಾರ್ಥಗಳನ್ನು ಕುಟುಂಬದ ನಿರ್ಬಂಧಗಳೊಂದಿಗೆ ಪರಿಶೀಲಿಸಿ.",
+    "Stored approved recipe-video mapping used first. Sponsored placements are labelled when present.":
+      "ಉಳಿಸಿದ ಅನುಮೋದಿತ ರೆಸಿಪಿ-ವೀಡಿಯೊ ಮ್ಯಾಪಿಂಗ್ ಅನ್ನು ಮೊದಲು ಬಳಸಲಾಗುತ್ತದೆ. Sponsored placements ಇದ್ದರೆ ಅವುಗಳನ್ನು ಸ್ಪಷ್ಟವಾಗಿ ಗುರುತಿಸಲಾಗುತ್ತದೆ.",
     [mandatoryDisclaimer]:
       "MAMAAI ಊಟದ ಯೋಜನೆಗೆ ಸಹಾಯ ಮಾಡುತ್ತದೆ; ಆದರೆ ಇದು ವೈದ್ಯರು, ಡೈಟಿಷಿಯನ್ ಅಥವಾ ಪಶುವೈದ್ಯರ ಸಲಹೆಗೆ ಪರ್ಯಾಯವಲ್ಲ. ಅಲರ್ಜಿ, ಕಾಯಿಲೆ, ಗರ್ಭಧಾರಣೆ, ಮಕ್ಕಳು, ಹಿರಿಯರು ಮತ್ತು ಪೆಟ್ ಸದಸ್ಯರಿಗೆ ಅಗತ್ಯವಿದ್ದರೆ ತಜ್ಞರನ್ನು ಸಂಪರ್ಕಿಸಿ.",
   };
 
-  return (language === "hi" ? hi[text] : kn[text]) ?? text;
+  const direct = (language === "hi" ? hi[text] : kn[text]) ?? undefined;
+  if (direct) return direct;
+
+  const dynamicReplacements: Array<[RegExp, string]> =
+    language === "hi"
+      ? [
+        [/small preschool-child portion, about one-third of a standard adult serving/gi, "छोटे बच्चे का हिस्सा, सामान्य वयस्क हिस्से का लगभग एक-तिहाई"],
+        [/child portion, about half of a standard adult serving/gi, "बच्चे का हिस्सा, सामान्य वयस्क हिस्से का लगभग आधा"],
+        [/higher-activity adult portion, about one-quarter more than a standard adult serving/gi, "अधिक सक्रिय वयस्क का हिस्सा, सामान्य वयस्क हिस्से से लगभग एक-चौथाई अधिक"],
+        [/lighter adult portion, adjusted for lower activity/gi, "कम गतिविधि के अनुसार हल्का वयस्क हिस्सा"],
+        [/standard adult portion/gi, "सामान्य वयस्क हिस्सा"],
+        [/Meal structure for this member:/gi, "इस सदस्य के लिए भोजन संरचना:"],
+        [/Serve a small soft portion of the suggested meal;/gi, "सुझाए गए भोजन का छोटा और नरम हिस्सा परोसें;"],
+        [/Child-size serving of the suggested meal with curd or a suitable side;/gi, "सुझाए गए भोजन का बच्चे के आकार का हिस्सा दही या उपयुक्त साइड के साथ दें;"],
+        [/Standard serving of the suggested meal with curd or suitable side;/gi, "सुझाए गए भोजन का सामान्य हिस्सा दही या उपयुक्त साइड के साथ दें;"],
+        [/Larger serving of the suggested meal with extra dal or suitable protein side;/gi, "सुझाए गए भोजन का बड़ा हिस्सा अतिरिक्त दाल या उपयुक्त प्रोटीन साइड के साथ दें;"],
+        [/Serve a controlled portion of the suggested meal with extra vegetables or dal; adjust as a/gi, "सुझाए गए भोजन का नियंत्रित हिस्सा अतिरिक्त सब्जियों या दाल के साथ दें; इसे इस तरह समायोजित करें:"],
+        [/Saved non-veg pattern:/gi, "सेव किया गया नॉन-वेज पैटर्न:"],
+        [/avoid days:/gi, "बचने वाले दिन:"],
+        [/no fixed avoid day/gi, "कोई निश्चित बचने वाला दिन नहीं"],
+      ]
+      : [
+        [/small preschool-child portion, about one-third of a standard adult serving/gi, "ಚಿಕ್ಕ ಮಗುವಿನ ಭಾಗ, ಸಾಮಾನ್ಯ ವಯಸ್ಕರ ಭಾಗದ ಸುಮಾರು ಮೂರನೇ ಒಂದು ಭಾಗ"],
+        [/child portion, about half of a standard adult serving/gi, "ಮಗುವಿನ ಭಾಗ, ಸಾಮಾನ್ಯ ವಯಸ್ಕರ ಭಾಗದ ಸುಮಾರು ಅರ್ಧ"],
+        [/higher-activity adult portion, about one-quarter more than a standard adult serving/gi, "ಹೆಚ್ಚು ಚಟುವಟಿಕೆಯ ವಯಸ್ಕರ ಭಾಗ, ಸಾಮಾನ್ಯ ವಯಸ್ಕರ ಭಾಗಕ್ಕಿಂತ ಸುಮಾರು ನಾಲ್ಕನೇ ಒಂದು ಭಾಗ ಹೆಚ್ಚು"],
+        [/lighter adult portion, adjusted for lower activity/gi, "ಕಡಿಮೆ ಚಟುವಟಿಕೆಗೆ ಹೊಂದಿಸಿದ ಹಗುರ ವಯಸ್ಕರ ಭಾಗ"],
+        [/standard adult portion/gi, "ಸಾಮಾನ್ಯ ವಯಸ್ಕರ ಭಾಗ"],
+        [/Meal structure for this member:/gi, "ಈ ಸದಸ್ಯನಿಗೆ ಊಟದ ರಚನೆ:"],
+        [/Serve a small soft portion of the suggested meal;/gi, "ಸೂಚಿಸಿದ ಊಟದ ಸಣ್ಣ ಮೃದುವಾದ ಭಾಗವನ್ನು ನೀಡಿ;"],
+        [/Child-size serving of the suggested meal with curd or a suitable side;/gi, "ಸೂಚಿಸಿದ ಊಟದ ಮಗುವಿನ ಗಾತ್ರದ ಭಾಗವನ್ನು ಮೊಸರು ಅಥವಾ ಸೂಕ್ತ ಸೈಡ್‌ನೊಂದಿಗೆ ನೀಡಿ;"],
+        [/Standard serving of the suggested meal with curd or suitable side;/gi, "ಸೂಚಿಸಿದ ಊಟದ ಸಾಮಾನ್ಯ ಭಾಗವನ್ನು ಮೊಸರು ಅಥವಾ ಸೂಕ್ತ ಸೈಡ್‌ನೊಂದಿಗೆ ನೀಡಿ;"],
+        [/Larger serving of the suggested meal with extra dal or suitable protein side;/gi, "ಸೂಚಿಸಿದ ಊಟದ ದೊಡ್ಡ ಭಾಗವನ್ನು ಹೆಚ್ಚುವರಿ ದಾಲ್ ಅಥವಾ ಸೂಕ್ತ ಪ್ರೋಟೀನ್ ಸೈಡ್‌ನೊಂದಿಗೆ ನೀಡಿ;"],
+        [/Serve a controlled portion of the suggested meal with extra vegetables or dal; adjust as a/gi, "ಸೂಚಿಸಿದ ಊಟದ ನಿಯಂತ್ರಿತ ಭಾಗವನ್ನು ಹೆಚ್ಚುವರಿ ತರಕಾರಿ ಅಥವಾ ದಾಲ್ ಜೊತೆಗೆ ನೀಡಿ; ಇದನ್ನು ಹೀಗೆ ಹೊಂದಿಸಿ:"],
+        [/Saved non-veg pattern:/gi, "ಉಳಿಸಿದ ನಾನ್-ವೆಜ್ ಮಾದರಿ:"],
+        [/avoid days:/gi, "ತಪ್ಪಿಸುವ ದಿನಗಳು:"],
+        [/no fixed avoid day/gi, "ನಿಶ್ಚಿತ ತಪ್ಪಿಸುವ ದಿನ ಇಲ್ಲ"],
+      ];
+
+  const localized = dynamicReplacements.reduce((result, [pattern, replacement]) => result.replace(pattern, replacement), text);
+  return localized === text ? text : localized;
 }
 
 function localizeIngredient(ingredient: Ingredient, language: OutputLanguage): Ingredient {

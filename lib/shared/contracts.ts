@@ -612,6 +612,7 @@ export interface CreateMealPlanRequest {
   userTimeZone?: string;
   userPlanningMode?: UserPlanningMode;
   targetDate?: string;
+  preferredLanguage?: string;
   userPromptOverride?: string;
   excludeDishes?: string[];
   availableIngredients?: string[];

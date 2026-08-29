@@ -581,6 +581,9 @@ export const createMealPlanRequestSchema = z.object({
     .enum(["new_user_next_meal", "returning_user_weekly_editable"])
     .optional(),
   targetDate: z.string().optional(),
+  preferredLanguage: z.string().optional(),
+  userPromptOverride: z.string().optional(),
+  excludeDishes: z.array(z.string()).optional(),
   availableIngredients: z.array(z.string()).optional(),
   previousMeals: z.array(z.string()).optional(),
 });
