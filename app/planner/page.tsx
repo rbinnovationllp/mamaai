@@ -1608,7 +1608,7 @@ export default function PlannerPage() {
         mealAttendance: mealAttendancePayload,
       };
 
-      const dailyResponse = await fetchWithTimeout('/api/meal-plan', {
+      const dailyResponse = await fetchWithTimeout('/api/meal-plans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(mealPlanRequestBody),
@@ -1703,10 +1703,15 @@ export default function PlannerPage() {
 
   // 9. Next Week Plan Generation
   const handleGenerateNextWeek = async () => {
+    if (!customer.familyId) {
+      setWeekPlanStatus('FAILED');
+      return;
+    }
+
     setWeekPlanStatus('GENERATING');
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20000);
+    const timer = setTimeout(() => controller.abort(), 55000);
 
     try {
       const res = await fetch('/api/weekly-meal-plans', {
@@ -1714,11 +1719,25 @@ export default function PlannerPage() {
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         signal: controller.signal,
         body: JSON.stringify({
-          familyId: customer.familyId || 'fam_primary',
+          familyId: customer.familyId,
+          userId: customer.userId,
+          planType: 'weekly',
+          mealTime: activeMealSlot,
+          mealSlot: mealSlotForMealTime(activeMealSlot),
           targetDate: nextWeekStart,
           targetWeekStart: nextWeekStart,
-          locale: language,
           preferredLanguage: language,
+          userLocalTime: new Date().toISOString(),
+          userTimeZone: browserTimeZone(),
+          dayAttendancePlan: customer.regularAttendancePattern || attendanceDraftToDayPlan(mealAttendance, members, guestCountBySlot),
+          mealTimeContext: {
+            timeZone: browserTimeZone(),
+            locale: language,
+            country: culture.country?.trim() || 'Not specified',
+            region: culture.region?.trim() || 'Home region',
+            city: culture.city?.trim() || culture.region?.trim() || 'Home region',
+            localHour: currentLocalHour(),
+          },
         }),
       });
 
