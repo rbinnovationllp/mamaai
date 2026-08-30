@@ -33,7 +33,28 @@ export type DayFoodPreference =
 
 export type MealSlot = "breakfast" | "lunch" | "snacks" | "dinner";
 
+export type MealOccasion =
+  | "breakfast"
+  | "brunch"
+  | "lunch"
+  | "afternoon_snack"
+  | "high_tea"
+  | "dinner"
+  | "supper";
+
 export type MemberMealAttendanceStatus = "home" | "tiffin" | "skip" | "fasting";
+
+export interface MealTimeSlotConfig {
+  enabled: boolean;
+  time: string; // "HH:MM" 24-hour format
+}
+
+export interface MealTimetableSchedule {
+  reminderLeadTimeMinutes: number; // default 45 mins
+  weekday: Record<MealOccasion, MealTimeSlotConfig>;
+  weekend?: Record<MealOccasion, MealTimeSlotConfig>;
+  useSeparateWeekendSchedule: boolean;
+}
 
 export interface MealTimingPattern {
   breakfast?: string; // "HH:MM" 24h format
@@ -244,6 +265,10 @@ export interface Family {
   mealTypePreferences?: MealTypePreferenceProfile;
   recentMealHistory?: RecentMealHistoryDay[];
   mealTimings?: MealTimingPattern;
+  mealSchedule?: MealTimetableSchedule;
+  favoriteFoodStyles?: string[];
+  customFavoriteFoods?: string[];
+  favoriteFoodTags?: string[];
   nonVegPreferredFoods?: string[];
   cultureProfile?: CulturalFoodProfile;
   budget: BudgetProfile;
@@ -579,7 +604,13 @@ export interface WeeklyMealPlanSlot {
   updatedAt: string;
 }
 
-export type ProcurementPurchaseWindow = "buy_this_weekend" | "buy_monday_tuesday" | "buy_midweek" | "buy_later_this_week" | "buy_day_before" | "buy_same_day";
+export type ProcurementPurchaseWindow =
+  | "buy_this_weekend"
+  | "buy_monday_tuesday"
+  | "buy_midweek"
+  | "buy_later_this_week"
+  | "buy_day_before"
+  | "buy_same_day";
 
 export interface WeeklyGroceryRequirement {
   itemId: ID;
@@ -589,7 +620,14 @@ export interface WeeklyGroceryRequirement {
   quantityToPurchase: string;
   purchaseWindow: "buy_in_advance" | "buy_fresh";
   procurementWindow?: ProcurementPurchaseWindow;
-  storageCharacteristic?: "shelf_stable" | "longer_keeping_produce" | "fresh_short_window" | "leafy_or_highly_perishable" | "dairy_or_chilled" | "protein_or_non_veg" | "other";
+  storageCharacteristic?:
+  | "shelf_stable"
+  | "longer_keeping_produce"
+  | "fresh_short_window"
+  | "leafy_or_highly_perishable"
+  | "dairy_or_chilled"
+  | "protein_or_non_veg"
+  | "other";
   purchasePriority?: "high" | "medium" | "low";
   plannedConsumptionDates?: string[];
   pantryQuantity?: string;
@@ -626,6 +664,7 @@ export interface SabSewaShoppingRequirement {
   unit?: string;
   preferredPurchaseWindow: ProcurementPurchaseWindow;
 }
+
 export interface WeeklyFamilyMealPlan {
   weekPlanId: ID;
   familyId: ID;
@@ -671,6 +710,10 @@ export interface CreateFamilyInput {
   mealTypePreferences?: MealTypePreferenceProfile;
   recentMealHistory?: RecentMealHistoryDay[];
   mealTimings?: MealTimingPattern;
+  mealSchedule?: MealTimetableSchedule;
+  favoriteFoodStyles?: string[];
+  customFavoriteFoods?: string[];
+  favoriteFoodTags?: string[];
   nonVegPreferredFoods?: string[];
   cultureProfile?: CulturalFoodProfile;
   budget: BudgetProfile;
@@ -721,6 +764,7 @@ export interface CreateMealPlanRequest {
   dayAttendancePlan?: DayAttendancePlan;
   isExceptionToday?: boolean;
   customMealTimings?: MealTimingPattern;
+  mealSchedule?: MealTimetableSchedule;
   highTeaPreference?: HighTeaPreference;
 }
 

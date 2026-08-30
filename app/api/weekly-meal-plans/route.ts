@@ -24,6 +24,14 @@ async function hasMealPlanningEntitlement(request: Request, requestData: CreateM
   if (!resolvedUserId) return { ok: false, userId: undefined };
 
   try {
+    const subscriptionRepo = new SubscriptionRepository();
+    const latestSub = await subscriptionRepo.getLatestSubscriptionForUser(resolvedUserId);
+    if (latestSub?.status === "active" || latestSub?.status === "trialing") return { ok: true, userId: resolvedUserId };
+  } catch (error) {
+    console.warn("[WeeklyMealPlan Route] Subscription entitlement check failed, evaluating user record:", error);
+  }
+
+  try {
     const userRecord = await docClient.send(
       new GetCommand({
         TableName: TABLE_NAMES.USERS,
@@ -35,10 +43,8 @@ async function hasMealPlanningEntitlement(request: Request, requestData: CreateM
     const isPaid = userItem?.subscriptionStatus === "active";
     const isJudge = userItem?.role === "judge" || userItem?.isJudgeDemo === true;
     if (isTrialActive || isPaid || isJudge) return { ok: true, userId: resolvedUserId };
-  } catch {
-    const subscriptionRepo = new SubscriptionRepository();
-    const latestSub = await subscriptionRepo.getLatestSubscriptionForUser(resolvedUserId);
-    if (latestSub?.status === "active" || latestSub?.status === "trialing") return { ok: true, userId: resolvedUserId };
+  } catch (error) {
+    console.warn("[WeeklyMealPlan Route] User entitlement check failed:", error);
   }
 
   return { ok: false, userId: resolvedUserId };

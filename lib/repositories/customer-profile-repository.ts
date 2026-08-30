@@ -24,6 +24,7 @@ export interface CustomerAccountRecord {
   weeklyFoodRoutine?: DayWiseFoodRoutinePreference[];
   mealTypePreferences?: MealTypePreferenceProfile;
   mealTimings?: MealTimingPattern;
+  favoriteFoodTags?: string[];
   recentMealHistory?: RecentMealHistoryDay[];
   regularAttendancePattern?: DayAttendancePlan;
   nonVegPreferredFoods?: string[];
@@ -77,6 +78,7 @@ export class CustomerProfileRepository {
     weeklyFoodRoutine?: CustomerAccountRecord["weeklyFoodRoutine"];
     mealTypePreferences?: CustomerAccountRecord["mealTypePreferences"];
     mealTimings?: CustomerAccountRecord["mealTimings"];
+    favoriteFoodTags?: CustomerAccountRecord["favoriteFoodTags"];
     recentMealHistory?: CustomerAccountRecord["recentMealHistory"];
     regularAttendancePattern?: CustomerAccountRecord["regularAttendancePattern"];
     nonVegPreferredFoods?: CustomerAccountRecord["nonVegPreferredFoods"];
@@ -97,6 +99,7 @@ export class CustomerProfileRepository {
       weeklyFoodRoutine: input.weeklyFoodRoutine ?? existing?.weeklyFoodRoutine ?? [],
       mealTypePreferences: input.mealTypePreferences ?? existing?.mealTypePreferences ?? {},
       mealTimings: input.mealTimings ?? existing?.mealTimings ?? {},
+      favoriteFoodTags: input.favoriteFoodTags ?? existing?.favoriteFoodTags ?? [],
       recentMealHistory: input.recentMealHistory ?? existing?.recentMealHistory ?? [],
       regularAttendancePattern: input.regularAttendancePattern ?? existing?.regularAttendancePattern,
       nonVegPreferredFoods: input.nonVegPreferredFoods ?? existing?.nonVegPreferredFoods ?? [],

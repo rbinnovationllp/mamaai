@@ -197,4 +197,58 @@ export class MealPlanningService {
 
     return { nutritionContexts, mealPlan: finalizedMealPlan };
   }
+
+  async replace(mealPlanId: string, request: ReplaceMealRequest): Promise<{ mealPlan: FamilyMealPlan }> {
+    const existingPlan = await this.repository.getMealPlan(mealPlanId);
+    if (!existingPlan) throw new Error("Meal plan not found.");
+
+    const familyContext = await this.familyService.getFamilyWithMembers(existingPlan.familyId).catch(() => null);
+    if (!familyContext) throw new Error("Family not found.");
+
+    const targetSlot = existingPlan.commonMeal.mealTime;
+    const excludedDishes = Array.from(
+      new Set([
+        existingPlan.commonMeal.name,
+        ...(existingPlan.commonMeal.alternativeOptions ?? []).map((option) => option.title),
+        ...(request.excludeDishes ?? []),
+        ...(request.previousMeals ?? []),
+      ].filter(Boolean))
+    );
+
+    const generatedMealPlan = this.aiService.generateFamilyMealPlan({
+      family: familyContext.family,
+      members: familyContext.members,
+      planType: existingPlan.planType,
+      mealTime: targetSlot,
+      targetDate: existingPlan.targetDate,
+      previousMeals: excludedDishes,
+      excludeDishes: excludedDishes,
+      userPromptOverride: [
+        request.userPromptOverride,
+        `The user rejected "${existingPlan.commonMeal.name}" because: ${request.reason}.`,
+        request.unavailableIngredients?.length
+          ? `Unavailable ingredients: ${request.unavailableIngredients.join(", ")}.`
+          : "",
+        request.dislikedFoods?.length ? `Avoid disliked foods: ${request.dislikedFoods.join(", ")}.` : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
+    });
+
+    const localizedPlan = this.aiService.localizeFamilyMealPlan(generatedMealPlan, request.preferredLanguage);
+    const replacementPlan: FamilyMealPlan = {
+      ...localizedPlan,
+      familyId: existingPlan.familyId,
+      targetDate: existingPlan.targetDate,
+      planType: existingPlan.planType,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    };
+
+    this.repository.saveMealPlan(replacementPlan).catch((saveErr) => {
+      console.warn("[MAMAAI Meal Replacement Persistence Warning]:", saveErr);
+    });
+
+    return { mealPlan: replacementPlan };
+  }
 }

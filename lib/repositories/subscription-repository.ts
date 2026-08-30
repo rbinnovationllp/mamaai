@@ -159,6 +159,8 @@ export class SubscriptionRepository {
                   status: input.subscription.status,
                   paymentChannel: input.subscription.paymentChannel,
                   paymentStatus: input.subscription.paymentStatus,
+                  isActive: input.subscription.status === "active" || input.subscription.status === "trialing",
+                  bypassPaymentForDemo: false,
                   razorpaySubscriptionId: input.subscription.razorpaySubscriptionId,
                   startsAt: input.subscription.startsAt,
                   renewsAt: input.subscription.renewsAt,
