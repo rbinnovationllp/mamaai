@@ -78,6 +78,7 @@ const subscriptionCopy = {
     targetTier: 'Target Subscription Tier',
     unlock: 'Unlock Access',
     close: 'Close',
+    activeRedirecting: 'Active subscription found. Opening Meal Planner...',
   },
   hi: {
     trial: 'Free Trial Active - 3 दिन बाकी',
@@ -141,6 +142,7 @@ const subscriptionCopy = {
     targetTier: 'Target Subscription Tier',
     unlock: 'Access Unlock करें',
     close: 'Close',
+    activeRedirecting: 'Active subscription मिल गया है। Meal Planner खोला जा रहा है...',
   },
   kn: {
     trial: 'Free Trial Active - 3 ದಿನ ಬಾಕಿ',
@@ -204,6 +206,7 @@ const subscriptionCopy = {
     targetTier: 'Target Subscription Tier',
     unlock: 'Access Unlock ಮಾಡಿ',
     close: 'Close',
+    activeRedirecting: 'ಸಕ್ರಿಯ subscription ಸಿಕ್ಕಿದೆ. Meal Planner ತೆರೆಯಲಾಗುತ್ತಿದೆ...',
   },
 };
 
@@ -228,6 +231,7 @@ export default function SubscriptionPage() {
   const [customerMobile, setCustomerMobile] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [checkoutStatus, setCheckoutStatus] = useState('');
+  const [checkingEntitlement, setCheckingEntitlement] = useState(false);
 
   useEffect(() => {
     try {
@@ -295,6 +299,39 @@ export default function SubscriptionPage() {
 
     loadCustomerSession();
   }, []);
+
+  useEffect(() => {
+    if (!customerUserId) return;
+    let cancelled = false;
+
+    async function redirectActiveSubscriber() {
+      setCheckingEntitlement(true);
+      try {
+        const response = await fetch(`/api/subscriptions/status?userId=${encodeURIComponent(customerUserId)}`, {
+          cache: 'no-store',
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        const entitlement = data.entitlement;
+        const isActive =
+          entitlement?.isActive === true &&
+          (entitlement?.status === 'active' || entitlement?.status === 'trialing');
+        if (!cancelled && isActive) {
+          setCheckoutStatus(t.activeRedirecting);
+          window.location.href = '/planner?subscription=active';
+        }
+      } catch {
+        // Keep the subscription page usable if the status lookup is temporarily unavailable.
+      } finally {
+        if (!cancelled) setCheckingEntitlement(false);
+      }
+    }
+
+    redirectActiveSubscriber();
+    return () => {
+      cancelled = true;
+    };
+  }, [customerUserId, t.activeRedirecting]);
 
   const suggestedPlan = useMemo(
     () => getSuggestedPlan(householdMembers.length),
@@ -626,8 +663,8 @@ export default function SubscriptionPage() {
             market={billingMarket === 'IN' ? 'India' : 'International'}
             support={t.starterSupport}
             features={t.starterFeatures}
-            buttonText={loadingPlan === 'starter' ? t.processing : t.starterButton}
-            disabled={loadingPlan === 'starter'}
+            buttonText={checkingEntitlement || loadingPlan === 'starter' ? t.processing : t.starterButton}
+            disabled={checkingEntitlement || loadingPlan === 'starter'}
             onClick={() => handleSubscribe('starter')}
           />
 
@@ -637,8 +674,8 @@ export default function SubscriptionPage() {
             market={billingMarket === 'IN' ? 'India' : 'International'}
             support={t.premiumSupport}
             features={t.premiumFeatures}
-            buttonText={loadingPlan === 'premium' ? t.processing : t.premiumButton}
-            disabled={loadingPlan === 'premium'}
+            buttonText={checkingEntitlement || loadingPlan === 'premium' ? t.processing : t.premiumButton}
+            disabled={checkingEntitlement || loadingPlan === 'premium'}
             onClick={() => handleSubscribe('premium')}
             highlighted
             badge={t.popular}
@@ -650,8 +687,8 @@ export default function SubscriptionPage() {
             market={billingMarket === 'IN' ? 'India' : 'International'}
             support={t.plusSupport}
             features={t.plusFeatures}
-            buttonText={loadingPlan === 'family_plus' ? t.processing : t.plusButton}
-            disabled={loadingPlan === 'family_plus'}
+            buttonText={checkingEntitlement || loadingPlan === 'family_plus' ? t.processing : t.plusButton}
+            disabled={checkingEntitlement || loadingPlan === 'family_plus'}
             onClick={() => handleSubscribe('family_plus')}
           />
         </div>

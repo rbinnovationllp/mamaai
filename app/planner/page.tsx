@@ -113,6 +113,16 @@ async function readApiResponse<T>(response: Response, fallbackMessage: string): 
   return payload;
 }
 
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 45000) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 function mealGenerationFailureMessage(language: 'en' | 'hi' | 'kn') {
   if (language === 'hi') return 'अभी भोजन योजना तैयार नहीं हो सकी। कृपया कुछ क्षण बाद फिर प्रयास करें।';
   if (language === 'kn') return 'ಈಗ ಕುಟುಂಬದ ಊಟದ ಯೋಜನೆಯನ್ನು ತಯಾರಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
@@ -154,8 +164,10 @@ const plannerCopy = {
     success: "Today's family food plan is ready.",
     weeklyGenerating: "Preparing this week's stable Monday-Sunday meal plan...",
     weeklyReady: "Weekly master plan is ready. Showing the selected meal from this week's plan.",
+    weeklyFallbackReady: "Today's meal is ready. The full weekly plan can be prepared again later.",
     nextWeekPreparing: "Preparing next week's Monday-Sunday meal plan and procurement preview...",
     nextWeekReady: "Next week's meal plan is ready. Review meals and shopping before Monday.",
+    nextWeekFailed: "Next week's plan could not be prepared right now. Today's meal planning will still work.",
     nextWeekTitle: "Next Week's Meal Plan is Ready",
     nextWeekText: 'Review meals, change unwanted dishes, check pantry, and buy shelf-stable ingredients in advance.',
     openNextWeek: 'Review Next Week',
@@ -274,8 +286,10 @@ const plannerCopy = {
     success: 'आज का पारिवारिक भोजन तैयार है।',
     weeklyGenerating: 'इस सप्ताह का स्थिर सोमवार-रविवार भोजन प्लान तैयार हो रहा है...',
     weeklyReady: 'साप्ताहिक master plan तैयार है। इसी सप्ताह के प्लान से चुना हुआ meal दिखाया जा रहा है।',
+    weeklyFallbackReady: 'आज का भोजन तैयार है। पूरा साप्ताहिक प्लान बाद में फिर बनाया जा सकता है।',
     nextWeekPreparing: 'अगले सप्ताह का सोमवार-रविवार भोजन प्लान और खरीदारी preview तैयार हो रहा है...',
     nextWeekReady: 'अगले सप्ताह का भोजन प्लान तैयार है। सोमवार से पहले meals और shopping review कर लें।',
+    nextWeekFailed: 'अगले सप्ताह का प्लान अभी तैयार नहीं हो सका। आज का भोजन प्लान फिर भी काम करेगा।',
     nextWeekTitle: 'अगले सप्ताह का भोजन प्लान तैयार है',
     nextWeekText: 'भोजन देखें, नापसंद dishes बदलें, pantry check करें और shelf-stable सामग्री पहले से खरीदें।',
     openNextWeek: 'अगला सप्ताह देखें',
@@ -394,8 +408,10 @@ const plannerCopy = {
     success: 'ಇಂದಿನ ಕುಟುಂಬದ ಊಟ ಸಿದ್ಧವಾಗಿದೆ.',
     weeklyGenerating: 'ಈ ವಾರದ ಸ್ಥಿರ ಸೋಮವಾರ-ಭಾನುವಾರ ಊಟದ ಯೋಜನೆ ಸಿದ್ಧವಾಗುತ್ತಿದೆ...',
     weeklyReady: 'ವಾರದ master plan ಸಿದ್ಧವಾಗಿದೆ. ಈ ವಾರದ ಯೋಜನೆಯಿಂದ ಆಯ್ದ meal ತೋರಿಸಲಾಗುತ್ತಿದೆ.',
+    weeklyFallbackReady: 'ಇಂದಿನ ಊಟ ಸಿದ್ಧವಾಗಿದೆ. ಪೂರ್ಣ ವಾರದ ಯೋಜನೆಯನ್ನು ನಂತರ ಮತ್ತೆ ಸಿದ್ಧಪಡಿಸಬಹುದು.',
     nextWeekPreparing: 'ಮುಂದಿನ ವಾರದ ಸೋಮವಾರ-ಭಾನುವಾರ ಊಟದ ಯೋಜನೆ ಮತ್ತು ಖರೀದಿ preview ಸಿದ್ಧವಾಗುತ್ತಿದೆ...',
     nextWeekReady: 'ಮುಂದಿನ ವಾರದ ಊಟದ ಯೋಜನೆ ಸಿದ್ಧವಾಗಿದೆ. ಸೋಮವಾರಕ್ಕಿಂತ ಮೊದಲು meals ಮತ್ತು shopping ಪರಿಶೀಲಿಸಿ.',
+    nextWeekFailed: 'ಮುಂದಿನ ವಾರದ ಯೋಜನೆಯನ್ನು ಈಗ ಸಿದ್ಧಪಡಿಸಲಾಗಲಿಲ್ಲ. ಇಂದಿನ ಊಟದ ಯೋಜನೆ ಇನ್ನೂ ಕೆಲಸ ಮಾಡುತ್ತದೆ.',
     nextWeekTitle: 'ಮುಂದಿನ ವಾರದ ಊಟದ ಯೋಜನೆ ಸಿದ್ಧವಾಗಿದೆ',
     nextWeekText: 'ಊಟಗಳನ್ನು ಪರಿಶೀಲಿಸಿ, ಇಷ್ಟವಿಲ್ಲದ dishes ಬದಲಿಸಿ, pantry check ಮಾಡಿ ಮತ್ತು shelf-stable ಪದಾರ್ಥಗಳನ್ನು ಮುಂಚಿತವಾಗಿ ಖರೀದಿಸಿ.',
     openNextWeek: 'ಮುಂದಿನ ವಾರ ನೋಡಿ',
@@ -1270,6 +1286,7 @@ export default function PlannerPage() {
   const [nextWeekPlan, setNextWeekPlan] = useState<WeeklyFamilyMealPlan | null>(null);
   const [isPreparingNextWeek, setIsPreparingNextWeek] = useState(false);
   const [nextWeekStatus, setNextWeekStatus] = useState('');
+  const [nextWeekAttempted, setNextWeekAttempted] = useState(false);
   const [plannerView, setPlannerView] = useState<'today' | 'week'>('today');
   const [isStalePlan, setIsStalePlan] = useState(false);
   const [status, setStatus] = useState('');
@@ -1585,14 +1602,21 @@ export default function PlannerPage() {
   const shouldShowNextWeekPreview = isSaturdayOrSundayLocal() && canGenerate && Boolean(customer.familyId);
 
   useEffect(() => {
-    if (!shouldShowNextWeekPreview || !customer.familyId || isPreparingNextWeek || nextWeekPlan?.weekStartDate === nextWeekStartDate) return;
+    if (
+      !shouldShowNextWeekPreview ||
+      !customer.familyId ||
+      isPreparingNextWeek ||
+      nextWeekAttempted ||
+      nextWeekPlan?.weekStartDate === nextWeekStartDate
+    ) return;
     let cancelled = false;
 
     async function prepareNextWeekPlan() {
       setIsPreparingNextWeek(true);
+      setNextWeekAttempted(true);
       setNextWeekStatus(t.nextWeekPreparing);
       try {
-        const response = await fetch('/api/weekly-meal-plans', {
+        const response = await fetchWithTimeout('/api/weekly-meal-plans', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1615,7 +1639,7 @@ export default function PlannerPage() {
               localHour: currentLocalHour(),
             },
           }),
-        });
+        }, 45000);
         const data = await readApiResponse<{ weeklyPlan: WeeklyFamilyMealPlan; reusedExisting?: boolean }>(
           response,
           'We could not prepare next week\'s plan right now.'
@@ -1625,7 +1649,7 @@ export default function PlannerPage() {
         window.localStorage.setItem(NEXT_WEEK_MASTER_PLAN_KEY, JSON.stringify(data.weeklyPlan));
         setNextWeekStatus(t.nextWeekReady);
       } catch {
-        if (!cancelled) setNextWeekStatus('');
+        if (!cancelled) setNextWeekStatus(t.nextWeekFailed);
       } finally {
         if (!cancelled) setIsPreparingNextWeek(false);
       }
@@ -1635,7 +1659,7 @@ export default function PlannerPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeMealSlot, canGenerate, culture.city, culture.country, culture.region, customer.familyId, customer.userId, isPreparingNextWeek, language, mealPlan?.commonMeal?.name, nextWeekPlan?.weekStartDate, nextWeekStartDate, shouldShowNextWeekPreview, t.nextWeekPreparing, t.nextWeekReady]);
+  }, [activeMealSlot, canGenerate, culture.city, culture.country, culture.region, customer.familyId, customer.userId, isPreparingNextWeek, language, mealPlan?.commonMeal?.name, nextWeekAttempted, nextWeekPlan?.weekStartDate, nextWeekStartDate, shouldShowNextWeekPreview, t.nextWeekFailed, t.nextWeekPreparing, t.nextWeekReady]);
 
   // 7. Active Generation Action
   const generatePlan = async (cravingOverride?: string) => {
@@ -1785,66 +1809,85 @@ export default function PlannerPage() {
 
       const createdMembers = familyData.members ?? [];
       const excludeDishes = mealPlan?.commonMeal?.name ? [mealPlan.commonMeal.name] : [];
+      const mealAttendancePayload = [
+        {
+          mealTime: activeMealSlot,
+          participatingMemberIds: createdMembers
+            .filter((member: { name: string }) => {
+              const original = members.find((item) => item.name === member.name);
+              return original ? activeAttendance.participatingMemberIds.includes(original.id) : true;
+            })
+            .map((member: { memberId: string }) => member.memberId),
+          absentMemberIds: createdMembers
+            .filter((member: { name: string }) => {
+              const original = members.find((item) => item.name === member.name);
+              return original ? !activeAttendance.participatingMemberIds.includes(original.id) : false;
+            })
+            .map((member: { memberId: string }) => member.memberId),
+          fastingMemberIds: [],
+          guestCount: 0,
+          enabled: true,
+        },
+      ];
+      const mealPlanRequestBody = {
+        familyId: familyData.family.familyId,
+        planType: 'weekly',
+        mealTime: activeMealSlot,
+        preferredLanguage: language,
+        userPromptOverride: cravingOverride || mealWish,
+        previousMeals: previousMealsForPlanning(activeMealSlot, mealPlan?.commonMeal?.name),
+        excludeDishes,
+        userLocalTime: new Date().toISOString(),
+        userTimeZone: browserTimeZone(),
+        targetDate,
+        scheduledTime: activeScheduledTime,
+        dayAttendancePlan: customer.regularAttendancePattern || attendanceDraftToDayPlan(mealAttendance, members),
+        mealTimeContext: {
+          timeZone: browserTimeZone(),
+          locale: language,
+          country,
+          region,
+          city,
+          localHour: currentLocalHour(),
+        },
+        mealAttendance: mealAttendancePayload,
+      };
 
       // Generate or reuse the stable Monday-Sunday master plan, then display this slot.
-      const weeklyResponse = await fetch('/api/weekly-meal-plans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          familyId: familyData.family.familyId,
-          planType: 'weekly',
-          mealTime: activeMealSlot,
-          preferredLanguage: language,
-          userPromptOverride: cravingOverride || mealWish,
-          previousMeals: previousMealsForPlanning(activeMealSlot, mealPlan?.commonMeal?.name),
-          excludeDishes,
-          userLocalTime: new Date().toISOString(),
-          userTimeZone: browserTimeZone(),
-          targetDate,
-          scheduledTime: activeScheduledTime,
-          dayAttendancePlan: customer.regularAttendancePattern || attendanceDraftToDayPlan(mealAttendance, members),
-          mealTimeContext: {
-            timeZone: browserTimeZone(),
-            locale: language,
-            country,
-            region,
-            city,
-            localHour: currentLocalHour(),
-          },
-          mealAttendance: [
-            {
-              mealTime: activeMealSlot,
-              participatingMemberIds: createdMembers
-                .filter((member: { name: string }) => {
-                  const original = members.find((item) => item.name === member.name);
-                  return original ? activeAttendance.participatingMemberIds.includes(original.id) : true;
-                })
-                .map((member: { memberId: string }) => member.memberId),
-              absentMemberIds: createdMembers
-                .filter((member: { name: string }) => {
-                  const original = members.find((item) => item.name === member.name);
-                  return original ? !activeAttendance.participatingMemberIds.includes(original.id) : false;
-                })
-                .map((member: { memberId: string }) => member.memberId),
-              fastingMemberIds: [],
-              guestCount: 0,
-              enabled: true,
-            },
-          ],
-        }),
-      });
+      let alignedPlan: FamilyMealPlan;
+      try {
+        const weeklyResponse = await fetchWithTimeout('/api/weekly-meal-plans', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(mealPlanRequestBody),
+        }, 45000);
 
-      const weeklyData = await readApiResponse<{ weeklyPlan: WeeklyFamilyMealPlan; reusedExisting?: boolean }>(
-        weeklyResponse,
-        'We could not prepare this weekly meal plan right now. Please try again.'
-      );
+        const weeklyData = await readApiResponse<{ weeklyPlan: WeeklyFamilyMealPlan; reusedExisting?: boolean }>(
+          weeklyResponse,
+          'We could not prepare this weekly meal plan right now. Please try again.'
+        );
 
-      const freshWeeklyPlan = weeklyData.weeklyPlan;
-      setWeeklyPlan(freshWeeklyPlan);
-      window.localStorage.setItem(WEEKLY_MASTER_PLAN_KEY, JSON.stringify(freshWeeklyPlan));
-      const selectedWeeklySlot = weeklySlotFor(freshWeeklyPlan, targetDate, activeMealSlot);
-      if (!selectedWeeklySlot) throw new Error('Selected meal was not found in the weekly master plan.');
-      const alignedPlan = alignMealPlanToActiveRequest(selectedWeeklySlot.selectedOption, activeMealSlot, targetDate);
+        const freshWeeklyPlan = weeklyData.weeklyPlan;
+        setWeeklyPlan(freshWeeklyPlan);
+        window.localStorage.setItem(WEEKLY_MASTER_PLAN_KEY, JSON.stringify(freshWeeklyPlan));
+        const selectedWeeklySlot = weeklySlotFor(freshWeeklyPlan, targetDate, activeMealSlot);
+        if (!selectedWeeklySlot) throw new Error('Selected meal was not found in the weekly master plan.');
+        alignedPlan = alignMealPlanToActiveRequest(selectedWeeklySlot.selectedOption, activeMealSlot, targetDate);
+        setStatus(t.weeklyReady);
+      } catch (weeklyError) {
+        console.warn('Weekly meal plan failed; falling back to selected daily meal.', weeklyError);
+        const dailyResponse = await fetchWithTimeout('/api/meal-plans', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...mealPlanRequestBody, planType: 'daily' }),
+        }, 30000);
+        const dailyData = await readApiResponse<{ mealPlan: FamilyMealPlan }>(
+          dailyResponse,
+          'We could not prepare this meal plan right now. Please try again.'
+        );
+        alignedPlan = alignMealPlanToActiveRequest(dailyData.mealPlan, activeMealSlot, targetDate);
+        setStatus(t.weeklyFallbackReady);
+      }
       const pantryAdjustedPlan = adjustGroceryForPantry(alignedPlan, pantryItems, t.alreadyInPantry, language);
       setMealPlan(pantryAdjustedPlan);
       setIsStalePlan(false);
@@ -1856,7 +1899,6 @@ export default function PlannerPage() {
         category: suggestedPlan,
         label: activeMealSlot,
       });
-      setStatus(t.weeklyReady);
     } catch (err: any) {
       setStatus('');
       console.error('Meal plan request failed:', err);

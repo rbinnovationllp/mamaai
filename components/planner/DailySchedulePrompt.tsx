@@ -2,8 +2,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { resolveNextMealSlot, MealSlot } from "@/lib/planner/time-engine";
-import { MealTimingPattern } from "@/lib/shared/contracts";
+import { resolveNextMealSlot, NextMealSlotResult } from "@/lib/planner/time-engine";
+import { MealSlot, MealTimingPattern } from "@/lib/shared/contracts";
 
 interface Member {
     memberId: string;

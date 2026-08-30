@@ -33,6 +33,16 @@ export const mealTimeSchema = z.enum([
 
 export const mealSlotSchema = z.enum(["breakfast", "lunch", "snacks", "dinner"]);
 
+export const mealOccasionSchema = z.enum([
+  "breakfast",
+  "brunch",
+  "lunch",
+  "afternoon_snack",
+  "high_tea",
+  "dinner",
+  "supper",
+]);
+
 export const memberMealAttendanceStatusSchema = z.enum(["home", "tiffin", "skip", "fasting"]);
 
 export const mealTimingPatternSchema = z
@@ -41,6 +51,20 @@ export const mealTimingPatternSchema = z
     lunch: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
     snacks: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
     dinner: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
+  })
+  .optional();
+
+export const mealTimeSlotConfigSchema = z.object({
+  enabled: z.boolean(),
+  time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+});
+
+export const mealTimetableScheduleSchema = z
+  .object({
+    reminderLeadTimeMinutes: z.number().min(15).max(120).default(45),
+    weekday: z.record(mealOccasionSchema, mealTimeSlotConfigSchema),
+    weekend: z.record(mealOccasionSchema, mealTimeSlotConfigSchema).optional(),
+    useSeparateWeekendSchedule: z.boolean().default(false),
   })
   .optional();
 
@@ -187,6 +211,10 @@ export const createFamilyInputSchema = z.object({
     })
     .optional(),
   mealTimings: mealTimingPatternSchema,
+  mealSchedule: mealTimetableScheduleSchema,
+  favoriteFoodStyles: z.array(z.string()).optional(),
+  customFavoriteFoods: z.array(z.string()).optional(),
+  favoriteFoodTags: z.array(z.string()).optional(),
   recentMealHistory: z
     .array(
       z.object({
@@ -575,6 +603,7 @@ export const createMealPlanRequestSchema = z.object({
   dayAttendancePlan: dayAttendancePlanSchema.optional(),
   isExceptionToday: z.boolean().default(false),
   customMealTimings: mealTimingPatternSchema,
+  mealSchedule: mealTimetableScheduleSchema,
   mealAttendance: z.array(mealAttendanceEntrySchema).optional(),
   highTeaPreference: highTeaPreferenceSchema.optional(),
   userPlanningMode: z
@@ -668,6 +697,8 @@ export type Money = z.infer<typeof moneySchema>;
 export type BudgetProfile = z.infer<typeof budgetProfileSchema>;
 export type KitchenProfile = z.infer<typeof kitchenProfileSchema>;
 export type MealTimingPattern = z.infer<typeof mealTimingPatternSchema>;
+export type MealTimeSlotConfig = z.infer<typeof mealTimeSlotConfigSchema>;
+export type MealTimetableSchedule = z.infer<typeof mealTimetableScheduleSchema>;
 export type CreateFamilyInput = z.infer<typeof createFamilyInputSchema>;
 export type CreateFamilyMemberInput = z.infer<typeof createFamilyMemberInputSchema>;
 export type CreateFamilyRequest = z.infer<typeof createFamilyRequestSchema>;
