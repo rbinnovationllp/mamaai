@@ -810,6 +810,16 @@ function mealLabel(value: MealTime, labels: typeof plannerCopy.en.meals): string
   return labels[value] ?? value.replace('_', ' ');
 }
 
+function uniqueByKey<T>(items: T[], keyFor: (item: T) => string) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = keyFor(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function planLabel(value: string): string {
   return value
     .replace('_', ' ')
@@ -1298,6 +1308,18 @@ export default function PlannerPage() {
   const activeMealLabel = mealLabel(activeMealSlot, t.meals);
   const activeGenerateLabel = t.planMealNow.replace('{meal}', activeMealLabel);
   const activeWeeklySlot = useMemo(() => weeklySlotFor(weeklyPlan, activeTargetDate, activeMealSlot), [weeklyPlan, activeTargetDate, activeMealSlot]);
+  const visibleMemberCustomizations = useMemo(
+    () => uniqueByKey(mealPlan?.memberCustomizations ?? [], (item) => item.memberId || item.memberName),
+    [mealPlan?.memberCustomizations]
+  );
+  const visibleFruits = useMemo(
+    () => uniqueByKey(mealPlan?.fruits ?? [], (item) => item.memberId || item.memberName).slice(0, 4),
+    [mealPlan?.fruits]
+  );
+  const visibleHydration = useMemo(
+    () => uniqueByKey(mealPlan?.hydration ?? [], (item) => item.memberId || item.memberName).slice(0, 3),
+    [mealPlan?.hydration]
+  );
 
   useEffect(() => {
     if (!mealPlan) return;
@@ -2295,7 +2317,7 @@ export default function PlannerPage() {
                     <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                       <h3 className="text-lg font-bold text-slate-950">{t.portions}</h3>
                       <div className="mt-4 grid gap-3">
-                        {mealPlan.memberCustomizations.map((item) => (
+                        {visibleMemberCustomizations.map((item) => (
                           <div key={item.memberId} className="rounded-2xl bg-slate-50 p-4">
                             <p className="font-bold text-slate-950">{item.memberName}</p>
                             <p className="mt-1 text-sm text-slate-700">{item.portionGuidance}</p>
@@ -2348,10 +2370,10 @@ export default function PlannerPage() {
                     <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                       <h3 className="text-lg font-bold text-slate-950">{t.fruit}</h3>
                       <div className="mt-4 grid gap-3 text-sm text-slate-700">
-                        {mealPlan.fruits.slice(0, 4).map((item) => (
+                        {visibleFruits.map((item) => (
                           <p key={item.memberId}><strong>{item.memberName}:</strong> {item.fruit}, {item.portion}</p>
                         ))}
-                        {mealPlan.hydration.slice(0, 3).map((item) => (
+                        {visibleHydration.map((item) => (
                           <p key={`h-${item.memberId}`}><strong>{item.memberName}:</strong> {item.guidance}</p>
                         ))}
                       </div>
