@@ -34,6 +34,39 @@ export class MealPlanningService {
     const targetSlot = (request.mealSlot || request.mealTime || "breakfast") as MealTime;
     const allMemberIds = allMembers.map((m) => m.memberId);
 
+    // 1. Day Attendance Matrix (Includes guestCountBySlot)
+    if (request.dayAttendancePlan) {
+      const slotMap: Record<string, "breakfast" | "lunch" | "snacks" | "dinner"> = {
+        breakfast: "breakfast",
+        lunch: "lunch",
+        dinner: "dinner",
+        snack: "snacks",
+        evening_snack: "snacks",
+        high_tea: "snacks",
+      };
+      const key = slotMap[targetSlot] || "lunch";
+      const slotAttendance = request.dayAttendancePlan[key] || {};
+      const slotGuestCount = request.dayAttendancePlan.guestCountBySlot?.[key] || 0;
+
+      const participatingMemberIds = allMemberIds.filter(
+        (id) => slotAttendance[id] === "home" || slotAttendance[id] === "tiffin" || !slotAttendance[id]
+      );
+      const absentMemberIds = allMemberIds.filter((id) => slotAttendance[id] === "skip");
+      const fastingMemberIds = allMemberIds.filter((id) => slotAttendance[id] === "fasting");
+
+      return [
+        {
+          mealTime: targetSlot,
+          participatingMemberIds: participatingMemberIds.length ? participatingMemberIds : allMemberIds,
+          absentMemberIds,
+          fastingMemberIds,
+          guestCount: slotGuestCount,
+          enabled: true,
+        },
+      ];
+    }
+
+    // 2. Today Attendance array
     if (request.todayAttendance && request.todayAttendance.length > 0) {
       const presentMap = new Map(request.todayAttendance.map((a) => [a.memberId, a.status]));
       const participatingMemberIds = allMemberIds.filter((id) => {
@@ -55,6 +88,7 @@ export class MealPlanningService {
       ];
     }
 
+    // 3. Fallback: Everyone present
     return [
       {
         mealTime: targetSlot,
@@ -70,11 +104,10 @@ export class MealPlanningService {
   async generate(request: CreateMealPlanRequest): Promise<{ mealPlan: FamilyMealPlan; nutritionContexts: any[] }> {
     this.mealRetentionService.removeExpiredDetailedMealPlans();
 
-    // 1. Resolve Family Context (With Dynamic Auto-Recovery)
+    // 1. Resolve Family Context with Auto-Recovery
     let familyContext = await this.familyService.getFamilyWithMembers(request.familyId).catch(() => null);
 
     if (!familyContext) {
-      // Auto-reconstruct minimal fallback family context to prevent unhandled 422 crash
       const fallbackFamily: Family = {
         familyId: request.familyId || "fam-recovered",
         userId: request.userId || "usr-recovered",
@@ -88,6 +121,7 @@ export class MealPlanningService {
         kitchenProfile: { equipment: ["Gas stove", "Pressure cooker"], cookingTimePreference: "under_30" },
         subscriptionPlan: "starter",
         mealTimings: request.customMealTimings,
+        mealSchedule: request.mealSchedule,
         createdAt: nowIso(),
         updatedAt: nowIso(),
       };
@@ -124,20 +158,20 @@ export class MealPlanningService {
     const targetDate = request.targetDate ?? new Date().toISOString().slice(0, 10);
     const targetSlot = (request.mealSlot || request.mealTime || "breakfast") as MealTime;
 
-    // 2. LAYER 1: Check Existing Persisted Plan for Today
+    // 2. Layer 1: Check Existing Persisted Plan for Today
     try {
       const existingPlan = await this.repository.getMealPlan(`${request.familyId}-${targetDate}`);
       if (existingPlan && existingPlan.commonMeal.mealTime === targetSlot) {
         return {
-          mealPlan: this.aiService.localizeFamilyMealPlan(existingPlan, request.mealTimeContext?.locale),
+          mealPlan: this.aiService.localizeFamilyMealPlan(existingPlan, request.preferredLanguage || request.mealTimeContext?.locale),
           nutritionContexts: this.nutritionContextService.analyze(familyContext.members),
         };
       }
     } catch {
-      // Proceed to generation on cache miss
+      // Proceed to generation
     }
 
-    // 3. LAYER 2 & 3: Resilient Generation with Multi-Candidate Fallback
+    // 3. Layer 2 & 3: Resilient Generation with Multi-Candidate Fallback
     const mealAttendance = this.buildEffectiveAttendance(request, familyContext.members);
     const activeMemberIds = new Set(
       mealAttendance.flatMap((a) => [...a.participatingMemberIds, ...a.fastingMemberIds])
@@ -154,6 +188,7 @@ export class MealPlanningService {
         family: {
           ...familyContext.family,
           mealTimings: request.customMealTimings || familyContext.family.mealTimings,
+          mealSchedule: request.mealSchedule || familyContext.family.mealSchedule,
         },
         members: familyContext.members,
         planType: request.planType || "daily",
@@ -173,7 +208,6 @@ export class MealPlanningService {
       }
     } catch (genErr) {
       console.warn("[MAMAAI Generation Fallback Activated]:", genErr);
-      // Deterministic Safe Fallback
       generatedMealPlan = this.aiService.generateFamilyMealPlan({
         family: familyContext.family,
         members: familyContext.members,
@@ -186,10 +220,10 @@ export class MealPlanningService {
 
     const finalizedMealPlan = this.aiService.localizeFamilyMealPlan(
       generatedMealPlan,
-      request.mealTimeContext?.locale || "hi"
+      request.preferredLanguage || request.mealTimeContext?.locale || "hi"
     );
 
-    // 4. Persistence Handling (Non-blocking for Customer Output)
+    // 4. Persistence Handling (Non-blocking)
     store.mealPlans.push(finalizedMealPlan);
     this.repository.saveMealPlan(finalizedMealPlan).catch((saveErr) => {
       console.warn("[MAMAAI DynamoDB Persistence Non-Fatal Warning]:", saveErr);
@@ -221,6 +255,7 @@ export class MealPlanningService {
       planType: existingPlan.planType,
       mealTime: targetSlot,
       targetDate: existingPlan.targetDate,
+      mealAttendance: existingPlan.mealAttendance,
       previousMeals: excludedDishes,
       excludeDishes: excludedDishes,
       userPromptOverride: [
