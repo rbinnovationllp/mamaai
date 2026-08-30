@@ -8,29 +8,42 @@ import { docClient, TABLE_NAMES } from "@/lib/repositories/dynamo";
 import { createMealPlanRequestSchema } from "@/lib/shared/schemas";
 import type { CreateMealPlanRequest } from "@/lib/shared/contracts";
 
-async function hasMealPlanningEntitlement(request: Request, requestData: CreateMealPlanRequest) {
+export const dynamic = "force-dynamic";
+
+/**
+ * Validates user entitlement with active paid plan priority
+ */
+async function hasMealPlanningEntitlement(
+  request: Request,
+  requestData: CreateMealPlanRequest
+): Promise<{ ok: boolean; userId?: string }> {
   const session = await getSession();
   let resolvedUserId = session?.userId || requestData.userId;
 
   if (!resolvedUserId) {
-    const user = requireUser(request, requestData.userId);
-    resolvedUserId = user.userId;
+    try {
+      const user = requireUser(request, requestData.userId);
+      resolvedUserId = user.userId;
+    } catch {
+      // Proceed to evaluate session keys
+    }
   }
 
-  if (session?.role === "admin" || session?.entitlement === "judge" || session?.entitlement === "active") {
-    return { ok: true, userId: resolvedUserId };
+  // Admin / Judge / Active Entitlement quick pass
+  if (
+    session?.role === "admin" ||
+    (session as any)?.role === "judge" ||
+    session?.entitlement === "judge" ||
+    session?.entitlement === "active"
+  ) {
+    return { ok: true, userId: resolvedUserId || "admin_session" };
   }
 
-  if (!resolvedUserId) return { ok: false, userId: undefined };
-
-  try {
-    const subscriptionRepo = new SubscriptionRepository();
-    const latestSub = await subscriptionRepo.getLatestSubscriptionForUser(resolvedUserId);
-    if (latestSub?.status === "active" || latestSub?.status === "trialing") return { ok: true, userId: resolvedUserId };
-  } catch (error) {
-    console.warn("[WeeklyMealPlan Route] Subscription entitlement check failed, evaluating user record:", error);
+  if (!resolvedUserId) {
+    return { ok: false, userId: undefined };
   }
 
+  // Check DynamoDB primary record
   try {
     const userRecord = await docClient.send(
       new GetCommand({
@@ -39,49 +52,86 @@ async function hasMealPlanningEntitlement(request: Request, requestData: CreateM
       })
     );
     const userItem = userRecord.Item;
-    const isTrialActive = userItem?.trialEndsAt && new Date(userItem.trialEndsAt) > new Date();
     const isPaid = userItem?.subscriptionStatus === "active";
+    const isTrialActive = userItem?.trialEndsAt && new Date(userItem.trialEndsAt) > new Date();
     const isJudge = userItem?.role === "judge" || userItem?.isJudgeDemo === true;
-    if (isTrialActive || isPaid || isJudge) return { ok: true, userId: resolvedUserId };
+
+    if (isPaid || isTrialActive || isJudge) {
+      return { ok: true, userId: resolvedUserId };
+    }
   } catch (error) {
-    console.warn("[WeeklyMealPlan Route] User entitlement check failed:", error);
+    console.warn("[WeeklyMealPlan Route] DynamoDB user check fallback:", error);
+  }
+
+  // Fallback to SubscriptionRepository
+  try {
+    const subscriptionRepo = new SubscriptionRepository();
+    const latestSub = await subscriptionRepo.getLatestSubscriptionForUser(resolvedUserId);
+    if (latestSub?.status === "active" || latestSub?.status === "trialing") {
+      return { ok: true, userId: resolvedUserId };
+    }
+  } catch (error) {
+    console.warn("[WeeklyMealPlan Route] SubscriptionRepository fallback check failed:", error);
   }
 
   return { ok: false, userId: resolvedUserId };
 }
 
+/**
+ * GET /api/weekly-meal-plans?familyId=...&targetDate=...
+ */
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const familyId = url.searchParams.get("familyId");
     const targetDate = url.searchParams.get("targetDate") ?? new Date().toISOString().slice(0, 10);
+
     if (!familyId) {
-      return NextResponse.json({ error: { code: "VALIDATION_ERROR", message: "familyId is required." } }, { status: 400 });
+      return NextResponse.json(
+        { error: { code: "VALIDATION_ERROR", message: "familyId is required." } },
+        { status: 400 }
+      );
     }
 
     const weeklyPlan = await new WeeklyMealPlanningService().getCurrent(familyId, targetDate);
-    return NextResponse.json({ weeklyPlan: weeklyPlan ?? null });
+    return NextResponse.json({ success: true, weeklyPlan: weeklyPlan ?? null });
   } catch (error) {
     return NextResponse.json(
-      { error: { code: "WEEKLY_PLAN_READ_FAILED", message: error instanceof Error ? error.message : "Unable to load weekly plan." } },
+      {
+        error: {
+          code: "WEEKLY_PLAN_READ_FAILED",
+          message: error instanceof Error ? error.message : "Unable to load weekly plan.",
+        },
+      },
       { status: 422 }
     );
   }
 }
 
+/**
+ * POST /api/weekly-meal-plans
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const parsed = createMealPlanRequestSchema.safeParse({ ...body, planType: "weekly" });
+
     if (!parsed.success) {
       return NextResponse.json(
-        { error: { code: "VALIDATION_ERROR", message: "Weekly meal plan request is invalid.", details: parsed.error.issues } },
+        {
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Weekly meal plan request is invalid.",
+            details: parsed.error.issues,
+          },
+        },
         { status: 400 }
       );
     }
 
     const requestData = parsed.data as CreateMealPlanRequest;
     const entitlement = await hasMealPlanningEntitlement(request, requestData);
+
     if (!entitlement.ok) {
       return NextResponse.json(
         {
@@ -95,25 +145,44 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await new WeeklyMealPlanningService().generateOrGet({ ...requestData, userId: entitlement.userId });
-    return NextResponse.json(result);
+    const result = await new WeeklyMealPlanningService().generateOrGet({
+      ...requestData,
+      userId: entitlement.userId,
+    });
+
+    return NextResponse.json({ success: true, ...result });
   } catch (error) {
     const authResponse = authErrorResponse(error);
     if (authResponse) return authResponse;
-    console.error("Weekly Meal Plan Generation Error:", error);
+
+    console.error("[Weekly Meal Plan API Error]:", error);
     return NextResponse.json(
-      { error: { code: "WEEKLY_PLAN_FAILED", message: error instanceof Error ? error.message : "Unable to generate weekly meal plan." } },
+      {
+        error: {
+          code: "WEEKLY_PLAN_FAILED",
+          message: error instanceof Error ? error.message : "Unable to generate weekly meal plan.",
+        },
+      },
       { status: 422 }
     );
   }
 }
 
+/**
+ * PATCH /api/weekly-meal-plans
+ */
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
+
     if (!body?.familyId || !body?.weekStartDate || !body?.slotId || !body?.selectedMealPlan) {
       return NextResponse.json(
-        { error: { code: "VALIDATION_ERROR", message: "familyId, weekStartDate, slotId and selectedMealPlan are required." } },
+        {
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "familyId, weekStartDate, slotId and selectedMealPlan are required.",
+          },
+        },
         { status: 400 }
       );
     }
@@ -125,10 +194,16 @@ export async function PATCH(request: Request) {
       selectedMealPlan: body.selectedMealPlan,
       reason: body.reason,
     });
-    return NextResponse.json(result);
+
+    return NextResponse.json({ success: true, ...result });
   } catch (error) {
     return NextResponse.json(
-      { error: { code: "WEEKLY_PLAN_UPDATE_FAILED", message: error instanceof Error ? error.message : "Unable to update weekly plan." } },
+      {
+        error: {
+          code: "WEEKLY_PLAN_UPDATE_FAILED",
+          message: error instanceof Error ? error.message : "Unable to update weekly plan.",
+        },
+      },
       { status: 422 }
     );
   }
