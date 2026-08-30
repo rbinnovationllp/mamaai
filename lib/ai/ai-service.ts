@@ -524,8 +524,6 @@ function memberPortionLabel(member: FamilyMember) {
   if (member.activityLevel === "heavy" || member.activityLevel === "athlete")
     return "higher-activity adult portion, about one-quarter more than a standard adult serving";
   if (member.activityLevel === "sedentary") return "lighter adult portion, adjusted for lower activity";
-  if (member.age > 65)
-    return "senior-friendly portion, adjusted for appetite, chewing comfort and digestion rather than age alone";
   return "standard adult portion";
 }
 
@@ -1998,6 +1996,11 @@ function translateText(text: string | undefined, language: OutputLanguage): stri
         [/higher-activity adult portion, about one-quarter more than a standard adult serving/gi, "अधिक सक्रिय वयस्क का हिस्सा, सामान्य वयस्क हिस्से से लगभग एक-चौथाई अधिक"],
         [/lighter adult portion, adjusted for lower activity/gi, "कम गतिविधि के अनुसार हल्का वयस्क हिस्सा"],
         [/standard adult portion/gi, "सामान्य वयस्क हिस्सा"],
+        [/Regular balanced portion with vegetables, dal or suitable side/gi, "सब्जियों, दाल या उपयुक्त साइड के साथ नियमित संतुलित हिस्सा"],
+        [/Serve the suggested meal softer, mildly spiced, warm, and easy to chew/gi, "यदि प्रोफाइल में जरूरत दर्ज है, तो सुझाए गए भोजन को नरम, हल्के मसाले वाला, गर्म और आसानी से चबाने योग्य परोसें"],
+        [/senior-friendly portion, adjusted for appetite, chewing comfort and digestion rather than age alone/gi, "प्रोफाइल में दर्ज भूख, चबाने की सुविधा या पाचन संबंधी जरूरत के अनुसार समायोजित हिस्सा"],
+        [/Regular balanced portion with vegetables, dal or suitable side\./gi, "सब्जियों, दाल या उपयुक्त साइड के साथ नियमित संतुलित हिस्सा।"],
+        [/Serve the suggested meal softer, mildly spiced, warm, and easy to chew\./gi, "यदि प्रोफाइल में जरूरत दर्ज है, तो सुझाए गए भोजन को नरम, हल्के मसाले वाला, गर्म और आसानी से चबाने योग्य परोसें।"],
         [/Meal structure for this member:/gi, "इस सदस्य के लिए भोजन संरचना:"],
         [/Serve a small soft portion of the suggested meal;/gi, "सुझाए गए भोजन का छोटा और नरम हिस्सा परोसें;"],
         [/Child-size serving of the suggested meal with curd or a suitable side;/gi, "सुझाए गए भोजन का बच्चे के आकार का हिस्सा दही या उपयुक्त साइड के साथ दें;"],
@@ -2014,6 +2017,11 @@ function translateText(text: string | undefined, language: OutputLanguage): stri
         [/higher-activity adult portion, about one-quarter more than a standard adult serving/gi, "ಹೆಚ್ಚು ಚಟುವಟಿಕೆಯ ವಯಸ್ಕರ ಭಾಗ, ಸಾಮಾನ್ಯ ವಯಸ್ಕರ ಭಾಗಕ್ಕಿಂತ ಸುಮಾರು ನಾಲ್ಕನೇ ಒಂದು ಭಾಗ ಹೆಚ್ಚು"],
         [/lighter adult portion, adjusted for lower activity/gi, "ಕಡಿಮೆ ಚಟುವಟಿಕೆಗೆ ಹೊಂದಿಸಿದ ಹಗುರ ವಯಸ್ಕರ ಭಾಗ"],
         [/standard adult portion/gi, "ಸಾಮಾನ್ಯ ವಯಸ್ಕರ ಭಾಗ"],
+        [/Regular balanced portion with vegetables, dal or suitable side/gi, "ತರಕಾರಿ, ದಾಲ್ ಅಥವಾ ಸೂಕ್ತ ಸೈಡ್ ಜೊತೆಗೆ ನಿಯಮಿತ ಸಮತೋಲನ ಭಾಗ"],
+        [/Serve the suggested meal softer, mildly spiced, warm, and easy to chew/gi, "ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ ಅಗತ್ಯ ದಾಖಲಾಗಿದ್ದರೆ, ಸೂಚಿಸಿದ ಊಟವನ್ನು ಮೃದುವಾಗಿ, ಸೌಮ್ಯ ಮಸಾಲೆಯೊಂದಿಗೆ, ಬಿಸಿಯಾಗಿ ಮತ್ತು ಸುಲಭವಾಗಿ ಚವಚವಿಸಲು ಅನುಕೂಲವಾಗಿ ನೀಡಿ"],
+        [/senior-friendly portion, adjusted for appetite, chewing comfort and digestion rather than age alone/gi, "ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ ದಾಖಲಾಗಿರುವ ಹಸಿವು, ಚವಚವಿಸುವ ಸೌಕರ್ಯ ಅಥವಾ ಜೀರ್ಣಕ್ರಿಯೆ ಅಗತ್ಯಕ್ಕೆ ಅನುಗುಣವಾಗಿ ಹೊಂದಿಸಿದ ಭಾಗ"],
+        [/Regular balanced portion with vegetables, dal or suitable side\./gi, "ತರಕಾರಿ, ದಾಲ್ ಅಥವಾ ಸೂಕ್ತ ಸೈಡ್ ಜೊತೆಗೆ ನಿಯಮಿತ ಸಮತೋಲನ ಭಾಗ."],
+        [/Serve the suggested meal softer, mildly spiced, warm, and easy to chew\./gi, "ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ ಅಗತ್ಯ ದಾಖಲಾಗಿದ್ದರೆ, ಸೂಚಿಸಿದ ಊಟವನ್ನು ಮೃದುವಾಗಿ, ಸೌಮ್ಯ ಮಸಾಲೆಯೊಂದಿಗೆ, ಬಿಸಿಯಾಗಿ ಮತ್ತು ಸುಲಭವಾಗಿ ಚವಚವಿಸಲು ಅನುಕೂಲವಾಗಿ ನೀಡಿ."],
         [/Meal structure for this member:/gi, "ಈ ಸದಸ್ಯನಿಗೆ ಊಟದ ರಚನೆ:"],
         [/Serve a small soft portion of the suggested meal;/gi, "ಸೂಚಿಸಿದ ಊಟದ ಸಣ್ಣ ಮೃದುವಾದ ಭಾಗವನ್ನು ನೀಡಿ;"],
         [/Child-size serving of the suggested meal with curd or a suitable side;/gi, "ಸೂಚಿಸಿದ ಊಟದ ಮಗುವಿನ ಗಾತ್ರದ ಭಾಗವನ್ನು ಮೊಸರು ಅಥವಾ ಸೂಕ್ತ ಸೈಡ್‌ನೊಂದಿಗೆ ನೀಡಿ;"],
@@ -2237,7 +2245,11 @@ export class AIService {
   private customizeMember(member: FamilyMember, commonMeal: CommonMeal, _replacement?: boolean) {
     const hasDiabetes = member.healthConditions.some((condition) => condition.toLowerCase().includes("diabetes"));
     const isChild = member.age < 13;
-    const isSenior = member.age > 65 || member.specialStatuses.some((status) => status.toLowerCase().includes("senior"));
+    const needsSoftSeniorSupport =
+      member.specialStatuses.some((status) => status.toLowerCase().includes("senior")) ||
+      [...member.doctorRestrictions, ...member.dietaryRestrictions, ...member.healthConditions].some((value) =>
+        /chew|chewing|soft|swallow|dental|digestion|digestive/i.test(value)
+      );
     const highActivity = member.activityLevel === "heavy" || member.activityLevel === "athlete";
     const ageActivityPortion = memberPortionLabel(member);
     const componentGuidance = componentGuidanceForMember(commonMeal, member);
@@ -2292,7 +2304,7 @@ export class AIService {
       };
     }
 
-    if (isSenior) {
+    if (needsSoftSeniorSupport) {
       return {
         memberId: member.memberId,
         memberName: member.name,

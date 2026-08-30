@@ -16,6 +16,55 @@ import { NutritionContextService } from "./nutrition-context-service";
 import { FamilyService } from "./family-service";
 import { MealRetentionService } from "./meal-retention-service";
 
+function canonicalMealTime(request: Pick<CreateMealPlanRequest, "mealTime" | "mealSlot">): MealTime {
+  if (request.mealTime === "snack" || request.mealTime === "evening_snack" || request.mealTime === "high_tea") {
+    return "high_tea";
+  }
+  if (request.mealTime === "breakfast" || request.mealTime === "lunch" || request.mealTime === "dinner") {
+    return request.mealTime;
+  }
+  if (request.mealSlot === "snacks") return "high_tea";
+  if (request.mealSlot === "breakfast" || request.mealSlot === "lunch" || request.mealSlot === "dinner") {
+    return request.mealSlot;
+  }
+  return "breakfast";
+}
+
+function uniqueMembersById(members: FamilyMember[]) {
+  const seen = new Set<string>();
+  return members.filter((member) => {
+    const key = member.memberId || `${member.name}:${member.relationship}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function uniqueCustomizationsByMember(plan: FamilyMealPlan): FamilyMealPlan {
+  const seen = new Set<string>();
+  return {
+    ...plan,
+    memberCustomizations: plan.memberCustomizations.filter((item) => {
+      const key = item.memberId || item.memberName;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }),
+    fruits: plan.fruits.filter((item) => {
+      const key = item.memberId || item.memberName;
+      if (seen.has(`fruit:${key}`)) return false;
+      seen.add(`fruit:${key}`);
+      return true;
+    }),
+    hydration: plan.hydration.filter((item) => {
+      const key = item.memberId || item.memberName;
+      if (seen.has(`hydration:${key}`)) return false;
+      seen.add(`hydration:${key}`);
+      return true;
+    }),
+  };
+}
+
 export class MealPlanningService {
   private readonly familyService = new FamilyService();
   private readonly nutritionContextService = new NutritionContextService();
@@ -32,7 +81,7 @@ export class MealPlanningService {
       return request.mealAttendance;
     }
 
-    const targetSlot = (request.mealSlot || request.mealTime || "breakfast") as MealTime;
+    const targetSlot = canonicalMealTime(request);
     const allMemberIds = allMembers.map((m) => m.memberId);
 
     // 1. Day Attendance Matrix (Includes guestCountBySlot)
@@ -170,7 +219,8 @@ export class MealPlanningService {
     }
 
     const targetDate = request.targetDate ?? new Date().toISOString().slice(0, 10);
-    const targetSlot = (request.mealSlot || request.mealTime || "breakfast") as MealTime;
+    const targetSlot = canonicalMealTime(request);
+    familyContext = { ...familyContext, members: uniqueMembersById(familyContext.members) };
 
     // 2. Layer 1: Check Existing Persisted Plan for Today
     try {
@@ -246,10 +296,10 @@ export class MealPlanningService {
       });
     }
 
-    const finalizedMealPlan = this.aiService.localizeFamilyMealPlan(
+    const finalizedMealPlan = uniqueCustomizationsByMember(this.aiService.localizeFamilyMealPlan(
       generatedMealPlan,
       request.preferredLanguage || request.mealTimeContext?.locale || "hi"
-    );
+    ));
 
     // 4. Persistence Handling (Non-blocking)
     store.mealPlans.push(finalizedMealPlan);
