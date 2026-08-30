@@ -6,7 +6,7 @@ import type {
   IngredientRequirement,
   MealAttendanceEntry,
   MealComponent,
-  MealTime
+  MealTime,
 } from "@/lib/shared/contracts";
 
 function round(value: number) {
@@ -36,7 +36,9 @@ function scaleQuantity(quantity: string, scale: number) {
 
 function fastingSuggestion(member: FamilyMember, mealTime: MealTime): FastingMealRequirement {
   const preference = member.fastingPreference;
-  const allowed = preference?.allowedFoods.length ? preference.allowedFoods : ["Fruit", "Curd", "Nuts", "Potato", "Millet or family-approved fasting grain"];
+  const allowed = preference?.allowedFoods.length
+    ? preference.allowedFoods
+    : ["Fruit", "Curd", "Nuts", "Potato", "Millet or family-approved fasting grain"];
   const avoided = preference?.avoidedFoods ?? [];
   const suggestion = preference?.grainsRestricted
     ? `${allowed.slice(0, 3).join(", ")} plate with light seasoning`
@@ -51,9 +53,13 @@ function fastingSuggestion(member: FamilyMember, mealTime: MealTime): FastingMea
     avoidedFoods: avoided,
     notes: [
       "Generated from user-confirmed fasting rules, not a universal fasting diet.",
-      preference?.dairyAllowed ? "Dairy allowed by saved preference." : "Avoid dairy unless the user confirms it is allowed.",
-      preference?.fruitsAllowed ? "Fruit can be included." : "Avoid fruit unless the user confirms it is allowed."
-    ]
+      preference?.dairyAllowed
+        ? "Dairy allowed by saved preference."
+        : "Avoid dairy unless the user confirms it is allowed.",
+      preference?.fruitsAllowed
+        ? "Fruit can be included."
+        : "Avoid fruit unless the user confirms it is allowed.",
+    ],
   };
 }
 
@@ -67,7 +73,7 @@ export class QuantityPlanningService {
         .filter((member) => member.fastingPreference?.observesFasting === "yes")
         .map((member) => member.memberId),
       guestCount: 0,
-      enabled: true
+      enabled: true,
     };
   }
 
@@ -80,12 +86,21 @@ export class QuantityPlanningService {
       .filter((member) => !absentMemberIds.has(member.memberId))
       .filter((member) => !fastingMemberIds.has(member.memberId))
       .reduce((sum, member) => sum + portionFactor(member), 0);
-    return round(memberUnits + attendance.guestCount);
+
+    const guestUnits = Math.max(0, attendance.guestCount || 0) * 1.0;
+    return round(memberUnits + guestUnits);
   }
 
-  mealRequirements(mealTime: MealTime, ingredients: Ingredient[], attendance: MealAttendanceEntry, members: FamilyMember[]) {
+  mealRequirements(
+    mealTime: MealTime,
+    ingredients: Ingredient[],
+    attendance: MealAttendanceEntry,
+    members: FamilyMember[]
+  ) {
     const units = this.portionUnits(attendance, members);
     const scale = units / Math.max(members.length, 1);
+    const guestCount = attendance.guestCount || 0;
+
     return ingredients.map((ingredient, index): IngredientRequirement => ({
       itemId: `${mealTime}-${index + 1}-${ingredient.name.toLowerCase().replace(/\s+/g, "-")}`,
       mealTime,
@@ -97,19 +112,26 @@ export class QuantityPlanningService {
       portionUnits: units,
       estimatedCost: {
         amount: Math.round(ingredient.estimatedCost.amount * scale),
-        currency: "INR"
+        currency: "INR",
       },
       notes: [
         `Calculated for ${units} adult-equivalent portion units.`,
-        "Absent and fasting members are excluded from normal meal quantities."
-      ]
+        ...(guestCount > 0 ? [`Includes portions for ${guestCount} extra visiting guest(s).`] : []),
+        "Absent and fasting members are excluded from normal meal quantities.",
+      ],
     }));
   }
 
-  componentMealRequirements(mealTime: MealTime, components: MealComponent[], attendance: MealAttendanceEntry, members: FamilyMember[]) {
+  componentMealRequirements(
+    mealTime: MealTime,
+    components: MealComponent[],
+    attendance: MealAttendanceEntry,
+    members: FamilyMember[]
+  ) {
     const participatingIds = new Set(attendance.participatingMemberIds);
     const absentIds = new Set(attendance.absentMemberIds);
     const fastingIds = new Set(attendance.fastingMemberIds);
+    const guestCount = attendance.guestCount || 0;
 
     return components.flatMap((component) => {
       const componentMembers = members.filter(
@@ -119,7 +141,12 @@ export class QuantityPlanningService {
           !absentIds.has(member.memberId) &&
           !fastingIds.has(member.memberId)
       );
-      const units = round(componentMembers.reduce((sum, member) => sum + portionFactor(member), 0));
+
+      let units = round(componentMembers.reduce((sum, member) => sum + portionFactor(member), 0));
+      if (component.role === "common_base" || component.role === "vegetarian_option") {
+        units = round(units + guestCount * 1.0);
+      }
+
       if (units <= 0) return [];
       const scale = units / Math.max(members.length, 1);
 
@@ -134,20 +161,23 @@ export class QuantityPlanningService {
         portionUnits: units,
         estimatedCost: {
           amount: Math.round(ingredient.estimatedCost.amount * scale),
-          currency: "INR"
+          currency: "INR",
         },
         notes: [
           `Component: ${component.label}.`,
-          `Calculated for ${units} adult-equivalent portion units from ${componentMembers.length} assigned member(s).`,
-          ...component.notes
-        ]
+          `Calculated for ${units} adult-equivalent portion units from ${componentMembers.length} assigned member(s)${guestCount > 0 ? ` + ${guestCount} guest(s)` : ""
+          }.`,
+          ...component.notes,
+        ],
       }));
     });
   }
 
   fastingRequirements(mealTime: MealTime, attendance: MealAttendanceEntry, members: FamilyMember[]) {
     const fastingIds = new Set(attendance.fastingMemberIds);
-    return members.filter((member) => fastingIds.has(member.memberId)).map((member) => fastingSuggestion(member, mealTime));
+    return members
+      .filter((member) => fastingIds.has(member.memberId))
+      .map((member) => fastingSuggestion(member, mealTime));
   }
 
   consolidate(requirements: IngredientRequirement[]) {
@@ -170,9 +200,9 @@ export class QuantityPlanningService {
         portionUnits: round(items.reduce((sum, item) => sum + item.portionUnits, 0)),
         estimatedCost: {
           amount: items.reduce((sum, item) => sum + item.estimatedCost.amount, 0),
-          currency: "INR"
+          currency: "INR",
         },
-        notes: ["Consolidated deterministic daily grocery requirement."]
+        notes: ["Consolidated deterministic daily grocery requirement."],
       };
     });
   }
@@ -184,7 +214,7 @@ export class QuantityPlanningService {
       category: requirement.category,
       quantity: requirement.adjustedQuantity,
       estimatedCost: requirement.estimatedCost,
-      quantityToPurchase: requirement.quantityToPurchase
+      quantityToPurchase: requirement.quantityToPurchase,
     }));
   }
 }
