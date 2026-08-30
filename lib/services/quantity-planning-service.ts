@@ -9,11 +9,11 @@ import type {
   MealTime,
 } from "@/lib/shared/contracts";
 
-function round(value: number) {
+function round(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
-function portionFactor(member: FamilyMember) {
+function portionFactor(member: FamilyMember): number {
   if (member.age < 6) return 0.35;
   if (member.age < 13) return 0.55;
   if (member.age > 70) return 0.75;
@@ -22,13 +22,13 @@ function portionFactor(member: FamilyMember) {
   return 1;
 }
 
-function parseQuantity(quantity: string) {
+function parseQuantity(quantity: string): { amount: number; unit: string } | null {
   const match = quantity.match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
   if (!match) return null;
   return { amount: Number(match[1]), unit: match[2].trim() };
 }
 
-function scaleQuantity(quantity: string, scale: number) {
+function scaleQuantity(quantity: string, scale: number): string {
   const parsed = parseQuantity(quantity);
   if (!parsed) return `${round(scale)}x ${quantity}`;
   return `${round(parsed.amount * scale)} ${parsed.unit}`.trim();
@@ -77,10 +77,11 @@ export class QuantityPlanningService {
     };
   }
 
-  portionUnits(attendance: MealAttendanceEntry, members: FamilyMember[]) {
+  portionUnits(attendance: MealAttendanceEntry, members: FamilyMember[]): number {
     const activeMemberIds = new Set(attendance.participatingMemberIds);
     const absentMemberIds = new Set(attendance.absentMemberIds);
     const fastingMemberIds = new Set(attendance.fastingMemberIds);
+
     const memberUnits = members
       .filter((member) => activeMemberIds.has(member.memberId))
       .filter((member) => !absentMemberIds.has(member.memberId))
@@ -96,30 +97,35 @@ export class QuantityPlanningService {
     ingredients: Ingredient[],
     attendance: MealAttendanceEntry,
     members: FamilyMember[]
-  ) {
+  ): IngredientRequirement[] {
     const units = this.portionUnits(attendance, members);
     const scale = units / Math.max(members.length, 1);
     const guestCount = attendance.guestCount || 0;
 
-    return ingredients.map((ingredient, index): IngredientRequirement => ({
-      itemId: `${mealTime}-${index + 1}-${ingredient.name.toLowerCase().replace(/\s+/g, "-")}`,
-      mealTime,
-      name: ingredient.name,
-      category: ingredient.category,
-      baseQuantity: ingredient.quantity,
-      adjustedQuantity: scaleQuantity(ingredient.quantity, scale),
-      quantityToPurchase: scaleQuantity(ingredient.quantity, scale),
-      portionUnits: units,
-      estimatedCost: {
-        amount: Math.round(ingredient.estimatedCost.amount * scale),
-        currency: "INR",
-      },
-      notes: [
-        `Calculated for ${units} adult-equivalent portion units.`,
-        ...(guestCount > 0 ? [`Includes portions for ${guestCount} extra visiting guest(s).`] : []),
-        "Absent and fasting members are excluded from normal meal quantities.",
-      ],
-    }));
+    return ingredients.map((ingredient, index): IngredientRequirement => {
+      const rawCost = ingredient.estimatedCost?.amount ?? 30;
+      const validAmount = Number.isNaN(rawCost) ? 30 : Math.round(rawCost * scale);
+
+      return {
+        itemId: `${mealTime}-${index + 1}-${(ingredient.name || "item").toLowerCase().replace(/\s+/g, "-")}`,
+        mealTime,
+        name: ingredient.name,
+        category: ingredient.category || "other",
+        baseQuantity: ingredient.quantity,
+        adjustedQuantity: scaleQuantity(ingredient.quantity, scale),
+        quantityToPurchase: scaleQuantity(ingredient.quantity, scale),
+        portionUnits: units,
+        estimatedCost: {
+          amount: validAmount,
+          currency: "INR",
+        },
+        notes: [
+          `Calculated for ${units} adult-equivalent portion units.`,
+          ...(guestCount > 0 ? [`Includes portions for ${guestCount} extra visiting guest(s).`] : []),
+          "Absent and fasting members are excluded from normal meal quantities.",
+        ],
+      };
+    });
   }
 
   componentMealRequirements(
@@ -127,7 +133,7 @@ export class QuantityPlanningService {
     components: MealComponent[],
     attendance: MealAttendanceEntry,
     members: FamilyMember[]
-  ) {
+  ): IngredientRequirement[] {
     const participatingIds = new Set(attendance.participatingMemberIds);
     const absentIds = new Set(attendance.absentMemberIds);
     const fastingIds = new Set(attendance.fastingMemberIds);
@@ -150,37 +156,42 @@ export class QuantityPlanningService {
       if (units <= 0) return [];
       const scale = units / Math.max(members.length, 1);
 
-      return component.ingredients.map((ingredient, index): IngredientRequirement => ({
-        itemId: `${mealTime}-${component.componentId}-${index + 1}-${ingredient.name.toLowerCase().replace(/\s+/g, "-")}`,
-        mealTime,
-        name: ingredient.name,
-        category: ingredient.category,
-        baseQuantity: ingredient.quantity,
-        adjustedQuantity: scaleQuantity(ingredient.quantity, scale),
-        quantityToPurchase: scaleQuantity(ingredient.quantity, scale),
-        portionUnits: units,
-        estimatedCost: {
-          amount: Math.round(ingredient.estimatedCost.amount * scale),
-          currency: "INR",
-        },
-        notes: [
-          `Component: ${component.label}.`,
-          `Calculated for ${units} adult-equivalent portion units from ${componentMembers.length} assigned member(s)${guestCount > 0 ? ` + ${guestCount} guest(s)` : ""
-          }.`,
-          ...component.notes,
-        ],
-      }));
+      return component.ingredients.map((ingredient, index): IngredientRequirement => {
+        const rawCost = ingredient.estimatedCost?.amount ?? 30;
+        const validAmount = Number.isNaN(rawCost) ? 30 : Math.round(rawCost * scale);
+
+        return {
+          itemId: `${mealTime}-${component.componentId}-${index + 1}-${(ingredient.name || "item").toLowerCase().replace(/\s+/g, "-")}`,
+          mealTime,
+          name: ingredient.name,
+          category: ingredient.category || "other",
+          baseQuantity: ingredient.quantity,
+          adjustedQuantity: scaleQuantity(ingredient.quantity, scale),
+          quantityToPurchase: scaleQuantity(ingredient.quantity, scale),
+          portionUnits: units,
+          estimatedCost: {
+            amount: validAmount,
+            currency: "INR",
+          },
+          notes: [
+            `Component: ${component.label}.`,
+            `Calculated for ${units} adult-equivalent portion units from ${componentMembers.length} assigned member(s)${guestCount > 0 ? ` + ${guestCount} guest(s)` : ""
+            }.`,
+            ...component.notes,
+          ],
+        };
+      });
     });
   }
 
-  fastingRequirements(mealTime: MealTime, attendance: MealAttendanceEntry, members: FamilyMember[]) {
+  fastingRequirements(mealTime: MealTime, attendance: MealAttendanceEntry, members: FamilyMember[]): FastingMealRequirement[] {
     const fastingIds = new Set(attendance.fastingMemberIds);
     return members
       .filter((member) => fastingIds.has(member.memberId))
       .map((member) => fastingSuggestion(member, mealTime));
   }
 
-  consolidate(requirements: IngredientRequirement[]) {
+  consolidate(requirements: IngredientRequirement[]): IngredientRequirement[] {
     const grouped = new Map<string, IngredientRequirement[]>();
     for (const requirement of requirements) {
       const key = requirement.name.toLowerCase();
@@ -199,7 +210,7 @@ export class QuantityPlanningService {
         quantityToPurchase: items.map((item) => item.quantityToPurchase).join(" + "),
         portionUnits: round(items.reduce((sum, item) => sum + item.portionUnits, 0)),
         estimatedCost: {
-          amount: items.reduce((sum, item) => sum + item.estimatedCost.amount, 0),
+          amount: items.reduce((sum, item) => sum + (item.estimatedCost?.amount ?? 0), 0),
           currency: "INR",
         },
         notes: ["Consolidated deterministic daily grocery requirement."],

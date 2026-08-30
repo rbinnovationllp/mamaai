@@ -18,6 +18,7 @@ import type {
   MealTimingPattern,
   MealTime,
   RecentMealHistoryDay,
+  RecipeVideoSearchResponse,
   WeeklyFoodRoutineStatus,
   MealTimetableSchedule,
   MemberMealAttendanceStatus,
@@ -428,25 +429,25 @@ const plannerCopy = {
   },
 };
 
-function todayLocalDate() {
+function todayLocalDate(): string {
   return new Date().toLocaleDateString('en-CA');
 }
 
-function currentLocalHour() {
+function currentLocalHour(): number {
   return new Date().getHours();
 }
 
-function browserTimeZone() {
+function browserTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
 }
 
-function addDaysToLocalDate(date: Date, days: number) {
+function addDaysToLocalDate(date: Date, days: number): string {
   const copy = new Date(date);
   copy.setDate(copy.getDate() + days);
   return copy.toLocaleDateString('en-CA');
 }
 
-function nextMondayLocalDate(from = new Date()) {
+function nextMondayLocalDate(from = new Date()): string {
   const copy = new Date(from);
   const day = copy.getDay();
   const distance = day === 0 ? 1 : 8 - day;
@@ -454,12 +455,7 @@ function nextMondayLocalDate(from = new Date()) {
   return copy.toLocaleDateString('en-CA');
 }
 
-function isSaturdayOrSundayLocal(from = new Date()) {
-  const day = from.getDay();
-  return day === 6 || day === 0;
-}
-
-function parseTimeToMinutes(value?: string) {
+function parseTimeToMinutes(value?: string): number | null {
   if (!value) return null;
   const match = value.match(/^(\d{1,2}):(\d{2})$/);
   if (!match) return null;
@@ -613,7 +609,7 @@ function dayPlanToAttendanceDraft(plan: DayAttendancePlan, members: HouseholdMem
   };
 }
 
-function weekdayForDate(dateString: string) {
+function weekdayForDate(dateString: string): string {
   return ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][
     new Date(`${dateString}T12:00:00`).getDay()
   ];
@@ -697,7 +693,7 @@ function budgetProfileFor(customer: CustomerAccount) {
   };
 }
 
-function budgetNotes(customer: CustomerAccount) {
+function budgetNotes(customer: CustomerAccount): string[] {
   const preference = customer.budgetPreference ?? 'moderate';
   const labels = {
     economical: 'Economical budget: prefer affordable everyday local ingredients, reduce premium proteins, and reuse common base meals.',
@@ -709,7 +705,7 @@ function budgetNotes(customer: CustomerAccount) {
   return [labels[preference]];
 }
 
-function cookingHabitNotes(value?: CustomerAccount['cookingHabit']) {
+function cookingHabitNotes(value?: CustomerAccount['cookingHabit']): string[] {
   switch (value) {
     case 'ready_frozen':
       return ['Household usually relies on ready-made or frozen cooked meal bases. Prefer practical heat-and-customize options with fresh vegetables or protein additions.'];
@@ -724,11 +720,11 @@ function cookingHabitNotes(value?: CustomerAccount['cookingHabit']) {
   }
 }
 
-function routineLabel(value?: DayFoodPreference) {
+function routineLabel(value?: DayFoodPreference): string {
   return value ? value.replaceAll('_', ' ') : 'no particular preference';
 }
 
-function weeklyRoutineNotes(customer: CustomerAccount, selectedMealTime: MealTime, targetDate: string) {
+function weeklyRoutineNotes(customer: CustomerAccount, selectedMealTime: MealTime, targetDate: string): string[] {
   if (customer.weeklyFoodRoutineStatus !== 'add' || !Array.isArray(customer.weeklyFoodRoutine)) return [];
   const weekday = weekdayForDate(targetDate);
   const entry = customer.weeklyFoodRoutine.find((item) => item.day?.toLowerCase() === weekday);
@@ -745,7 +741,7 @@ function weeklyRoutineNotes(customer: CustomerAccount, selectedMealTime: MealTim
   return notes;
 }
 
-function mealTypePreferenceNotes(customer: CustomerAccount, selectedMealTime: MealTime) {
+function mealTypePreferenceNotes(customer: CustomerAccount, selectedMealTime: MealTime): string[] {
   const slot = mealSlotForMealTime(selectedMealTime);
   const values = customer.mealTypePreferences?.[slot]?.filter(Boolean) ?? [];
   if (!values.length) return [];
@@ -754,7 +750,7 @@ function mealTypePreferenceNotes(customer: CustomerAccount, selectedMealTime: Me
   ];
 }
 
-function recentMealHistoryNotes(customer: CustomerAccount, selectedMealTime: MealTime) {
+function recentMealHistoryNotes(customer: CustomerAccount, selectedMealTime: MealTime): string[] {
   const entries = customer.recentMealHistory?.filter((entry) =>
     entry.breakfast || entry.lunch || entry.snacks || entry.dinner
   ) ?? [];
@@ -779,7 +775,7 @@ function recentMealHistoryNotes(customer: CustomerAccount, selectedMealTime: Mea
   ];
 }
 
-function cultureNotes(culture: CultureProfile) {
+function cultureNotes(culture: CultureProfile): string[] {
   const notes = [
     'Use country and region only as supporting food-culture context. Do not stereotype the family from location.',
   ];
@@ -792,7 +788,7 @@ function cultureNotes(culture: CultureProfile) {
   return notes;
 }
 
-function nonVegNotes(member: HouseholdMember, selectedMealTime: MealTime) {
+function nonVegNotes(member: HouseholdMember, selectedMealTime: MealTime): string[] {
   const notes: string[] = [];
   const label = member.name || 'This member';
   if (member.nonVegFrequency) {
@@ -810,21 +806,21 @@ function nonVegNotes(member: HouseholdMember, selectedMealTime: MealTime) {
   return notes;
 }
 
-function mealLabel(value: MealTime, labels: typeof plannerCopy.en.meals) {
+function mealLabel(value: MealTime, labels: typeof plannerCopy.en.meals): string {
   return labels[value] ?? value.replace('_', ' ');
 }
 
-function planLabel(value: string) {
+function planLabel(value: string): string {
   return value
     .replace('_', ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function difficultyLabel(value: FamilyMealPlan['commonMeal']['difficulty'], labels: typeof plannerCopy.en.difficulties) {
+function difficultyLabel(value: FamilyMealPlan['commonMeal']['difficulty'], labels: typeof plannerCopy.en.difficulties): string {
   return labels[value] ?? value;
 }
 
-function normalizeName(value: string) {
+function normalizeName(value: string): string {
   return value
     .toLowerCase()
     .replace(/mung dal/g, 'moong dal')
@@ -836,7 +832,7 @@ function normalizeName(value: string) {
     .trim();
 }
 
-function normalizeUnit(value: string) {
+function normalizeUnit(value: string): string {
   const unit = value.toLowerCase().trim();
   const unitMap: Record<string, string> = {
     cups: 'cup',
@@ -876,7 +872,7 @@ function normalizeUnit(value: string) {
   return unitMap[unit] ?? unit;
 }
 
-function parseQuantity(value: string) {
+function parseQuantity(value: string): { amount: number; unit: string } | null {
   const match = value.match(/(\d+(?:\.\d+)?)\s*([^\d\s+]+)/u);
   if (!match) return null;
   return { amount: Number(match[1]), unit: normalizeUnit(match[2]) };
@@ -891,7 +887,7 @@ function toComparableQuantity(amount: number, unit: string) {
   return { amount, unit: normalized, displayUnit: normalized };
 }
 
-function localizedUnit(unit: string, language: string) {
+function localizedUnit(unit: string, language: string): string {
   if (language === 'hi') {
     return {
       cup: 'कप',
@@ -921,14 +917,14 @@ function localizedUnit(unit: string, language: string) {
   return unit;
 }
 
-function formatComparableQuantity(amount: number, unit: string, language = 'en') {
+function formatComparableQuantity(amount: number, unit: string, language = 'en'): string {
   const rounded = Math.round(amount * 100) / 100;
   if (unit === 'g' && rounded >= 1000) return `${Math.round((rounded / 1000) * 100) / 100} ${localizedUnit('kg', language)}`;
   if (unit === 'ml' && rounded >= 1000) return `${Math.round((rounded / 1000) * 100) / 100} ${localizedUnit('l', language)}`;
   return `${rounded} ${localizedUnit(unit, language)}`;
 }
 
-function pantrySummary(items: PantryItem[]) {
+function pantrySummary(items: PantryItem[]): string {
   return items
     .filter((item) => item.name && Number(item.quantity) > 0)
     .slice(0, 20)
@@ -972,12 +968,12 @@ function adjustGroceryForPantry(plan: FamilyMealPlan, pantryItems: PantryItem[],
   };
 }
 
-function isIndiaLike(culture: CultureProfile) {
+function isIndiaLike(culture: CultureProfile): boolean {
   const country = normalizeName(culture.country || '');
   return country.includes('india') || country.includes('bharat');
 }
 
-function attendanceNotesForSchedule(schedule: MealAttendanceDraft, members: HouseholdMember[], labels: typeof plannerCopy.en.meals) {
+function attendanceNotesForSchedule(schedule: MealAttendanceDraft, members: HouseholdMember[], labels: typeof plannerCopy.en.meals): string[] {
   return dailyScheduleMealTimes.map((mealTime) => {
     const entry = schedule[mealTime] ?? { participatingMemberIds: [], tiffinMemberIds: [] };
     const home = members
@@ -999,7 +995,7 @@ function weeklySlotFor(plan: WeeklyFamilyMealPlan | null, targetDate: string, me
     ?.meals.find((slot) => slot.mealTime === mealTime) ?? null;
 }
 
-function weeklyDayLabel(day: string, language: string) {
+function weeklyDayLabel(day: string, language: string): string {
   const labels: Record<string, Record<string, string>> = {
     en: { monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday' },
     hi: { monday: 'सोमवार', tuesday: 'मंगलवार', wednesday: 'बुधवार', thursday: 'गुरुवार', friday: 'शुक्रवार', saturday: 'शनिवार', sunday: 'रविवार' },
@@ -1036,7 +1032,7 @@ function readLocalLearningSignals(): Array<{
   }
 }
 
-function previousMealsForPlanning(mealTime: MealTime, currentMealName?: string) {
+function previousMealsForPlanning(mealTime: MealTime, currentMealName?: string): string[] {
   const learnedMeals = readLocalLearningSignals()
     .filter((signal) => signal.mealTime === mealTime && (signal.outcome === 'rejected' || signal.outcome === 'cooked'))
     .map((signal) => signal.mealName);
@@ -1083,7 +1079,6 @@ export default function PlannerPage() {
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyFamilyMealPlan | null>(null);
   const [nextWeekPlan, setNextWeekPlan] = useState<WeeklyFamilyMealPlan | null>(null);
   const [weekPlanStatus, setWeekPlanStatus] = useState<WeekPlanState>('IDLE');
-  const [nextWeekStatus, setNextWeekStatus] = useState('');
   const [plannerView, setPlannerView] = useState<'today' | 'week'>('today');
   const [isStalePlan, setIsStalePlan] = useState(false);
   const [status, setStatus] = useState('');
@@ -1415,7 +1410,7 @@ export default function PlannerPage() {
   const canGenerate = members.length > 0;
   const membersMissingAge = members.filter((member) => typeof member.age !== 'number' || Number.isNaN(member.age));
 
-  // 7. Active Generation Action
+  // 7. Active Generation Action (Direct Daily Generator)
   const generatePlan = async (cravingOverride?: string) => {
     if (!canGenerate || isGenerating) return;
     if (membersMissingAge.length) {
@@ -1435,7 +1430,7 @@ export default function PlannerPage() {
 
     setIsGenerating(true);
     setError('');
-    setStatus(t.weeklyGenerating);
+    setStatus(t.generating);
     setMealPlan(null);
     setIsStalePlan(false);
 
@@ -1590,8 +1585,9 @@ export default function PlannerPage() {
 
       const mealPlanRequestBody = {
         familyId: familyParsed.data.family.familyId,
-        planType: 'weekly',
+        planType: 'daily',
         mealTime: activeMealSlot,
+        mealSlot: mealSlotForMealTime(activeMealSlot),
         preferredLanguage: language,
         userPromptOverride: cravingOverride,
         previousMeals: previousMealsForPlanning(activeMealSlot, mealPlan?.commonMeal?.name),
@@ -1612,53 +1608,26 @@ export default function PlannerPage() {
         mealAttendance: mealAttendancePayload,
       };
 
-      let alignedPlan: FamilyMealPlan;
+      const dailyResponse = await fetchWithTimeout('/api/meal-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(mealPlanRequestBody),
+      }, 25000);
 
-      try {
-        const weeklyResponse = await fetchWithTimeout('/api/weekly-meal-plans', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(mealPlanRequestBody),
-        }, 45000);
-
-        const weeklyParsed = await safeParseJsonResponse<{ weeklyPlan: WeeklyFamilyMealPlan; reusedExisting?: boolean }>(
-          weeklyResponse
-        );
-
-        if (!weeklyParsed.success || !weeklyParsed.data?.weeklyPlan) {
-          throw new Error(weeklyParsed.errorText || 'Weekly plan unavailable.');
-        }
-
-        const freshWeeklyPlan = weeklyParsed.data.weeklyPlan;
-        setWeeklyPlan(freshWeeklyPlan);
-        window.localStorage.setItem(WEEKLY_MASTER_PLAN_KEY, JSON.stringify(freshWeeklyPlan));
-        const selectedWeeklySlot = weeklySlotFor(freshWeeklyPlan, targetDate, activeMealSlot);
-        if (!selectedWeeklySlot) throw new Error('Selected meal was not found in the weekly master plan.');
-        alignedPlan = alignMealPlanToActiveRequest(selectedWeeklySlot.selectedOption, activeMealSlot, targetDate);
-        setStatus(t.weeklyReady);
-      } catch (weeklyError) {
-        console.warn('Weekly meal plan failed; falling back to direct meal generator.', weeklyError);
-        const dailyResponse = await fetchWithTimeout('/api/meal-plan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...mealPlanRequestBody, planType: 'daily' }),
-        }, 30000);
-
-        const dailyParsed = await safeParseJsonResponse<{ mealPlan: FamilyMealPlan }>(dailyResponse);
-        if (!dailyParsed.success || !dailyParsed.data?.mealPlan) {
-          throw new Error(dailyParsed.errorText || 'Direct generation failed.');
-        }
-
-        alignedPlan = alignMealPlanToActiveRequest(dailyParsed.data.mealPlan, activeMealSlot, targetDate);
-        setStatus(t.weeklyFallbackReady);
+      const dailyParsed = await safeParseJsonResponse<{ mealPlan: FamilyMealPlan }>(dailyResponse);
+      if (!dailyParsed.success || !dailyParsed.data?.mealPlan) {
+        throw new Error(dailyParsed.errorText || 'Generation failed.');
       }
 
+      const alignedPlan = alignMealPlanToActiveRequest(dailyParsed.data.mealPlan, activeMealSlot, targetDate);
       const pantryAdjustedPlan = adjustGroceryForPantry(alignedPlan, pantryItems, t.alreadyInPantry, language);
+
       setMealPlan(pantryAdjustedPlan);
       setIsStalePlan(false);
       window.localStorage.setItem(CURRENT_MEAL_PLAN_KEY, JSON.stringify(pantryAdjustedPlan));
       window.localStorage.setItem(LAST_PLAN_KEY, suggestedPlan);
       setLastPlan(suggestedPlan);
+      setStatus(t.success);
 
       trackAnalyticsEvent('meal_plan_generated', {
         category: suggestedPlan,
@@ -1735,10 +1704,9 @@ export default function PlannerPage() {
   // 9. Next Week Plan Generation
   const handleGenerateNextWeek = async () => {
     setWeekPlanStatus('GENERATING');
-    setNextWeekStatus('');
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
+    const timer = setTimeout(() => controller.abort(), 20000);
 
     try {
       const res = await fetch('/api/weekly-meal-plans', {
@@ -1747,6 +1715,7 @@ export default function PlannerPage() {
         signal: controller.signal,
         body: JSON.stringify({
           familyId: customer.familyId || 'fam_primary',
+          targetDate: nextWeekStart,
           targetWeekStart: nextWeekStart,
           locale: language,
           preferredLanguage: language,
