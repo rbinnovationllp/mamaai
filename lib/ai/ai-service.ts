@@ -25,7 +25,61 @@ import { GroceryService } from "@/lib/services/grocery-service";
 import { QuantityPlanningService } from "@/lib/services/quantity-planning-service";
 import { detailedMealPlanExpiresAt, retentionPolicy } from "@/lib/services/meal-retention-service";
 
-interface GeneratePlanInput {
+export function buildDynamicNutritionPrompt(params: {
+  family: Family;
+  members: FamilyMember[];
+  targetSlot: string;
+  recentDishes: string[];
+  recentPulses: string[];
+  language: string;
+  userPromptOverride?: string;
+}): string {
+  const { family, targetSlot, recentDishes, recentPulses, language, userPromptOverride } = params;
+
+  const country = family.country || "India";
+  const region = family.state || "National";
+  const diet = family.dietPreference || "vegetarian";
+
+  return `
+You are MAMAAI, an expert family nutrition and culinary intelligence system.
+Target Meal Slot: ${targetSlot.toUpperCase()}
+Country: ${country} | Region/State: ${region} | Diet Preference: ${diet}
+Language: ${language}
+
+CORE NUTRITIONAL PRINCIPLE:
+Plan a complete, wholesome family meal combination containing:
+1. Complex Carbohydrate Base (Whole wheat, unpolished rice, traditional millets: Ragi/Jowar/Bajra, Poha)
+2. High-Quality Protein Anchor (Diverse Dals/Pulses, Paneer, Curd/Buttermilk, Sprouts, Soya, Eggs, Fish, Chicken based on family diet)
+3. Fibre & Micronutrient Diversity (At least 1-2 seasonal vegetables or salads)
+4. Healthy Fats & Digestion Aids (Tempering with jeera, hing, turmeric, cold-pressed oil/ghee in moderation)
+
+PULSE & PROTEIN DIVERSITY RULES (STRICT ROTATION):
+- Do NOT default repeatedly to Masoor Dal or standard yellow lentils.
+- Utilize India's vast spectrum of legumes:
+  * Toor / Arhar Dal (Tadka, Sambar, Gujarati, Maharashtrian Varan)
+  * Whole Green Moong / Split Moong (Chilka dal, curry, sprouted salad)
+  * Chana Dal / Kala Chana / Kabuli Chana (Lauki-chana dal, Ghugni, Chole)
+  * Rajma (Jammu style, Punjabi masala)
+  * Urad / Dhuli Urad (Urad dal tadka, Bedmi base, Dosa/Idli fermented mix)
+  * Lobia / Cowpeas (Rongi curry, dry lobia sabzi)
+  * Mixed Panchmel Dal / Dal Maharani
+
+RECENTLY CONSUMED DISHES & PULSES TO EXCLUDE/PENALIZE:
+- Excluded Dishes: ${JSON.stringify(recentDishes.slice(-7))}
+- Pulses to Rotate Away From: ${JSON.stringify(recentPulses.slice(-3))}
+
+${userPromptOverride ? `USER SPECIAL CRAVING/OVERRIDE: "${userPromptOverride}" (Give this highest priority while maintaining nutritional balance)` : ""}
+
+OUTPUT FORMAT REQUIREMENT:
+Provide:
+1. Primary Recommended Meal (Complete meal plate with Roti/Rice + Dal/Protein + Sabzi + Curd/Salad).
+2. Alternative Option 1 (Distinct flavour profile and different pulse/protein source).
+3. Alternative Option 2 (Distinct preparation style, e.g., Millet/Grain plate or stuffed bread + legume side).
+All 3 options must be balanced in protein, fibre, and vegetable content.
+`.trim();
+}
+
+export interface GeneratePlanInput {
   family: Family;
   members: FamilyMember[];
   planType: PlanType;
@@ -115,20 +169,20 @@ function pohaIngredients(): Ingredient[] {
   ];
 }
 
-function rotiDalIngredients(): Ingredient[] {
+function rotiDalIngredients(pulseName: string = "Toor dal"): Ingredient[] {
   return [
     { name: "Whole wheat flour", quantity: "3 cups", category: "grains", estimatedCost: money(55) },
-    { name: "Masoor dal", quantity: "1.5 cups", category: "pulses", estimatedCost: money(65) },
+    { name: pulseName, quantity: "1.5 cups", category: "pulses", estimatedCost: money(65) },
     { name: "Seasonal vegetable sabzi", quantity: "4 cups", category: "vegetables", estimatedCost: money(120) },
     { name: "Curd", quantity: "750 g", category: "dairy", estimatedCost: money(80) },
     { name: "Basic spices", quantity: "2 tsp", category: "spices", estimatedCost: money(15) },
   ];
 }
 
-function vegetablePulaoDalIngredients(): Ingredient[] {
+function vegetablePulaoDalIngredients(pulseName: string = "Chana dal"): Ingredient[] {
   return [
     { name: "Rice", quantity: "1.5 cups", category: "grains", estimatedCost: money(55) },
-    { name: "Masoor dal", quantity: "1.25 cups", category: "pulses", estimatedCost: money(55) },
+    { name: pulseName, quantity: "1.25 cups", category: "pulses", estimatedCost: money(55) },
     { name: "Mixed vegetables", quantity: "4 cups", category: "vegetables", estimatedCost: money(120) },
     { name: "Curd", quantity: "650 g", category: "dairy", estimatedCost: money(70) },
     { name: "Cumin and turmeric", quantity: "2 tsp", category: "spices", estimatedCost: money(15) },
@@ -189,7 +243,7 @@ function fishRiceIngredients(): Ingredient[] {
   return [
     { name: "Fish", quantity: "650 g", category: "protein", estimatedCost: money(260) },
     { name: "Rice", quantity: "1.5 cups", category: "grains", estimatedCost: money(55) },
-    { name: "Moong dal", quantity: "1 cup", category: "pulses", estimatedCost: money(40) },
+    { name: "Toor dal", quantity: "1 cup", category: "pulses", estimatedCost: money(40) },
     { name: "Mixed vegetables", quantity: "4 cups", category: "vegetables", estimatedCost: money(110) },
     { name: "Curd", quantity: "500 g", category: "dairy", estimatedCost: money(60) },
   ];
@@ -197,7 +251,7 @@ function fishRiceIngredients(): Ingredient[] {
 
 function mixedFamilyIngredients(): Ingredient[] {
   return [
-    { name: "Masoor dal", quantity: "1.5 cups", category: "pulses", estimatedCost: money(65) },
+    { name: "Toor dal", quantity: "1.5 cups", category: "pulses", estimatedCost: money(65) },
     { name: "Whole wheat flour", quantity: "3 cups", category: "grains", estimatedCost: money(55) },
     { name: "Seasonal vegetable sabzi", quantity: "4 cups", category: "vegetables", estimatedCost: money(120) },
     { name: "Eggs or chicken add-on", quantity: "4 eggs or 350 g chicken", category: "protein", estimatedCost: money(130) },
@@ -207,7 +261,7 @@ function mixedFamilyIngredients(): Ingredient[] {
 
 function veganDalIngredients(): Ingredient[] {
   return [
-    { name: "Masoor dal", quantity: "1.5 cups", category: "pulses", estimatedCost: money(65) },
+    { name: "Yellow Moong dal", quantity: "1.5 cups", category: "pulses", estimatedCost: money(65) },
     { name: "Brown rice or millet", quantity: "1.5 cups", category: "grains", estimatedCost: money(75) },
     { name: "Seasonal vegetable sabzi", quantity: "5 cups", category: "vegetables", estimatedCost: money(140) },
     { name: "Roasted peanuts or sesame chutney", quantity: "0.5 cup", category: "protein", estimatedCost: money(45) },
@@ -353,7 +407,7 @@ function mixedDietComponents(input: GeneratePlanInput, mealTime: MealTime): Meal
           category: "grains" as const,
           estimatedCost: money(55),
         },
-        { name: "Masoor dal", quantity: "1.5 cups", category: "pulses" as const, estimatedCost: money(65) },
+        { name: "Toor dal", quantity: "1.5 cups", category: "pulses" as const, estimatedCost: money(65) },
         {
           name: "Seasonal vegetable sabzi",
           quantity: "4 cups",
@@ -846,10 +900,9 @@ function estimateForDiet(dietPreference: FamilyDietPreference, mealTime: MealTim
 
   return nutritionEstimate(
     { caloriesKcal: 1540, proteinGrams: 64, carbsGrams: 230, fatGrams: 36, fiberGrams: 36 },
-    "Estimated family total for roti, masoor dal, seasonal sabzi, and curd."
+    "Estimated family total for roti, toor dal, seasonal sabzi, and curd."
   );
 }
-
 
 function breakfastCandidates(
   input: GeneratePlanInput,
@@ -988,6 +1041,7 @@ function veganHighTeaCandidates(
     },
   ];
 }
+
 function vegetarianDinnerCandidates(
   input: GeneratePlanInput,
   mealId: string,
@@ -1009,10 +1063,10 @@ function vegetarianDinnerCandidates(
     },
     {
       mealId: `${mealId}-roti-dal`,
-      name: "Roti, Masoor Dal, Seasonal Sabzi and Curd",
+      name: "Roti, Toor Dal Tadka, Seasonal Sabzi and Curd",
       mealTime,
-      description: "A practical dinner plate that avoids repeating khichdi while keeping one adaptable family table.",
-      ingredients: rotiDalIngredients(),
+      description: "A practical dinner plate that rotates wholesome toor dal with fresh rotis and seasonal vegetables.",
+      ingredients: rotiDalIngredients("Toor dal"),
       prepTimeMinutes: 35,
       difficulty: "easy",
       regionFit,
@@ -1024,7 +1078,7 @@ function vegetarianDinnerCandidates(
       name: "Vegetable Pulao with Dal and Cucumber Raita",
       mealTime,
       description: "A balanced family dinner with vegetable pulao, dal protein and cooling raita, planned as a practical alternative to khichdi.",
-      ingredients: vegetablePulaoDalIngredients(),
+      ingredients: vegetablePulaoDalIngredients("Chana dal"),
       prepTimeMinutes: 35,
       difficulty: "easy",
       regionFit,
@@ -1058,7 +1112,6 @@ function vegetarianDinnerCandidates(
   ];
 }
 
-
 function vegetarianLunchCandidates(
   input: GeneratePlanInput,
   mealId: string,
@@ -1067,11 +1120,11 @@ function vegetarianLunchCandidates(
 ): CommonMealDraft[] {
   return [
     {
-      mealId: `${mealId}-roti-dal`,
-      name: "Roti, Masoor Dal, Seasonal Sabzi and Curd",
+      mealId: `${mealId}-roti-toor-dal`,
+      name: "Roti, Toor Dal, Seasonal Sabzi and Curd",
       mealTime,
-      description: "A practical Indian lunch plate that keeps one common family meal while adapting portions for each member.",
-      ingredients: rotiDalIngredients(),
+      description: "A practical Indian lunch plate with protein-rich toor dal, fresh rotis, seasonal sabzi and curd.",
+      ingredients: rotiDalIngredients("Toor dal"),
       prepTimeMinutes: 35,
       difficulty: "easy",
       regionFit,
@@ -1079,11 +1132,11 @@ function vegetarianLunchCandidates(
       nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
     },
     {
-      mealId: `${mealId}-pulao-dal`,
+      mealId: `${mealId}-pulao-chana-dal`,
       name: "Vegetable Pulao with Dal and Cucumber Raita",
       mealTime,
       description: "A balanced family lunch with vegetable pulao, dal protein and cooling raita, planned for variety without heavy cooking.",
-      ingredients: vegetablePulaoDalIngredients(),
+      ingredients: vegetablePulaoDalIngredients("Chana dal"),
       prepTimeMinutes: 35,
       difficulty: "easy",
       regionFit,
@@ -1240,9 +1293,6 @@ function globalCandidates(
     nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
   }));
 }
-function firstFreshMeal(candidates: CommonMealDraft[], input: GeneratePlanInput, mealTime: MealTime) {
-  return candidates.find((meal) => !isMealRecentlyUsed(input, mealTime, meal.name)) ?? candidates[0];
-}
 
 function requestedCandidate(candidates: CommonMealDraft[], input: GeneratePlanInput) {
   const prompt = input.userPromptOverride?.toLowerCase().trim();
@@ -1270,6 +1320,7 @@ function selectCandidate(candidates: CommonMealDraft[], input: GeneratePlanInput
   const index = Math.abs(dinnerRotationIndex(input)) % validCandidates.length;
   return validCandidates[index];
 }
+
 function mealAttendanceFor(input: GeneratePlanInput, mealTime: MealTime) {
   return (
     input.mealAttendance?.find((entry) => entry.enabled && entry.mealTime === mealTime) ??
@@ -1333,7 +1384,7 @@ function mealForDiet(
       name: "Family Dal-Roti-Sabzi with Curd",
       mealTime,
       description: "A vegetarian common family meal for a saved no-non-veg day, with portions adjusted for each member.",
-      ingredients: rotiDalIngredients(),
+      ingredients: rotiDalIngredients("Toor dal"),
       prepTimeMinutes: 35,
       difficulty: "easy",
       regionFit,
@@ -1391,7 +1442,7 @@ function mealForDiet(
       mealId,
       name: "Egg Curry with Roti, Seasonal Sabzi and Curd",
       mealTime,
-      description: "An eggetarian family meal with egg protein, roti, vegetables, and curd.",
+      description: "An egg-based family meal with egg protein, roti, vegetables, and curd.",
       ingredients: eggCurryIngredients(),
       prepTimeMinutes: 35,
       difficulty: "easy",
@@ -1418,7 +1469,6 @@ function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
           ? ". Cooking habit: keep effort low and suggest practical prepared-meal balancing"
           : ". Cooking habit: fresh home cooking preferred";
   const statedPreferences = statedMealPreferencesFor(input, mealTime);
-  const hasExplicitMealPreference = statedPreferences.length > 0;
   const recentFit = recentMealsFor(input, mealTime).length
     ? `. Recent ${mealSlotForMealTime(mealTime)} history was checked deterministically to avoid unnecessary repetition`
     : "";
@@ -1457,7 +1507,6 @@ function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
   if (mealTime === "dinner") {
     const allCandidates = vegetarianDinnerCandidates(input, mealId, mealTime, regionFit);
 
-    // User prompt overrides (e.g. "आज पनीर बनाना है")
     if (input.userPromptOverride) {
       const promptLower = input.userPromptOverride.toLowerCase();
       if (promptLower.includes("paneer") || promptLower.includes("पनीर")) {
@@ -1472,13 +1521,11 @@ function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
       }
     }
 
-    // Exclude recently used or rejected dinners
     let validCandidates = allCandidates.filter((c) => !isMealRecentlyUsed(input, mealTime, c.name));
     if (!validCandidates.length) {
       validCandidates = allCandidates;
     }
 
-    // Rotate across remaining candidates
     const rotated = [
       ...validCandidates.slice(dinnerRotationIndex(input)),
       ...validCandidates.slice(0, dinnerRotationIndex(input)),
@@ -1561,6 +1608,8 @@ const mealNameTranslations = {
     "Ragi Dosa with Vegetable Sambar and Paneer Side": "सब्जी सांभर और पनीर साइड के साथ रागी डोसा",
     "Vegetable Poha with Curd and Fruit": "दही और फल के साथ सब्जी पोहा",
     "Vegetable Moong Dal Khichdi with Curd": "दही के साथ सब्जियों वाली मूंग दाल खिचड़ी",
+    "Roti, Toor Dal, Seasonal Sabzi and Curd": "रोटी, तूर दाल, मौसमी सब्जी और दही",
+    "Roti, Toor Dal Tadka, Seasonal Sabzi and Curd": "रोटी, तूर दाल तड़का, मौसमी सब्जी और दही",
     "Roti, Masoor Dal, Seasonal Sabzi and Curd": "रोटी, मसूर दाल, मौसमी सब्जी और दही",
     "Vegetable Pulao with Dal and Cucumber Raita": "दाल और खीरे के रायते के साथ सब्जी पुलाव",
     "Besan Chilla with Vegetable Soup and Curd": "सब्जी सूप और दही के साथ बेसन चीला",
@@ -1583,6 +1632,8 @@ const mealNameTranslations = {
     "Ragi Dosa with Vegetable Sambar and Paneer Side": "ತರಕಾರಿ ಸಾಂಬಾರ್ ಮತ್ತು ಪನೀರ್ ಸೈಡ್ ಜೊತೆಗೆ ರಾಗಿ ದೋಸೆ",
     "Vegetable Poha with Curd and Fruit": "ಮೊಸರು ಮತ್ತು ಹಣ್ಣು ಜೊತೆಗೆ ತರಕಾರಿ ಪೊಹಾ",
     "Vegetable Moong Dal Khichdi with Curd": "ಮೊಸರು ಜೊತೆಗೆ ತರಕಾರಿ ಮೂಂಗ್ ದಾಲ್ ಖಿಚಡಿ",
+    "Roti, Toor Dal, Seasonal Sabzi and Curd": "ರೊಟ್ಟಿ, ತೊಗರಿ ಬೇಳೆ, ಋತುಮಾನ ತರಕಾರಿ ಮತ್ತು ಮೊಸರು",
+    "Roti, Toor Dal Tadka, Seasonal Sabzi and Curd": "ರೊಟ್ಟಿ, ತೊಗರಿ ಬೇಳೆ ತಡ್ಕಾ, ಋತುಮಾನ ತರಕಾರಿ ಮತ್ತು ಮೊಸರು",
     "Roti, Masoor Dal, Seasonal Sabzi and Curd": "ರೊಟ್ಟಿ, ಮಸೂರ್ ದಾಲ್, ಋತುಮಾನ ತರಕಾರಿ ಮತ್ತು ಮೊಸರು",
     "Vegetable Pulao with Dal and Cucumber Raita": "ದಾಲ್ ಮತ್ತು ಸೌತೆಕಾಯಿ ರೈತ ಜೊತೆ ತರಕಾರಿ ಪುಲಾವ್",
     "Besan Chilla with Vegetable Soup and Curd": "ತರಕಾರಿ ಸೂಪ್ ಮತ್ತು ಮೊಸರು ಜೊತೆ ಬೇಸನ್ ಚಿಲ್ಲಾ",
@@ -1594,6 +1645,9 @@ const mealNameTranslations = {
 const ingredientTranslations = {
   hi: {
     "Moong dal": "मूंग दाल",
+    "Yellow Moong dal": "पीली मूंग दाल",
+    "Toor dal": "तूर दाल",
+    "Chana dal": "चना दाल",
     "Rice": "चावल",
     "Mixed vegetables": "मिली-जुली सब्जियां",
     "Curd": "दही",
@@ -1631,6 +1685,9 @@ const ingredientTranslations = {
   },
   kn: {
     "Moong dal": "ಮೂಂಗ್ ದಾಲ್",
+    "Yellow Moong dal": "ಹಳದಿ ಮೂಂಗ್ ದಾಲ್",
+    "Toor dal": "ತೊಗರಿ ಬೇಳೆ",
+    "Chana dal": "ಕಡಲೆ ಬೇಳೆ",
     "Rice": "ಅಕ್ಕಿ",
     "Mixed vegetables": "ಮಿಶ್ರ ತರಕಾರಿಗಳು",
     "Curd": "ಮೊಸರು",
@@ -1779,6 +1836,10 @@ function translateText(text: string | undefined, language: OutputLanguage): stri
       "सब्जियों, दही और सदस्य-विशेष हिस्सों वाला हल्का पारिवारिक नाश्ता।",
     "Balanced lunch with grains, dal protein, vegetables, curd, and member-specific portion guidance.":
       "अनाज, दाल प्रोटीन, सब्जियों, दही और सदस्य-विशेष हिस्सों के मार्गदर्शन वाला संतुलित दोपहर का भोजन।",
+    "A practical Indian lunch plate with protein-rich toor dal, fresh rotis, seasonal sabzi and curd.":
+      "प्रोटीन-युक्त तूर दाल, ताजी रोटियों, मौसमी सब्जी और दही के साथ व्यावहारिक भारतीय दोपहर का भोजन।",
+    "A practical dinner plate that rotates wholesome toor dal with fresh rotis and seasonal vegetables.":
+      "ताजी रोटियों और मौसमी सब्जियों के साथ पौष्टिक तूर दाल को शामिल करने वाला व्यावहारिक रात का भोजन।",
     "A protein-rich breakfast using besan, vegetables and curd for families wanting a change from grain-heavy mornings.":
       "अनाज-प्रधान सुबह से बदलाव चाहने वाले परिवारों के लिए बेसन, सब्जियों और दही वाला प्रोटीन-युक्त नाश्ता।",
     "A light but filling evening snack using poha, vegetables, curd and fruit instead of packaged snacks.":
@@ -1872,6 +1933,10 @@ function translateText(text: string | undefined, language: OutputLanguage): stri
       "ತರಕಾರಿಗಳು, ಮೊಸರು ಮತ್ತು ಸದಸ್ಯರಿಗನುಗುಣ ಭಾಗಗಳಿರುವ ಹಗುರವಾದ ಕುಟುಂಬದ ಉಪಹಾರ.",
     "Balanced lunch with grains, dal protein, vegetables, curd, and member-specific portion guidance.":
       "ಧಾನ್ಯಗಳು, ದಾಲ್ ಪ್ರೋಟೀನ್, ತರಕಾರಿಗಳು, ಮೊಸರು ಮತ್ತು ಸದಸ್ಯರಿಗನುಗುಣ ಭಾಗ ಮಾರ್ಗದರ್ಶನದೊಂದಿಗೆ ಸಮತೋಲನ ಮಧ್ಯಾಹ್ನದ ಊಟ.",
+    "A practical Indian lunch plate with protein-rich toor dal, fresh rotis, seasonal sabzi and curd.":
+      "ಪ್ರೋಟೀನ್ ಭರಿತ ತೊಗರಿ ಬೇಳೆ, ತಾಜಾ ರೊಟ್ಟಿಗಳು, ಋತುಮಾನ ತರಕಾರಿ ಮತ್ತು ಮೊಸರಿನೊಂದಿಗೆ ಪ್ರಾಯೋಗಿಕ ಭಾರತೀಯ ಮಧ್ಯಾಹ್ನದ ಊಟ.",
+    "A practical dinner plate that rotates wholesome toor dal with fresh rotis and seasonal vegetables.":
+      "ತಾಜಾ ರೊಟ್ಟಿಗಳು ಮತ್ತು ಋತುಮಾನ ತರಕಾರಿಗಳೊಂದಿಗೆ ಪೌಷ್ಟಿಕ ತೊಗರಿ ಬೇಳೆಯನ್ನು ಒಳಗೊಂಡ ಪ್ರಾಯೋಗಿಕ ರಾತ್ರಿ ಊಟ.",
     "A protein-rich breakfast using besan, vegetables and curd for families wanting a change from grain-heavy mornings.":
       "ಧಾನ್ಯ ಆಧಾರಿತ ಬೆಳಗಿನ ಆಹಾರದಿಂದ ಬದಲಾವಣೆ ಬಯಸುವ ಕುಟುಂಬಗಳಿಗೆ ಬೇಸನ್, ತರಕಾರಿ ಮತ್ತು ಮೊಸರಿನ ಪ್ರೋಟೀನ್-ಯುಕ್ತ ಉಪಹಾರ.",
     "A light but filling evening snack using poha, vegetables, curd and fruit instead of packaged snacks.":
@@ -2169,7 +2234,7 @@ export class AIService {
     };
   }
 
-  private customizeMember(member: FamilyMember, commonMeal: CommonMeal, replacement?: boolean) {
+  private customizeMember(member: FamilyMember, commonMeal: CommonMeal, _replacement?: boolean) {
     const hasDiabetes = member.healthConditions.some((condition) => condition.toLowerCase().includes("diabetes"));
     const isChild = member.age < 13;
     const isSenior = member.age > 65 || member.specialStatuses.some((status) => status.toLowerCase().includes("senior"));

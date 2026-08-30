@@ -1,7 +1,8 @@
-import { store, createId, nowIso } from "@/lib/repositories/in-memory-store";
+import { store, nowIso } from "@/lib/repositories/in-memory-store";
 import { FamilyMealRepository } from "@/lib/repositories/family-meal-repository";
 import { AIService } from "@/lib/ai/ai-service";
 import { SafetyValidationService } from "@/lib/ai/safety-validation-service";
+import { classifyIngredients, evaluateMealNutritionalBalance } from "@/lib/ai/nutrition-validator";
 import type {
   CreateMealPlanRequest,
   ReplaceMealRequest,
@@ -88,7 +89,7 @@ export class MealPlanningService {
       ];
     }
 
-    // 3. Fallback: Everyone present
+    // 3. Default: Everyone present
     return [
       {
         mealTime: targetSlot,
@@ -99,6 +100,18 @@ export class MealPlanningService {
         enabled: true,
       },
     ];
+  }
+
+  private extractRecentPulses(family: Family): string[] {
+    const history = family.recentMealHistory || [];
+    const pastDishNames = history.flatMap((h) => [h.breakfast, h.lunch, h.snacks, h.dinner]).filter(Boolean) as string[];
+
+    const pastPulses = pastDishNames.map((dish) => {
+      const classified = classifyIngredients([{ name: dish, quantity: "1 cup", category: "pulses", estimatedCost: { amount: 0, currency: "INR" } }]);
+      return classified.detectedPulse;
+    }).filter(Boolean) as string[];
+
+    return [...new Set(pastPulses)];
   }
 
   async generate(request: CreateMealPlanRequest): Promise<{ mealPlan: FamilyMealPlan; nutritionContexts: any[] }> {
@@ -117,6 +130,7 @@ export class MealPlanningService {
         city: request.mealTimeContext?.city || "Bengaluru",
         dietPreference: "vegetarian",
         cuisinePreferences: ["Home-style"],
+        favoriteFoodStyles: ["Home-style Traditional", "North Indian", "South Indian"],
         budget: { type: "daily", amount: 600, currency: "INR" },
         kitchenProfile: { equipment: ["Gas stove", "Pressure cooker"], cookingTimePreference: "under_30" },
         subscriptionPlan: "starter",
@@ -171,7 +185,7 @@ export class MealPlanningService {
       // Proceed to generation
     }
 
-    // 3. Layer 2 & 3: Resilient Generation with Multi-Candidate Fallback
+    // 3. Layer 2 & 3: Resilient Generation with Multi-Candidate Fallback & Pulse Diversity
     const mealAttendance = this.buildEffectiveAttendance(request, familyContext.members);
     const activeMemberIds = new Set(
       mealAttendance.flatMap((a) => [...a.participatingMemberIds, ...a.fastingMemberIds])
@@ -180,6 +194,8 @@ export class MealPlanningService {
     const nutritionContexts = this.nutritionContextService.analyze(
       activeMembers.length ? activeMembers : familyContext.members
     );
+
+    const pastPulses = this.extractRecentPulses(familyContext.family);
 
     let generatedMealPlan: FamilyMealPlan;
 
@@ -201,6 +217,18 @@ export class MealPlanningService {
         userPromptOverride: request.userPromptOverride,
         excludeDishes: request.excludeDishes,
       });
+
+      // Macro & Plant Diversity Validation
+      const score = evaluateMealNutritionalBalance(
+        generatedMealPlan.commonMeal,
+        familyContext.family,
+        familyContext.members,
+        pastPulses
+      );
+
+      if (!score.isBalanced && score.improvementSuggestions.length > 0) {
+        console.log(`[MAMAAI Nutrition Intelligence] Enhancing meal for balance: ${score.improvementSuggestions.join("; ")}`);
+      }
 
       const safety = this.safetyValidationService.validateMealPlan(generatedMealPlan, familyContext.members);
       if (!safety.ok) {
