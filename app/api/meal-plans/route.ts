@@ -8,12 +8,62 @@ import { GetCommand } from "@aws-sdk/lib-dynamodb";
 import { createMealPlanRequestSchema } from "@/lib/shared/schemas";
 import type { CreateMealPlanRequest } from "@/lib/shared/contracts";
 
+export const dynamic = "force-dynamic";
+
+/**
+ * Validates whether a user has an active entitlement (Session, DynamoDB, or Trial).
+ */
+async function checkEntitlement(session: any, userId?: string): Promise<boolean> {
+  // Strategy A: Quick session validation (Admin / Judge / Active Entitlement)
+  if (
+    session?.role === "admin" ||
+    session?.role === "judge" ||
+    session?.entitlement === "judge" ||
+    session?.entitlement === "active"
+  ) {
+    return true;
+  }
+
+  if (!userId) return false;
+
+  // Strategy B: DynamoDB primary user record lookup
+  try {
+    const userRecord = await docClient.send(
+      new GetCommand({
+        TableName: TABLE_NAMES.USERS,
+        Key: { userId },
+      })
+    );
+    const userItem = userRecord.Item;
+    const isTrialActive = userItem?.trialEndsAt && new Date(userItem.trialEndsAt) > new Date();
+    const isPaid = userItem?.subscriptionStatus === "active";
+    const isJudge = userItem?.role === "judge" || userItem?.isJudgeDemo === true;
+
+    if (isTrialActive || isPaid || isJudge) {
+      return true;
+    }
+  } catch (error) {
+    console.warn("[MealPlan Route] DynamoDB user check failed, evaluating fallback:", error);
+  }
+
+  // Strategy C: Fallback to SubscriptionRepository
+  try {
+    const subscriptionRepo = new SubscriptionRepository();
+    const latestSub = await subscriptionRepo.getLatestSubscriptionForUser(userId);
+    return latestSub?.status === "active" || latestSub?.status === "trialing";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * POST /api/meal-plan
- * Validates payload, verifies session & server-side entitlement against DynamoDB,
- * and executes deterministic/Gemini meal generation with local meal timings and attendance context.
+ * Validates payload, verifies session & server-side entitlement,
+ * and executes resilient 3-layer meal generation.
  */
 export async function POST(request: Request) {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
   try {
     const body = await request.json();
     const parsed = createMealPlanRequestSchema.safeParse(body);
@@ -33,7 +83,7 @@ export async function POST(request: Request) {
 
     const requestData = parsed.data as CreateMealPlanRequest;
 
-    // 1. Resolve User Identity (Session cookie preferred, header fallback)
+    // 1. Resolve User Identity
     const session = await getSession();
     let resolvedUserId = session?.userId || requestData.userId;
 
@@ -48,39 +98,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Server-side Entitlement Check
-    let isEntitled = false;
-
-    // Strategy A: Session-level quick check (Judge/Admin)
-    if (session?.role === "admin" || session?.entitlement === "judge" || session?.entitlement === "active") {
-      isEntitled = true;
-    }
-
-    // Strategy B: DynamoDB user table check
-    if (!isEntitled && resolvedUserId) {
-      try {
-        const userRecord = await docClient.send(
-          new GetCommand({
-            TableName: TABLE_NAMES.USERS,
-            Key: { userId: resolvedUserId },
-          })
-        );
-        const userItem = userRecord.Item;
-        const isTrialActive = userItem?.trialEndsAt && new Date(userItem.trialEndsAt) > new Date();
-        const isPaid = userItem?.subscriptionStatus === "active";
-        const isJudge = userItem?.role === "judge" || userItem?.isJudgeDemo === true;
-
-        isEntitled = Boolean(isTrialActive || isPaid || isJudge);
-      } catch {
-        // Strategy C: Fallback to SubscriptionRepository
-        try {
-          const subscriptionRepo = new SubscriptionRepository();
-          const latestSub = await subscriptionRepo.getLatestSubscriptionForUser(resolvedUserId);
-          isEntitled = latestSub?.status === "active" || latestSub?.status === "trialing";
-        } catch {
-          isEntitled = false;
-        }
-      }
-    }
+    const isEntitled = await checkEntitlement(session, resolvedUserId);
 
     if (!isEntitled) {
       return NextResponse.json(
@@ -95,16 +113,20 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Delegate to MealPlanningService
+    // 3. Delegate to Resilient MealPlanningService
     const mealPlanningService = new MealPlanningService();
     const result = await mealPlanningService.generate(requestData);
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      success: true,
+      requestId,
+      ...result,
+    });
   } catch (error) {
     const authResponse = authErrorResponse(error);
     if (authResponse) return authResponse;
 
-    console.error("Meal Plan Generation Error:", error);
+    console.error(`[MealPlan Route Uncaught Error] RequestID: ${requestId}:`, error);
 
     return NextResponse.json(
       {
