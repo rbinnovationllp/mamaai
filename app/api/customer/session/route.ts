@@ -1,93 +1,96 @@
-import { NextResponse } from "next/server";
-import { z } from "zod";
-import { CustomerProfileRepository } from "@/lib/repositories/customer-profile-repository";
-import {
-  customerUserIdFromIdentity,
-  setCustomerSessionCookie,
-} from "@/lib/server/customer-session";
-import { authErrorResponse, requireUser } from "@/lib/server/auth";
+import { NextResponse } from 'next/server';
+import { getSession } from '@/lib/auth/session';
+import { docClient, TABLE_NAMES } from '@/lib/repositories/dynamo';
+import { GetCommand } from '@aws-sdk/lib-dynamodb';
 
-const customerSessionSchema = z.object({
-  name: z.string().trim().min(2),
-  email: z.string().trim().email().optional().or(z.literal("")),
-  mobile: z.string().trim().min(6).optional().or(z.literal("")),
-  preferredLanguage: z.string().optional(),
-});
+export const dynamic = 'force-dynamic';
 
-function identityFor(input: z.infer<typeof customerSessionSchema>) {
-  return input.mobile || input.email || input.name;
-}
-
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const user = requireUser(request);
-    const repository = new CustomerProfileRepository();
-    const customer = await repository.getCustomer(user.userId);
-    const familyProfile = await repository.getFamilyProfile(user.userId);
+    const session = await getSession();
+    if (!session || !session.userId) {
+      return NextResponse.json({ authenticated: false, nextRoute: '/profile/family' });
+    }
+
+    const userId = session.userId;
+
+    // 1. Fetch User Record
+    const userRes = await docClient.send(
+      new GetCommand({
+        TableName: TABLE_NAMES.USERS,
+        Key: { userId },
+      })
+    );
+    const user = userRes.Item;
+
+    // Check Subscription / Trial Entitlement
+    const isPaid = user?.subscriptionStatus === 'active';
+    const isTrialActive = user?.trialEndsAt && new Date(user?.trialEndsAt) > new Date();
+    const isJudge =
+      session.role === 'admin' ||
+      (session as any)?.role === 'judge' ||
+      (session as any)?.entitlement === 'judge' ||
+      (session as any)?.entitlement === 'active' ||
+      user?.isJudgeDemo === true ||
+      user?.role === 'judge';
+    const isEntitled = isPaid || isTrialActive || isJudge;
+
+    // 2. Fetch Family Profile Record
+    const familyId = user?.familyId || `fam_${userId}`;
+    const familyRes = await docClient.send(
+      new GetCommand({
+        TableName: TABLE_NAMES.FAMILIES,
+        Key: { familyId },
+      })
+    );
+    const family = familyRes.Item;
+
+    // Determine Profile Completeness
+    const hasMembers = Array.isArray(family?.members) && family.members.length > 0;
+    const allMembersHaveAge = hasMembers && family.members.every((m: any) => typeof m.age === 'number' && m.age > 0);
+    const isProfileComplete = hasMembers && allMembersHaveAge;
+
+    if (!isProfileComplete) {
+      return NextResponse.json({
+        authenticated: true,
+        isProfileComplete: false,
+        nextRoute: '/profile/family',
+      });
+    }
+
+    if (!isEntitled) {
+      return NextResponse.json({
+        authenticated: true,
+        isProfileComplete: true,
+        isEntitled: false,
+        nextRoute: '/subscription',
+      });
+    }
+
+    // 3. Check for Existing Active Weekly Plan
+    const currentWeekStart = '2026-08-31'; // Monday of the active cycle
+    const planId = `${familyId}_${currentWeekStart}`;
+
+    const planRes = await docClient.send(
+      new GetCommand({
+        TableName: TABLE_NAMES.MEAL_PLANS,
+        Key: { planId },
+      })
+    );
+    const hasActiveWeeklyPlan = Boolean(planRes.Item && planRes.Item.days?.length === 7);
 
     return NextResponse.json({
       authenticated: true,
-      userId: user.userId,
-      customer,
-      familyProfile,
-    });
-  } catch (error) {
-    const authResponse = authErrorResponse(error);
-    if (authResponse) {
-      return NextResponse.json({ authenticated: false }, { status: 200 });
-    }
-    return NextResponse.json(
-      { error: { code: "CUSTOMER_SESSION_FAILED", message: "Unable to read customer session." } },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const parsed = customerSessionSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "CUSTOMER_ACCOUNT_INVALID",
-            message: "Please enter your name and either mobile number or email.",
-            details: parsed.error.issues,
-          },
-        },
-        { status: 400 }
-      );
-    }
-
-    const input = parsed.data;
-    const userId = customerUserIdFromIdentity(identityFor(input));
-    const repository = new CustomerProfileRepository();
-    const customer = await repository.upsertCustomer({
       userId,
-      name: input.name,
-      email: input.email || undefined,
-      mobile: input.mobile || undefined,
-      preferredLanguage: input.preferredLanguage,
+      familyId,
+      isProfileComplete: true,
+      isEntitled: true,
+      hasActiveWeeklyPlan,
+      nextRoute: hasActiveWeeklyPlan ? '/planner?view=week' : '/planner?autoGenerate=true',
+      familyProfile: family,
     });
-
-    const response = NextResponse.json({
-      authenticated: true,
-      userId,
-      customer,
-      message: "Customer account saved. You can continue.",
-    });
-    setCustomerSessionCookie(response, userId);
-    return response;
-  } catch (error) {
-    return NextResponse.json(
-      {
-        error: {
-          code: "CUSTOMER_SESSION_CREATE_FAILED",
-          message: error instanceof Error ? error.message : "Unable to create customer session.",
-        },
-      },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    console.error('[Session Check Error]:', error);
+    return NextResponse.json({ authenticated: false, nextRoute: '/profile/family' });
   }
 }

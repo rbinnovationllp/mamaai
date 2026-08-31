@@ -14,6 +14,7 @@ import type {
   MealSlot,
   MealTime,
   MealTimeContext,
+  MemberCustomization,
   NutritionEstimate,
   PlanType,
   PreferenceResolution,
@@ -24,6 +25,11 @@ import { mandatoryDisclaimer } from "@/lib/shared/demo-data";
 import { GroceryService } from "@/lib/services/grocery-service";
 import { QuantityPlanningService } from "@/lib/services/quantity-planning-service";
 import { detailedMealPlanExpiresAt, retentionPolicy } from "@/lib/services/meal-retention-service";
+import {
+  indianFoodCandidatesFor,
+  isIndianFoodContext,
+  type IndianFoodRecord,
+} from "@/lib/food/indian-food-database";
 
 export function buildDynamicNutritionPrompt(params: {
   family: Family;
@@ -138,7 +144,6 @@ function mealNameConflicts(meal: Pick<CommonMeal, "name">, terms: string[]) {
   return terms.filter((term) => mealName.includes(normalize(term)));
 }
 
-// Ingredient Definitions
 function khichdiIngredients(): Ingredient[] {
   return [
     { name: "Moong dal", quantity: "1.5 cups", category: "pulses", estimatedCost: money(55) },
@@ -246,16 +251,6 @@ function fishRiceIngredients(): Ingredient[] {
     { name: "Toor dal", quantity: "1 cup", category: "pulses", estimatedCost: money(40) },
     { name: "Mixed vegetables", quantity: "4 cups", category: "vegetables", estimatedCost: money(110) },
     { name: "Curd", quantity: "500 g", category: "dairy", estimatedCost: money(60) },
-  ];
-}
-
-function mixedFamilyIngredients(): Ingredient[] {
-  return [
-    { name: "Toor dal", quantity: "1.5 cups", category: "pulses", estimatedCost: money(65) },
-    { name: "Whole wheat flour", quantity: "3 cups", category: "grains", estimatedCost: money(55) },
-    { name: "Seasonal vegetable sabzi", quantity: "4 cups", category: "vegetables", estimatedCost: money(120) },
-    { name: "Eggs or chicken add-on", quantity: "4 eggs or 350 g chicken", category: "protein", estimatedCost: money(130) },
-    { name: "Curd", quantity: "750 g", category: "dairy", estimatedCost: money(80) },
   ];
 }
 
@@ -515,7 +510,7 @@ function nutritionEstimate(
 }
 
 function totalIngredientCost(ingredients: Ingredient[]) {
-  return ingredients.reduce((total, ingredient) => total + ingredient.estimatedCost.amount, 0);
+  return ingredients.reduce((total, ingredient) => total + (ingredient.estimatedCost?.amount ?? 0), 0);
 }
 
 function memberPortionLabel(member: FamilyMember) {
@@ -546,11 +541,6 @@ function statedMealPreferencesFor(input: GeneratePlanInput, mealTime: MealTime) 
   return input.family.mealTypePreferences?.[slot]?.map((item) => item.toLowerCase()) ?? [];
 }
 
-function preferenceIncludes(input: GeneratePlanInput, mealTime: MealTime, patterns: string[]) {
-  const text = statedMealPreferencesFor(input, mealTime).join(" ");
-  return patterns.some((pattern) => text.includes(pattern));
-}
-
 function familyNotesText(input: GeneratePlanInput) {
   return input.family.localIngredientAvailabilityNotes?.join(" ").toLowerCase() ?? "";
 }
@@ -574,16 +564,6 @@ function recentMealsFor(input: GeneratePlanInput, mealTime: MealTime) {
   ].map((meal) => meal.toLowerCase().trim()).filter(Boolean);
 
   return [...new Set([...savedHistory, ...previousMeals, ...excludedMeals])];
-}
-
-function recentHistoryIncludes(input: GeneratePlanInput, mealTime: MealTime, patterns: string[]) {
-  const text = recentMealsFor(input, mealTime).join(" ");
-  return patterns.some((pattern) => text.includes(pattern));
-}
-
-function mealNameHasAny(name: string, patterns: string[]) {
-  const normalized = normalize(name);
-  return patterns.some((pattern) => normalized.includes(normalize(pattern)));
 }
 
 function isMealRecentlyUsed(input: GeneratePlanInput, mealTime: MealTime, mealName: string) {
@@ -618,18 +598,6 @@ function avoidsNonVegToday(input: GeneratePlanInput) {
     input.members.some((member) => {
       if (member.dietType !== "non_vegetarian" && member.dietType !== "eggitarian") return false;
       return member.nonVegAvoidDays?.map((day) => day.toLowerCase()).includes(weekday) ?? false;
-    })
-  );
-}
-
-function prefersVegetarianBaseToday(input: GeneratePlanInput) {
-  const weekday = localWeekday(input.targetDate);
-  return (
-    weeklyRoutinePrefersVegetarianBase(input) ||
-    input.members.some((member) => {
-      if (member.dietType !== "non_vegetarian" && member.dietType !== "eggitarian") return false;
-      if (member.nonVegAvoidDays?.map((day) => day.toLowerCase()).includes(weekday)) return true;
-      return member.nonVegFrequency === "occasionally" || member.nonVegFrequency === "1_2_days_per_week";
     })
   );
 }
@@ -1156,6 +1124,45 @@ function vegetarianLunchCandidates(
   ];
 }
 
+function regionalIndianCandidates(
+  input: GeneratePlanInput,
+  mealId: string,
+  mealTime: MealTime,
+  regionFit: string
+): CommonMealDraft[] {
+  return indianFoodCandidatesFor({
+    family: input.family,
+    mealTime,
+    recentMeals: recentMealsFor(input, mealTime),
+    targetDate: input.targetDate,
+    includePanIndiaFallback: true,
+  }).map((record: IndianFoodRecord) => ({
+    mealId: `${mealId}-${record.id}`,
+    name: record.typicalCombination,
+    mealTime,
+    description: `${record.subRegionOrCuisine} home-style ${record.mealStyle} meal built around ${record.dishName}.`,
+    country: record.country,
+    region: record.region,
+    state: record.state,
+    subRegionOrCuisine: record.subRegionOrCuisine,
+    foodPreferenceTags: record.foodPreferences,
+    dishCategory: record.dishCategory,
+    proteinSource: record.proteinSource,
+    grainBase: record.grainBase,
+    mainVegetable: record.mainVegetable,
+    typicalCombination: record.typicalCombination,
+    mealStyle: record.mealStyle,
+    seasonalSuitability: record.seasonalSuitability,
+    ingredients: record.ingredients,
+    prepTimeMinutes: record.prepTimeMinutes,
+    difficulty: record.difficulty,
+    regionFit: `${regionFit}. Hierarchy: ${record.country} -> ${record.region} -> ${record.state} -> ${record.subRegionOrCuisine}.`,
+    nutritionIntent:
+      "Prefer authentic regional home-food combinations while rotating grain, protein, vegetables, and recent meal history under family safety constraints.",
+    nutritionEstimate: estimateForDiet(input.family.dietPreference, mealTime),
+  }));
+}
+
 function simpleIngredients(items: Array<[string, string, Ingredient["category"], number]>): Ingredient[] {
   return items.map(([name, quantity, category, cost]) => ({ name, quantity, category, estimatedCost: money(cost) }));
 }
@@ -1481,7 +1488,18 @@ function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
     return completeMeal(selected, buildAlternatives(selected, candidates));
   }
 
-  // 1. High Tea / Snacks Selection & Variety Rotation
+  if (
+    isIndianFoodContext(input.family) &&
+    input.family.dietPreference !== "vegan" &&
+    !shouldUseMixedComponentStrategy(input, mealTime)
+  ) {
+    const candidates = regionalIndianCandidates(input, mealId, mealTime, regionFit);
+    if (candidates.length) {
+      const selected = selectCandidate(candidates, input, mealTime);
+      return completeMeal(selected, buildAlternatives(selected, candidates));
+    }
+  }
+
   if (mealTime === "high_tea" || mealTime === "evening_snack" || mealTime === "snack") {
     const snackCandidates = input.family.dietPreference === "vegan"
       ? veganHighTeaCandidates(input, mealId, mealTime, regionFit)
@@ -1490,18 +1508,15 @@ function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
     return completeMeal(selectedSnack, buildAlternatives(selectedSnack, snackCandidates));
   }
 
-  // 2. Specialized Diet Checks
   const dietMeal = mealForDiet(input, mealId, mealTime, regionFit);
   if (dietMeal) return completeMeal(dietMeal);
 
-  // 3. Breakfast Selection & Variety Rotation
   if (mealTime === "breakfast") {
     const candidates = breakfastCandidates(input, mealId, mealTime, regionFit);
     const selected = selectCandidate(candidates, input, mealTime);
     return completeMeal(selected, buildAlternatives(selected, candidates));
   }
 
-  // 4. Dinner Selection & Variety Rotation
   if (mealTime === "dinner") {
     const allCandidates = vegetarianDinnerCandidates(input, mealId, mealTime, regionFit);
 
@@ -1534,7 +1549,6 @@ function mealForTime(input: GeneratePlanInput, mealId: string): CommonMeal {
     return completeMeal(selected, alternatives);
   }
 
-  // 5. Default Lunch Selection & Variety Rotation
   const lunchCandidates = vegetarianLunchCandidates(input, mealId, mealTime, regionFit);
   if (input.userPromptOverride) {
     const promptLower = input.userPromptOverride.toLowerCase();
@@ -1996,15 +2010,16 @@ function translateText(text: string | undefined, language: OutputLanguage): stri
         [/higher-activity adult portion, about one-quarter more than a standard adult serving/gi, "अधिक सक्रिय वयस्क का हिस्सा, सामान्य वयस्क हिस्से से लगभग एक-चौथाई अधिक"],
         [/lighter adult portion, adjusted for lower activity/gi, "कम गतिविधि के अनुसार हल्का वयस्क हिस्सा"],
         [/standard adult portion/gi, "सामान्य वयस्क हिस्सा"],
-        [/Regular balanced portion with vegetables, dal or suitable side/gi, "सब्जियों, दाल या उपयुक्त साइड के साथ नियमित संतुलित हिस्सा"],
+        [/Standard portion/gi, "सामान्य हिस्सा"],
+        [/Regular balanced portion with vegetables, dal or suitable side/gi, "सामान्य हिस्सा"],
         [/Serve the suggested meal softer, mildly spiced, warm, and easy to chew/gi, "यदि प्रोफाइल में जरूरत दर्ज है, तो सुझाए गए भोजन को नरम, हल्के मसाले वाला, गर्म और आसानी से चबाने योग्य परोसें"],
         [/senior-friendly portion, adjusted for appetite, chewing comfort and digestion rather than age alone/gi, "प्रोफाइल में दर्ज भूख, चबाने की सुविधा या पाचन संबंधी जरूरत के अनुसार समायोजित हिस्सा"],
-        [/Regular balanced portion with vegetables, dal or suitable side\./gi, "सब्जियों, दाल या उपयुक्त साइड के साथ नियमित संतुलित हिस्सा।"],
+        [/Regular balanced portion with vegetables, dal or suitable side\./gi, "सामान्य हिस्सा।"],
         [/Serve the suggested meal softer, mildly spiced, warm, and easy to chew\./gi, "यदि प्रोफाइल में जरूरत दर्ज है, तो सुझाए गए भोजन को नरम, हल्के मसाले वाला, गर्म और आसानी से चबाने योग्य परोसें।"],
         [/Meal structure for this member:/gi, "इस सदस्य के लिए भोजन संरचना:"],
         [/Serve a small soft portion of the suggested meal;/gi, "सुझाए गए भोजन का छोटा और नरम हिस्सा परोसें;"],
         [/Child-size serving of the suggested meal with curd or a suitable side;/gi, "सुझाए गए भोजन का बच्चे के आकार का हिस्सा दही या उपयुक्त साइड के साथ दें;"],
-        [/Standard serving of the suggested meal with curd or suitable side;/gi, "सुझाए गए भोजन का सामान्य हिस्सा दही या उपयुक्त साइड के साथ दें;"],
+        [/Standard serving of the suggested meal with curd or suitable side;/gi, "सामान्य हिस्सा;"],
         [/Larger serving of the suggested meal with extra dal or suitable protein side;/gi, "सुझाए गए भोजन का बड़ा हिस्सा अतिरिक्त दाल या उपयुक्त प्रोटीन साइड के साथ दें;"],
         [/Serve a controlled portion of the suggested meal with extra vegetables or dal; adjust as a/gi, "सुझाए गए भोजन का नियंत्रित हिस्सा अतिरिक्त सब्जियों या दाल के साथ दें; इसे इस तरह समायोजित करें:"],
         [/Saved non-veg pattern:/gi, "सेव किया गया नॉन-वेज पैटर्न:"],
@@ -2017,15 +2032,16 @@ function translateText(text: string | undefined, language: OutputLanguage): stri
         [/higher-activity adult portion, about one-quarter more than a standard adult serving/gi, "ಹೆಚ್ಚು ಚಟುವಟಿಕೆಯ ವಯಸ್ಕರ ಭಾಗ, ಸಾಮಾನ್ಯ ವಯಸ್ಕರ ಭಾಗಕ್ಕಿಂತ ಸುಮಾರು ನಾಲ್ಕನೇ ಒಂದು ಭಾಗ ಹೆಚ್ಚು"],
         [/lighter adult portion, adjusted for lower activity/gi, "ಕಡಿಮೆ ಚಟುವಟಿಕೆಗೆ ಹೊಂದಿಸಿದ ಹಗುರ ವಯಸ್ಕರ ಭಾಗ"],
         [/standard adult portion/gi, "ಸಾಮಾನ್ಯ ವಯಸ್ಕರ ಭಾಗ"],
-        [/Regular balanced portion with vegetables, dal or suitable side/gi, "ತರಕಾರಿ, ದಾಲ್ ಅಥವಾ ಸೂಕ್ತ ಸೈಡ್ ಜೊತೆಗೆ ನಿಯಮಿತ ಸಮತೋಲನ ಭಾಗ"],
+        [/Standard portion/gi, "ಸಾಮಾನ್ಯ ಭಾಗ"],
+        [/Regular balanced portion with vegetables, dal or suitable side/gi, "ಸಾಮಾನ್ಯ ಭಾಗ"],
         [/Serve the suggested meal softer, mildly spiced, warm, and easy to chew/gi, "ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ ಅಗತ್ಯ ದಾಖಲಾಗಿದ್ದರೆ, ಸೂಚಿಸಿದ ಊಟವನ್ನು ಮೃದುವಾಗಿ, ಸೌಮ್ಯ ಮಸಾಲೆಯೊಂದಿಗೆ, ಬಿಸಿಯಾಗಿ ಮತ್ತು ಸುಲಭವಾಗಿ ಚವಚವಿಸಲು ಅನುಕೂಲವಾಗಿ ನೀಡಿ"],
         [/senior-friendly portion, adjusted for appetite, chewing comfort and digestion rather than age alone/gi, "ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ ದಾಖಲಾಗಿರುವ ಹಸಿವು, ಚವಚವಿಸುವ ಸೌಕರ್ಯ ಅಥವಾ ಜೀರ್ಣಕ್ರಿಯೆ ಅಗತ್ಯಕ್ಕೆ ಅನುಗುಣವಾಗಿ ಹೊಂದಿಸಿದ ಭಾಗ"],
-        [/Regular balanced portion with vegetables, dal or suitable side\./gi, "ತರಕಾರಿ, ದಾಲ್ ಅಥವಾ ಸೂಕ್ತ ಸೈಡ್ ಜೊತೆಗೆ ನಿಯಮಿತ ಸಮತೋಲನ ಭಾಗ."],
+        [/Regular balanced portion with vegetables, dal or suitable side\./gi, "ಸಾಮಾನ್ಯ ಭಾಗ."],
         [/Serve the suggested meal softer, mildly spiced, warm, and easy to chew\./gi, "ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ ಅಗತ್ಯ ದಾಖಲಾಗಿದ್ದರೆ, ಸೂಚಿಸಿದ ಊಟವನ್ನು ಮೃದುವಾಗಿ, ಸೌಮ್ಯ ಮಸಾಲೆಯೊಂದಿಗೆ, ಬಿಸಿಯಾಗಿ ಮತ್ತು ಸುಲಭವಾಗಿ ಚವಚವಿಸಲು ಅನುಕೂಲವಾಗಿ ನೀಡಿ."],
         [/Meal structure for this member:/gi, "ಈ ಸದಸ್ಯನಿಗೆ ಊಟದ ರಚನೆ:"],
         [/Serve a small soft portion of the suggested meal;/gi, "ಸೂಚಿಸಿದ ಊಟದ ಸಣ್ಣ ಮೃದುವಾದ ಭಾಗವನ್ನು ನೀಡಿ;"],
         [/Child-size serving of the suggested meal with curd or a suitable side;/gi, "ಸೂಚಿಸಿದ ಊಟದ ಮಗುವಿನ ಗಾತ್ರದ ಭಾಗವನ್ನು ಮೊಸರು ಅಥವಾ ಸೂಕ್ತ ಸೈಡ್‌ನೊಂದಿಗೆ ನೀಡಿ;"],
-        [/Standard serving of the suggested meal with curd or suitable side;/gi, "ಸೂಚಿಸಿದ ಊಟದ ಸಾಮಾನ್ಯ ಭಾಗವನ್ನು ಮೊಸರು ಅಥವಾ ಸೂಕ್ತ ಸೈಡ್‌ನೊಂದಿಗೆ ನೀಡಿ;"],
+        [/Standard serving of the suggested meal with curd or suitable side;/gi, "ಸಾಮಾನ್ಯ ಭಾಗ;"],
         [/Larger serving of the suggested meal with extra dal or suitable protein side;/gi, "ಸೂಚಿಸಿದ ಊಟದ ದೊಡ್ಡ ಭಾಗವನ್ನು ಹೆಚ್ಚುವರಿ ದಾಲ್ ಅಥವಾ ಸೂಕ್ತ ಪ್ರೋಟೀನ್ ಸೈಡ್‌ನೊಂದಿಗೆ ನೀಡಿ;"],
         [/Serve a controlled portion of the suggested meal with extra vegetables or dal; adjust as a/gi, "ಸೂಚಿಸಿದ ಊಟದ ನಿಯಂತ್ರಿತ ಭಾಗವನ್ನು ಹೆಚ್ಚುವರಿ ತರಕಾರಿ ಅಥವಾ ದಾಲ್ ಜೊತೆಗೆ ನೀಡಿ; ಇದನ್ನು ಹೀಗೆ ಹೊಂದಿಸಿ:"],
         [/Saved non-veg pattern:/gi, "ಉಳಿಸಿದ ನಾನ್-ವೆಜ್ ಮಾದರಿ:"],
@@ -2047,6 +2063,112 @@ function localizeIngredient(ingredient: Ingredient, language: OutputLanguage): I
 }
 
 export class AIService {
+  private customizeMember(member: FamilyMember, commonMeal: CommonMeal, _replacement?: boolean): MemberCustomization {
+    const hasDiabetes = member.healthConditions?.some((c) => c.toLowerCase().includes("diabetes")) ||
+      member.dietaryRestrictions?.some((r) => r.toLowerCase().includes("diabetes"));
+    const isChild = member.age < 13;
+    const needsSoftSeniorSupport =
+      member.specialStatuses?.some((status) => status.toLowerCase().includes("senior")) ||
+      [...(member.doctorRestrictions ?? []), ...(member.dietaryRestrictions ?? []), ...(member.healthConditions ?? [])].some((value) =>
+        /chew|chewing|soft|swallow|dental|digestion|digestive/i.test(value)
+      );
+    const highActivity = member.activityLevel === "heavy" || member.activityLevel === "athlete";
+    const ageActivityPortion = memberPortionLabel(member);
+    const componentGuidance = componentGuidanceForMember(commonMeal, member);
+    const nonVegRuleNote =
+      member.dietType === "non_vegetarian" || member.dietType === "eggitarian"
+        ? ` Saved non-veg pattern: ${member.nonVegFrequency?.replaceAll("_", " ") ?? "not specified"}${member.nonVegAvoidDays?.length ? `; avoid days: ${member.nonVegAvoidDays.join(", ")}` : "; no fixed avoid day"
+        }.`
+        : "";
+    const hardConflicts = ingredientConflicts(commonMeal, memberHardRestrictions(member));
+    const dislikedIngredients = ingredientConflicts(commonMeal, memberSoftDislikes(member));
+    const dislikedMeals = mealNameConflicts(commonMeal, memberSoftDislikes(member));
+    const safetyNotes = [
+      ...hardConflicts.map(
+        (conflict) => `Hard restriction: do not serve ${conflict} to ${member.name}. Use the listed alternative.`
+      ),
+      ...dislikedIngredients.map(
+        (conflict) => `Preference adjustment: avoid ${conflict} in ${member.name}'s portion if practical.`
+      ),
+      ...dislikedMeals.map(
+        (conflict) => `Preference adjustment: ${member.name} dislikes ${conflict}; provide the alternative portion.`
+      ),
+    ];
+
+    if (hardConflicts.length || dislikedIngredients.length || dislikedMeals.length) {
+      const conflicts = [...hardConflicts, ...dislikedIngredients, ...dislikedMeals].join(", ");
+      const softDislikeGuidance = dislikedMeals.length
+        ? `This member does not prefer the common dish (${dislikedMeals.join(
+          ", "
+        )}). If the rest of the family keeps this meal, prepare a simple member-only alternative according to this member's diet pattern.`
+        : `Keep the common family meal, but remove or replace ${conflicts} from this member's portion before changing the entire family meal.`;
+      return {
+        memberId: member.memberId,
+        memberName: member.name,
+        modification: hardConflicts.length
+          ? `Do not serve the conflicting item(s): ${conflicts}. Use a safe dal, roti, vegetable, curd-free, egg-free, or protein alternative.`
+          : softDislikeGuidance,
+        portionGuidance: `Serve a ${ageActivityPortion} only after the conflicting item is removed or replaced.${componentGuidance}${nonVegRuleNote}`,
+        safetyNotes,
+      };
+    }
+
+    if (hasDiabetes) {
+      return {
+        memberId: member.memberId,
+        memberName: member.name,
+        modification: "Keep grain portions controlled, add extra vegetables, and avoid sweet beverages.",
+        portionGuidance: `Serve a controlled portion of the suggested meal with extra vegetables or dal; adjust as a ${ageActivityPortion}.${componentGuidance}`,
+        safetyNotes: [
+          "Diabetes-aware portion guidance; follow doctor-provided carbohydrate instructions if stricter.",
+          ...safetyNotes,
+        ],
+      };
+    }
+
+    if (needsSoftSeniorSupport) {
+      return {
+        memberId: member.memberId,
+        memberName: member.name,
+        modification: "Serve the suggested meal softer, mildly spiced, warm, and easy to chew.",
+        portionGuidance: `Serve a small soft portion of the suggested meal; ${ageActivityPortion}.${componentGuidance}`,
+        safetyNotes: ["Watch chewing comfort and digestion.", ...safetyNotes],
+      };
+    }
+
+    if (highActivity) {
+      return {
+        memberId: member.memberId,
+        memberName: member.name,
+        modification:
+          "Add extra dal, paneer, egg, chicken, or another suitable protein side according to this member's diet pattern.",
+        portionGuidance: `Larger serving of the suggested meal with extra dal or suitable protein side; ${ageActivityPortion}.${componentGuidance}`,
+        safetyNotes,
+      };
+    }
+
+    if (isChild) {
+      return {
+        memberId: member.memberId,
+        memberName: member.name,
+        modification: "Serve the suggested meal mild, colorful, and in small child-friendly pieces.",
+        portionGuidance: `Child-size serving of the suggested meal with curd or a suitable side; ${ageActivityPortion}.${componentGuidance}`,
+        safetyNotes: [
+          "Child nutrition needs are individualized; consult a pediatric professional for specific concerns.",
+          ...safetyNotes,
+        ],
+      };
+    }
+
+    return {
+      memberId: member.memberId,
+      memberName: member.name,
+      modification: "Standard portion.",
+      portionGuidance: componentGuidance || nonVegRuleNote ? `Standard portion. ${componentGuidance}${nonVegRuleNote}` : "Standard portion.",
+      safetyNotes,
+    };
+  }
+
   localizeFamilyMealPlan(plan: FamilyMealPlan, locale?: string): FamilyMealPlan {
     const language = outputLanguage(locale);
     if (language === "en") return plan;
@@ -2196,6 +2318,8 @@ export class AIService {
     const totalCost = groceryService.totalCost(groceryItems);
     const estimatedDailyCost = totalCost + (input.highTeaPreference?.enabled ? 220 : 160);
 
+    const uniqueMembers = Array.from(new Map(input.members.map((m) => [m.memberId || m.name, m])).values());
+
     return {
       mealPlanId: createId("meal-plan"),
       familyId: input.family.familyId,
@@ -2204,12 +2328,12 @@ export class AIService {
       expiresAt: detailedMealPlanExpiresAt(timestamp),
       retentionPolicy: retentionPolicy(),
       commonMeal,
-      memberCustomizations: input.members.map((member) =>
+      memberCustomizations: uniqueMembers.map((member) =>
         this.customizeMember(member, commonMeal, input.replacement)
       ),
-      preferenceResolution: preferenceResolutionFor(input.members, commonMeal),
-      fruits: input.members.map((member) => this.fruitForMember(member)),
-      hydration: input.members.map((member) => this.hydrationForMember(member)),
+      preferenceResolution: preferenceResolutionFor(uniqueMembers, commonMeal),
+      fruits: uniqueMembers.map((member) => this.fruitForMember(member)),
+      hydration: uniqueMembers.map((member) => this.hydrationForMember(member)),
       estimatedCost: {
         mealCost: money(totalCost),
         dailyCost: money(estimatedDailyCost),
@@ -2239,111 +2363,6 @@ export class AIService {
       disclaimer: mandatoryDisclaimer,
       createdAt: timestamp,
       updatedAt: timestamp,
-    };
-  }
-
-  private customizeMember(member: FamilyMember, commonMeal: CommonMeal, _replacement?: boolean) {
-    const hasDiabetes = member.healthConditions.some((condition) => condition.toLowerCase().includes("diabetes"));
-    const isChild = member.age < 13;
-    const needsSoftSeniorSupport =
-      member.specialStatuses.some((status) => status.toLowerCase().includes("senior")) ||
-      [...member.doctorRestrictions, ...member.dietaryRestrictions, ...member.healthConditions].some((value) =>
-        /chew|chewing|soft|swallow|dental|digestion|digestive/i.test(value)
-      );
-    const highActivity = member.activityLevel === "heavy" || member.activityLevel === "athlete";
-    const ageActivityPortion = memberPortionLabel(member);
-    const componentGuidance = componentGuidanceForMember(commonMeal, member);
-    const nonVegRuleNote =
-      member.dietType === "non_vegetarian" || member.dietType === "eggitarian"
-        ? ` Saved non-veg pattern: ${member.nonVegFrequency?.replaceAll("_", " ") ?? "not specified"}${member.nonVegAvoidDays?.length ? `; avoid days: ${member.nonVegAvoidDays.join(", ")}` : "; no fixed avoid day"
-        }.`
-        : "";
-    const hardConflicts = ingredientConflicts(commonMeal, memberHardRestrictions(member));
-    const dislikedIngredients = ingredientConflicts(commonMeal, memberSoftDislikes(member));
-    const dislikedMeals = mealNameConflicts(commonMeal, memberSoftDislikes(member));
-    const safetyNotes = [
-      ...hardConflicts.map(
-        (conflict) => `Hard restriction: do not serve ${conflict} to ${member.name}. Use the listed alternative.`
-      ),
-      ...dislikedIngredients.map(
-        (conflict) => `Preference adjustment: avoid ${conflict} in ${member.name}'s portion if practical.`
-      ),
-      ...dislikedMeals.map(
-        (conflict) => `Preference adjustment: ${member.name} dislikes ${conflict}; provide the alternative portion.`
-      ),
-    ];
-
-    if (hardConflicts.length || dislikedIngredients.length || dislikedMeals.length) {
-      const conflicts = [...hardConflicts, ...dislikedIngredients, ...dislikedMeals].join(", ");
-      const softDislikeGuidance = dislikedMeals.length
-        ? `This member does not prefer the common dish (${dislikedMeals.join(
-          ", "
-        )}). If the rest of the family keeps this meal, prepare a simple member-only alternative according to this member's diet pattern.`
-        : `Keep the common family meal, but remove or replace ${conflicts} from this member's portion before changing the entire family meal.`;
-      return {
-        memberId: member.memberId,
-        memberName: member.name,
-        modification: hardConflicts.length
-          ? `Do not serve the conflicting item(s): ${conflicts}. Use a safe dal, roti, vegetable, curd-free, egg-free, or protein alternative.`
-          : softDislikeGuidance,
-        portionGuidance: `Serve a ${ageActivityPortion} only after the conflicting item is removed or replaced.${componentGuidance}${nonVegRuleNote}`,
-        safetyNotes,
-      };
-    }
-
-    if (hasDiabetes) {
-      return {
-        memberId: member.memberId,
-        memberName: member.name,
-        modification: "Keep grain portions controlled, add extra vegetables, and avoid sweet beverages.",
-        portionGuidance: `Serve a controlled portion of the suggested meal with extra vegetables or dal; adjust as a ${ageActivityPortion}.${componentGuidance}`,
-        safetyNotes: [
-          "Diabetes-aware portion guidance; follow doctor-provided carbohydrate instructions if stricter.",
-          ...safetyNotes,
-        ],
-      };
-    }
-
-    if (needsSoftSeniorSupport) {
-      return {
-        memberId: member.memberId,
-        memberName: member.name,
-        modification: "Serve the suggested meal softer, mildly spiced, warm, and easy to chew.",
-        portionGuidance: `Serve a small soft portion of the suggested meal; ${ageActivityPortion}.${componentGuidance}`,
-        safetyNotes: ["Watch chewing comfort and digestion.", ...safetyNotes],
-      };
-    }
-
-    if (highActivity) {
-      return {
-        memberId: member.memberId,
-        memberName: member.name,
-        modification:
-          "Add extra dal, paneer, egg, chicken, or another suitable protein side according to this member's diet pattern.",
-        portionGuidance: `Larger serving of the suggested meal with extra dal or suitable protein side; ${ageActivityPortion}.${componentGuidance}`,
-        safetyNotes,
-      };
-    }
-
-    if (isChild) {
-      return {
-        memberId: member.memberId,
-        memberName: member.name,
-        modification: "Serve the suggested meal mild, colorful, and in small child-friendly pieces.",
-        portionGuidance: `Child-size serving of the suggested meal with curd or a suitable side; ${ageActivityPortion}.${componentGuidance}`,
-        safetyNotes: [
-          "Child nutrition needs are individualized; consult a pediatric professional for specific concerns.",
-          ...safetyNotes,
-        ],
-      };
-    }
-
-    return {
-      memberId: member.memberId,
-      memberName: member.name,
-      modification: "Regular balanced portion with vegetables, dal or suitable side.",
-      portionGuidance: `Standard serving of the suggested meal with curd or suitable side; ${ageActivityPortion}.${componentGuidance}${nonVegRuleNote}`,
-      safetyNotes,
     };
   }
 

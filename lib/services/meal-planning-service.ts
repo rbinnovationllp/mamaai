@@ -30,7 +30,7 @@ function canonicalMealTime(request: Pick<CreateMealPlanRequest, "mealTime" | "me
   return "breakfast";
 }
 
-function uniqueMembersById(members: FamilyMember[]) {
+function uniqueMembersById(members: FamilyMember[]): FamilyMember[] {
   const seen = new Set<string>();
   return members.filter((member) => {
     const key = member.memberId || `${member.name}:${member.relationship}`;
@@ -42,6 +42,19 @@ function uniqueMembersById(members: FamilyMember[]) {
 
 function uniqueCustomizationsByMember(plan: FamilyMealPlan): FamilyMealPlan {
   const seen = new Set<string>();
+  const duplicateMemberIds = plan.memberCustomizations
+    .map((item) => item.memberId || item.memberName)
+    .filter((key, index, keys) => keys.indexOf(key) !== index);
+  if (duplicateMemberIds.length) {
+    console.warn("DUPLICATE_MEMBER_GUIDANCE_DETECTED", {
+      mealId: plan.commonMeal.mealId,
+      mealType: plan.commonMeal.mealTime,
+      selectedOptionId: plan.commonMeal.mealId,
+      guidanceEntryCount: plan.memberCustomizations.length,
+      uniqueGuidanceMemberCount: new Set(plan.memberCustomizations.map((item) => item.memberId || item.memberName)).size,
+      duplicateMemberIds: Array.from(new Set(duplicateMemberIds)),
+    });
+  }
   return {
     ...plan,
     memberCustomizations: plan.memberCustomizations.filter((item) => {
@@ -84,7 +97,6 @@ export class MealPlanningService {
     const targetSlot = canonicalMealTime(request);
     const allMemberIds = allMembers.map((m) => m.memberId);
 
-    // 1. Day Attendance Matrix (Includes guestCountBySlot)
     if (request.dayAttendancePlan) {
       const slotMap: Record<string, "breakfast" | "lunch" | "snacks" | "dinner"> = {
         breakfast: "breakfast",
@@ -116,7 +128,6 @@ export class MealPlanningService {
       ];
     }
 
-    // 2. Today Attendance array
     if (request.todayAttendance && request.todayAttendance.length > 0) {
       const presentMap = new Map(request.todayAttendance.map((a) => [a.memberId, a.status]));
       const participatingMemberIds = allMemberIds.filter((id) => {
@@ -138,7 +149,6 @@ export class MealPlanningService {
       ];
     }
 
-    // 3. Default: Everyone present
     return [
       {
         mealTime: targetSlot,
@@ -166,7 +176,6 @@ export class MealPlanningService {
   async generate(request: CreateMealPlanRequest): Promise<{ mealPlan: FamilyMealPlan; nutritionContexts: any[] }> {
     this.mealRetentionService.removeExpiredDetailedMealPlans();
 
-    // 1. Resolve Family Context with Auto-Recovery
     let familyContext = await this.familyService.getFamilyWithMembers(request.familyId).catch(() => null);
 
     if (!familyContext) {
@@ -222,20 +231,18 @@ export class MealPlanningService {
     const targetSlot = canonicalMealTime(request);
     familyContext = { ...familyContext, members: uniqueMembersById(familyContext.members) };
 
-    // 2. Layer 1: Check Existing Persisted Plan for Today
     try {
       const existingPlan = await this.repository.getMealPlan(`${request.familyId}-${targetDate}`);
       if (existingPlan && existingPlan.commonMeal.mealTime === targetSlot) {
         return {
-          mealPlan: this.aiService.localizeFamilyMealPlan(existingPlan, request.preferredLanguage || request.mealTimeContext?.locale),
+          mealPlan: uniqueCustomizationsByMember(this.aiService.localizeFamilyMealPlan(existingPlan, request.preferredLanguage || request.mealTimeContext?.locale)),
           nutritionContexts: this.nutritionContextService.analyze(familyContext.members),
         };
       }
     } catch {
-      // Proceed to generation
+      // Proceed to generation on cache miss
     }
 
-    // 3. Layer 2 & 3: Resilient Generation with Multi-Candidate Fallback & Pulse Diversity
     const mealAttendance = this.buildEffectiveAttendance(request, familyContext.members);
     const activeMemberIds = new Set(
       mealAttendance.flatMap((a) => [...a.participatingMemberIds, ...a.fastingMemberIds])
@@ -268,7 +275,6 @@ export class MealPlanningService {
         excludeDishes: request.excludeDishes,
       });
 
-      // Macro & Plant Diversity Validation
       const score = evaluateMealNutritionalBalance(
         generatedMealPlan.commonMeal,
         familyContext.family,
@@ -296,12 +302,13 @@ export class MealPlanningService {
       });
     }
 
-    const finalizedMealPlan = uniqueCustomizationsByMember(this.aiService.localizeFamilyMealPlan(
-      generatedMealPlan,
-      request.preferredLanguage || request.mealTimeContext?.locale || "hi"
-    ));
+    const finalizedMealPlan = uniqueCustomizationsByMember(
+      this.aiService.localizeFamilyMealPlan(
+        generatedMealPlan,
+        request.preferredLanguage || request.mealTimeContext?.locale || "hi"
+      )
+    );
 
-    // 4. Persistence Handling (Non-blocking)
     store.mealPlans.push(finalizedMealPlan);
     this.repository.saveMealPlan(finalizedMealPlan).catch((saveErr) => {
       console.warn("[MAMAAI DynamoDB Persistence Non-Fatal Warning]:", saveErr);
@@ -348,7 +355,7 @@ export class MealPlanningService {
         .join(" "),
     });
 
-    const localizedPlan = this.aiService.localizeFamilyMealPlan(generatedMealPlan, request.preferredLanguage);
+    const localizedPlan = uniqueCustomizationsByMember(this.aiService.localizeFamilyMealPlan(generatedMealPlan, request.preferredLanguage));
     const replacementPlan: FamilyMealPlan = {
       ...localizedPlan,
       familyId: existingPlan.familyId,

@@ -18,7 +18,6 @@ import type {
   MealTimingPattern,
   MealTime,
   RecentMealHistoryDay,
-  RecipeVideoSearchResponse,
   WeeklyFoodRoutineStatus,
   MealTimetableSchedule,
   MemberMealAttendanceStatus,
@@ -810,7 +809,7 @@ function mealLabel(value: MealTime, labels: typeof plannerCopy.en.meals): string
   return labels[value] ?? value.replace('_', ' ');
 }
 
-function uniqueByKey<T>(items: T[], keyFor: (item: T) => string) {
+function uniqueByKey<T>(items: T[], keyFor: (item: T) => string): T[] {
   const seen = new Set<string>();
   return items.filter((item) => {
     const key = keyFor(item);
@@ -1308,6 +1307,7 @@ export default function PlannerPage() {
   const activeMealLabel = mealLabel(activeMealSlot, t.meals);
   const activeGenerateLabel = t.planMealNow.replace('{meal}', activeMealLabel);
   const activeWeeklySlot = useMemo(() => weeklySlotFor(weeklyPlan, activeTargetDate, activeMealSlot), [weeklyPlan, activeTargetDate, activeMealSlot]);
+
   const visibleMemberCustomizations = useMemo(
     () => uniqueByKey(mealPlan?.memberCustomizations ?? [], (item) => item.memberId || item.memberName),
     [mealPlan?.memberCustomizations]
@@ -1457,148 +1457,24 @@ export default function PlannerPage() {
     setIsStalePlan(false);
 
     try {
-      const userId = customer.userId || `customer_${Date.now()}`;
       const targetDate = activeTargetDate;
       const activeAttendance = mealAttendance[activeMealSlot] ?? {
         participatingMemberIds: members.map((member) => member.id),
         tiffinMemberIds: [],
       };
 
-      const country = culture.country?.trim() || 'Not specified';
-      const region = culture.region?.trim() || 'Home region';
-      const city = culture.city?.trim() || region;
-      const cuisinePreferences = Array.from(
-        new Set([
-          ...(culture.preferredCuisines?.filter(Boolean) ?? []),
-          ...(Object.values(customer.mealTypePreferences ?? {}).flat().filter(Boolean) as string[]),
-          customer.cookingHabit ?? 'fresh_home_cooked',
-        ])
-      ).slice(0, 12);
-
       const dayAttendancePayload = attendanceDraftToDayPlan(mealAttendance, members, guestCountBySlot);
-
-      const familyResponse = await fetch('/api/families', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          family: {
-            name: `${customer.name || members[0]?.name || 'MAMAAI'} Household`,
-            country,
-            state: region,
-            city,
-            dietPreference: familyDietPreferenceFor(customer, members),
-            cuisinePreferences: cuisinePreferences.length ? cuisinePreferences : ['Home-style'],
-            localIngredientAvailabilityNotes: [
-              ...cultureNotes(culture),
-              ...cookingHabitNotes(customer.cookingHabit),
-              ...budgetNotes(customer),
-              ...mealTypePreferenceNotes(customer, activeMealSlot),
-              ...recentMealHistoryNotes(customer, activeMealSlot),
-              ...weeklyRoutineNotes(customer, activeMealSlot, targetDate),
-              ...(pantryItems.length
-                ? [`Saved pantry stock available: ${pantrySummary(pantryItems)}. Prefer using available pantry items where safe.`]
-                : []),
-              ...(customer.nonVegPreferredFoods?.length
-                ? [`Explicit non-veg preferences: ${customer.nonVegPreferredFoods.join(', ')}.`]
-                : []),
-              ...attendanceNotesForSchedule(mealAttendance, members, t.meals),
-              activeAttendance.tiffinMemberIds.length
-                ? `Packed meal/tiffin needed for: ${members
-                  .filter((member) => activeAttendance.tiffinMemberIds.includes(member.id))
-                  .map((member) => member.name)
-                  .join(', ')}.`
-                : 'No packed meal/tiffin requested for this selected meal.',
-            ],
-            weeklyFoodRoutineStatus: customer.weeklyFoodRoutineStatus ?? 'skip',
-            weeklyFoodRoutine: customer.weeklyFoodRoutine ?? [],
-            mealTypePreferences: customer.mealTypePreferences ?? {},
-            recentMealHistory: customer.recentMealHistory ?? [],
-            mealTimings: customer.mealTimings ?? {},
-            mealSchedule: customer.mealSchedule,
-            nonVegPreferredFoods: customer.nonVegPreferredFoods ?? [],
-            cultureProfile: {
-              country,
-              region,
-              city,
-              cookingStyle: culture.cookingStyle,
-              preferredCuisines: culture.preferredCuisines ?? [],
-            },
-            budget: budgetProfileFor(customer),
-            kitchenProfile: {
-              equipment: ['Gas stove', 'Pressure cooker', 'Mixer/grinder'],
-              cookingTimePreference: 'under_30',
-            },
-            subscriptionPlan: suggestedPlan,
-          },
-          members: members.map((member) => {
-            const allergies = member.allergies ?? [];
-            const dislikes = member.dislikes ?? [];
-            const restrictions = member.doctorAdvisedRestrictions ?? [];
-            return {
-              name: member.name,
-              relationship: member.relation || 'Family member',
-              age: member.age as number,
-              gender: 'prefer_not_to_say',
-              activityLevel: member.activityLevel ?? 'moderate',
-              goals: ['Balanced home meal', ...nonVegNotes(member, activeMealSlot)],
-              dietType: memberDietTypeFor(member.foodPreference),
-              nonVegFrequency: member.nonVegFrequency,
-              nonVegAvoidDays: member.nonVegAvoidDays ?? [],
-              nonVegCustomRule: member.nonVegCustomRule,
-              likes: [],
-              dislikes,
-              allergies,
-              foodAllergies: allergies,
-              ingredientAllergies: allergies,
-              foodDislikes: dislikes,
-              dislikedMeals: dislikes,
-              excludedIngredients: [],
-              dietaryRestrictions: restrictions,
-              healthConditions: [],
-              doctorRestrictions: restrictions,
-              specialStatuses: [],
-              fastingPreference: {
-                observesFasting: 'no',
-                regularDays: [],
-                allowedFoods: [],
-                avoidedFoods: [],
-                fruitsAllowed: true,
-                dairyAllowed: true,
-                grainsRestricted: false,
-                customRules: [],
-              },
-            };
-          }),
-        }),
-      });
-
-      const familyParsed = await safeParseJsonResponse<{
-        family: { familyId: string };
-        members?: Array<{ memberId: string; name: string }>;
-      }>(familyResponse);
-
-      if (!familyParsed.success || !familyParsed.data?.family?.familyId) {
-        throw new Error(familyParsed.errorText || 'We could not prepare your family profile. Please try again.');
-      }
-
-      const createdMembers = familyParsed.data.members ?? [];
       const excludeDishes = mealPlan?.commonMeal?.name ? [mealPlan.commonMeal.name] : [];
+
       const mealAttendancePayload = [
         {
           mealTime: activeMealSlot,
-          participatingMemberIds: createdMembers
-            .filter((member: { name: string }) => {
-              const original = members.find((item) => item.name === member.name);
-              return original ? activeAttendance.participatingMemberIds.includes(original.id) : true;
-            })
-            .map((member: { memberId: string }) => member.memberId),
-          absentMemberIds: createdMembers
-            .filter((member: { name: string }) => {
-              const original = members.find((item) => item.name === member.name);
-              return original ? !activeAttendance.participatingMemberIds.includes(original.id) : false;
-            })
-            .map((member: { memberId: string }) => member.memberId),
+          participatingMemberIds: members
+            .filter((member) => activeAttendance.participatingMemberIds.includes(member.id))
+            .map((member) => member.id),
+          absentMemberIds: members
+            .filter((member) => !activeAttendance.participatingMemberIds.includes(member.id))
+            .map((member) => member.id),
           fastingMemberIds: [],
           guestCount: currentGuestCount,
           enabled: true,
@@ -1606,31 +1482,31 @@ export default function PlannerPage() {
       ];
 
       const mealPlanRequestBody = {
-        familyId: familyParsed.data.family.familyId,
+        familyId: customer.familyId || 'fam_primary',
         planType: 'daily',
+        mealSlot: activeSlotKey,
         mealTime: activeMealSlot,
-        mealSlot: mealSlotForMealTime(activeMealSlot),
+        targetDate,
         preferredLanguage: language,
         userPromptOverride: cravingOverride,
         previousMeals: previousMealsForPlanning(activeMealSlot, mealPlan?.commonMeal?.name),
         excludeDishes,
         userLocalTime: new Date().toISOString(),
         userTimeZone: browserTimeZone(),
-        targetDate,
         scheduledTime: activeScheduledTime,
         dayAttendancePlan: dayAttendancePayload,
         mealTimeContext: {
           timeZone: browserTimeZone(),
           locale: language,
-          country,
-          region,
-          city,
+          country: culture.country?.trim() || 'India',
+          region: culture.region?.trim() || 'Karnataka',
+          city: culture.city?.trim() || culture.region?.trim() || 'Bengaluru',
           localHour: currentLocalHour(),
         },
         mealAttendance: mealAttendancePayload,
       };
 
-      const dailyResponse = await fetchWithTimeout('/api/meal-plans', {
+      const dailyResponse = await fetchWithTimeout('/api/meal-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(mealPlanRequestBody),
@@ -1644,9 +1520,19 @@ export default function PlannerPage() {
       const alignedPlan = alignMealPlanToActiveRequest(dailyParsed.data.mealPlan, activeMealSlot, targetDate);
       const pantryAdjustedPlan = adjustGroceryForPantry(alignedPlan, pantryItems, t.alreadyInPantry, language);
 
-      setMealPlan(pantryAdjustedPlan);
+      const cleanCustomizations = uniqueByKey(
+        pantryAdjustedPlan.memberCustomizations || [],
+        (c) => c.memberId || c.memberName
+      );
+
+      const finalMealPlan: FamilyMealPlan = {
+        ...pantryAdjustedPlan,
+        memberCustomizations: cleanCustomizations,
+      };
+
+      setMealPlan(finalMealPlan);
       setIsStalePlan(false);
-      window.localStorage.setItem(CURRENT_MEAL_PLAN_KEY, JSON.stringify(pantryAdjustedPlan));
+      window.localStorage.setItem(CURRENT_MEAL_PLAN_KEY, JSON.stringify(finalMealPlan));
       window.localStorage.setItem(LAST_PLAN_KEY, suggestedPlan);
       setLastPlan(suggestedPlan);
       setStatus(t.success);
@@ -1686,11 +1572,21 @@ export default function PlannerPage() {
       if (!parsed.success || !parsed.data?.mealPlan) throw new Error(parsed.errorText || 'Replacement failed');
 
       const updatedPlan = adjustGroceryForPantry(parsed.data.mealPlan, pantryItems, t.alreadyInPantry, language);
-      setMealPlan(updatedPlan);
-      setIsStalePlan(false);
-      window.localStorage.setItem(CURRENT_MEAL_PLAN_KEY, JSON.stringify(updatedPlan));
+      const cleanCustomizations = uniqueByKey(
+        updatedPlan.memberCustomizations || [],
+        (c) => c.memberId || c.memberName
+      );
 
-      const activeSlot = weeklySlotFor(weeklyPlan, updatedPlan.targetDate, updatedPlan.commonMeal.mealTime);
+      const finalUpdatedPlan: FamilyMealPlan = {
+        ...updatedPlan,
+        memberCustomizations: cleanCustomizations,
+      };
+
+      setMealPlan(finalUpdatedPlan);
+      setIsStalePlan(false);
+      window.localStorage.setItem(CURRENT_MEAL_PLAN_KEY, JSON.stringify(finalUpdatedPlan));
+
+      const activeSlot = weeklySlotFor(weeklyPlan, finalUpdatedPlan.targetDate, finalUpdatedPlan.commonMeal.mealTime);
       if (weeklyPlan && activeSlot) {
         const weeklyUpdate = await fetch('/api/weekly-meal-plans', {
           method: 'PATCH',
@@ -1699,7 +1595,7 @@ export default function PlannerPage() {
             familyId: weeklyPlan.familyId,
             weekStartDate: weeklyPlan.weekStartDate,
             slotId: activeSlot.slotId,
-            selectedMealPlan: updatedPlan,
+            selectedMealPlan: finalUpdatedPlan,
             reason: userCraving || 'show_another_option',
           }),
         });
@@ -1725,15 +1621,10 @@ export default function PlannerPage() {
 
   // 9. Next Week Plan Generation
   const handleGenerateNextWeek = async () => {
-    if (!customer.familyId) {
-      setWeekPlanStatus('FAILED');
-      return;
-    }
-
     setWeekPlanStatus('GENERATING');
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 55000);
+    const timer = setTimeout(() => controller.abort(), 20000);
 
     try {
       const res = await fetch('/api/weekly-meal-plans', {
@@ -1741,25 +1632,13 @@ export default function PlannerPage() {
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         signal: controller.signal,
         body: JSON.stringify({
-          familyId: customer.familyId,
+          familyId: customer.familyId || 'fam_primary',
           userId: customer.userId,
-          planType: 'weekly',
-          mealTime: activeMealSlot,
-          mealSlot: mealSlotForMealTime(activeMealSlot),
           targetDate: nextWeekStart,
           targetWeekStart: nextWeekStart,
+          locale: language,
           preferredLanguage: language,
-          userLocalTime: new Date().toISOString(),
-          userTimeZone: browserTimeZone(),
           dayAttendancePlan: customer.regularAttendancePattern || attendanceDraftToDayPlan(mealAttendance, members, guestCountBySlot),
-          mealTimeContext: {
-            timeZone: browserTimeZone(),
-            locale: language,
-            country: culture.country?.trim() || 'Not specified',
-            region: culture.region?.trim() || 'Home region',
-            city: culture.city?.trim() || culture.region?.trim() || 'Home region',
-            localHour: currentLocalHour(),
-          },
         }),
       });
 
@@ -2038,7 +1917,7 @@ export default function PlannerPage() {
               <p className="mb-6 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</p>
             ) : null}
 
-            {/* Next Week Preview Card with Explicit State Machine */}
+            {/* Next Week Preview Card */}
             <section className="mb-6 rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 p-6 shadow-sm">
               <span className="rounded-full bg-emerald-200/60 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-emerald-800">
                 {nextWeekStart}

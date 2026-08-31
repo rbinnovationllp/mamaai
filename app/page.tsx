@@ -2,21 +2,43 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AskMamaWidget } from "@/components/AskMamaWidget";
 import { LanguageSelector, useLanguage } from "@/components/LanguageProvider";
 import { homeCopy } from "@/lib/i18n";
 
 export default function HomePage() {
+  const router = useRouter();
   const [askOpen, setAskOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { language } = useLanguage();
   const t = homeCopy[language];
+
+  const handlePlanMyFamilyMeals = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/customer/session", { cache: "no-store" });
+      const data = await res.json();
+
+      if (data.nextRoute) {
+        router.push(data.nextRoute);
+      } else {
+        router.push("/profile/family");
+      }
+    } catch {
+      router.push("/profile/family");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-[#fff8ee] text-[#221b16]">
       <header className="sticky top-0 z-40 border-b border-amber-100/80 bg-[#fff8ee]/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <Link href="/" className="text-2xl font-black tracking-tight">
-            <span className="text-orange-600">Mama</span><span className="text-emerald-800">AI</span>
+            <span className="text-orange-600">Mama</span>
+            <span className="text-emerald-800">AI</span>
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-bold text-stone-600 md:flex">
             <a href="#how">{t.navHow}</a>
@@ -26,12 +48,14 @@ export default function HomePage() {
             <Link href="/subscription">{t.navSubscription}</Link>
           </nav>
           <LanguageSelector />
-          <Link
-            href="/profile/family"
-            className="hidden rounded-full bg-emerald-800 px-5 py-2.5 text-sm font-black text-white shadow-lg shadow-emerald-900/15 transition hover:bg-emerald-900 sm:inline-flex"
+          <button
+            type="button"
+            onClick={handlePlanMyFamilyMeals}
+            disabled={loading}
+            className="hidden rounded-full bg-emerald-800 px-5 py-2.5 text-sm font-black text-white shadow-lg shadow-emerald-900/15 transition hover:bg-emerald-900 sm:inline-flex disabled:opacity-75"
           >
-            {t.start}
-          </Link>
+            {loading ? "..." : t.start}
+          </button>
         </div>
       </header>
 
@@ -46,21 +70,35 @@ export default function HomePage() {
               {t.headlineA} <span className="text-emerald-800">{t.headlineB}</span>
             </h1>
             <p className="mt-6 text-lg font-semibold leading-8 text-stone-700 sm:text-xl">{t.intro}</p>
+
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="/profile/family" className="rounded-full bg-orange-600 px-7 py-3.5 text-sm font-black text-white shadow-xl shadow-orange-900/20 transition hover:bg-orange-700">
-                {t.primaryCta}
-              </Link>
-              <Link href="/planner" className="rounded-full bg-emerald-800 px-7 py-3.5 text-sm font-black text-white shadow-xl shadow-emerald-900/20 transition hover:bg-emerald-900">
+              <button
+                type="button"
+                onClick={handlePlanMyFamilyMeals}
+                disabled={loading}
+                className="rounded-full bg-orange-600 px-7 py-3.5 text-sm font-black text-white shadow-xl shadow-orange-900/20 transition hover:bg-orange-700 disabled:opacity-75"
+              >
+                {loading ? "लोड हो रहा है..." : t.primaryCta}
+              </button>
+              <Link
+                href="/planner?slot=lunch"
+                className="rounded-full bg-emerald-800 px-7 py-3.5 text-sm font-black text-white shadow-xl shadow-emerald-900/20 transition hover:bg-emerald-900"
+              >
                 {t.plannerCta}
               </Link>
-              <Link href="/ask-mama" className="rounded-full border border-emerald-200 bg-white px-7 py-3.5 text-sm font-black text-emerald-900 shadow-sm transition hover:border-emerald-400">
+              <Link
+                href="/ask-mama"
+                className="rounded-full border border-emerald-200 bg-white px-7 py-3.5 text-sm font-black text-emerald-900 shadow-sm transition hover:border-emerald-400"
+              >
                 {t.demoCta}
               </Link>
             </div>
+
             <div className="mt-7 grid gap-3 text-sm font-bold text-stone-700 sm:grid-cols-2">
               {t.checks.map((item) => (
                 <div key={item} className="rounded-2xl border border-amber-100 bg-white/80 px-4 py-3 shadow-sm">
-                  <span className="mr-2 text-emerald-700">✓</span>{item}
+                  <span className="mr-2 text-emerald-700">✓</span>
+                  {item}
                 </div>
               ))}
             </div>
@@ -118,7 +156,11 @@ export default function HomePage() {
           </div>
           <div className="grid gap-5 md:grid-cols-3">
             {t.plans.map(([name, price, limit, body], index) => (
-              <article key={name} className={`rounded-3xl border bg-white p-6 shadow-sm ${index === 2 ? "border-emerald-500 ring-4 ring-emerald-100" : "border-amber-100"}`}>
+              <article
+                key={name}
+                className={`rounded-3xl border bg-white p-6 shadow-sm ${index === 2 ? "border-emerald-500 ring-4 ring-emerald-100" : "border-amber-100"
+                  }`}
+              >
                 {index === 2 ? (
                   <p className="mb-3 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-900">
                     {t.fourPaw}
@@ -148,9 +190,13 @@ export default function HomePage() {
               {t.footerPartner}
             </a>
           </div>
-          <Link href="/profile/family" className="rounded-full bg-white px-7 py-3.5 text-sm font-black text-emerald-900">
+          <button
+            type="button"
+            onClick={handlePlanMyFamilyMeals}
+            className="rounded-full bg-white px-7 py-3.5 text-sm font-black text-emerald-900"
+          >
             {t.footerCta}
-          </Link>
+          </button>
         </div>
       </section>
 

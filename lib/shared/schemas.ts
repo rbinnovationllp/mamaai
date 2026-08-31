@@ -242,6 +242,7 @@ export const createFamilyInputSchema = z.object({
 });
 
 export const createFamilyMemberInputSchema = z.object({
+  memberId: z.string().min(1).optional(),
   name: z.string().min(1),
   relationship: z.string().min(1),
   age: z.number().int().min(0).max(120),
@@ -433,6 +434,18 @@ export const familyMealPlanSchema = z.object({
     name: z.string().min(1),
     mealTime: mealTimeSchema,
     description: z.string().min(1),
+    country: z.string().optional(),
+    region: z.string().optional(),
+    state: z.string().optional(),
+    subRegionOrCuisine: z.string().optional(),
+    foodPreferenceTags: z.array(z.enum(["VEG", "EGG", "NV-CH", "NV-MT", "NV-FI", "NV-SF", "NV-MIX"])).optional(),
+    dishCategory: z.string().optional(),
+    proteinSource: z.string().optional(),
+    grainBase: z.string().optional(),
+    mainVegetable: z.string().optional(),
+    typicalCombination: z.string().optional(),
+    mealStyle: z.enum(["everyday", "occasional", "festive"]).optional(),
+    seasonalSuitability: z.string().optional(),
     ingredients: z.array(ingredientSchema).min(1),
     prepTimeMinutes: z.number().int().positive(),
     difficulty: z.enum(["easy", "medium", "hard"]),

@@ -27,11 +27,28 @@ export class FamilyService {
       updatedAt: timestamp,
     } as Family;
 
-    const members = request.members.map((member) => ({
-      ...member,
-      familyId: family.familyId,
-      memberId: createId("member"),
-    })) as FamilyMember[];
+    const memberIdFor = (member: CreateFamilyRequest["members"][number]) => {
+      if (member.memberId) return member.memberId;
+      const matchingProfileMember = customerFamilyProfile?.members.find((profileMember) => (
+        profileMember.name.trim().toLowerCase() === member.name.trim().toLowerCase() &&
+        profileMember.relation.trim().toLowerCase() === member.relationship.trim().toLowerCase() &&
+        profileMember.age === member.age
+      ));
+      return matchingProfileMember?.id ?? createId("member");
+    };
+
+    const seenMemberIds = new Set<string>();
+    const members = request.members
+      .map((member) => ({
+        ...member,
+        familyId: family.familyId,
+        memberId: memberIdFor(member),
+      }))
+      .filter((member) => {
+        if (seenMemberIds.has(member.memberId)) return false;
+        seenMemberIds.add(member.memberId);
+        return true;
+      }) as FamilyMember[];
 
     store.families.push(family);
     store.members.push(...members);

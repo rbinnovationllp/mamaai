@@ -36,7 +36,7 @@ function scaleQuantity(quantity: string, scale: number): string {
 
 function fastingSuggestion(member: FamilyMember, mealTime: MealTime): FastingMealRequirement {
   const preference = member.fastingPreference;
-  const allowed = preference?.allowedFoods.length
+  const allowed = preference?.allowedFoods?.length
     ? preference.allowedFoods
     : ["Fruit", "Curd", "Nuts", "Potato", "Millet or family-approved fasting grain"];
   const avoided = preference?.avoidedFoods ?? [];
@@ -194,7 +194,7 @@ export class QuantityPlanningService {
   consolidate(requirements: IngredientRequirement[]): IngredientRequirement[] {
     const grouped = new Map<string, IngredientRequirement[]>();
     for (const requirement of requirements) {
-      const key = requirement.name.toLowerCase();
+      const key = (requirement.name || "item").toLowerCase();
       grouped.set(key, [...(grouped.get(key) ?? []), requirement]);
     }
 
