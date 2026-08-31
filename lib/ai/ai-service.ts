@@ -31,6 +31,8 @@ import {
   type IndianFoodRecord,
 } from "@/lib/food/indian-food-database";
 
+// Inside lib/ai/ai-service.ts (buildDynamicNutritionPrompt)
+
 export function buildDynamicNutritionPrompt(params: {
   family: Family;
   members: FamilyMember[];
@@ -42,46 +44,43 @@ export function buildDynamicNutritionPrompt(params: {
 }): string {
   const { family, targetSlot, recentDishes, recentPulses, language, userPromptOverride } = params;
 
-  const country = family.country || "India";
-  const region = family.state || "National";
+  // 1. Separate Physical Location from Food Identity
+  const residenceState = family.state || "Karnataka";
+  const residenceCity = family.city || "Bengaluru";
   const diet = family.dietPreference || "vegetarian";
 
+  // 2. Resolve Culinary Identity
+  const cuisineProfile = family.cuisineProfile || {
+    primaryCuisine: "north_indian",
+    secondaryCuisines: [],
+    varietyMode: "mostly_primary",
+  };
+
+  const primary = cuisineProfile.primaryCuisine.replace("_", " ").toUpperCase();
+  const secondary = (cuisineProfile.secondaryCuisines || []).map((c) => c.replace("_", " ")).join(", ");
+
   return `
-You are MAMAAI, an expert family nutrition and culinary intelligence system.
+You are MAMAAI, an expert family culinary & nutrition intelligence system.
 Target Meal Slot: ${targetSlot.toUpperCase()}
-Country: ${country} | Region/State: ${region} | Diet Preference: ${diet}
-Language: ${language}
+Family Diet Type: ${diet.toUpperCase()}
 
-CORE NUTRITIONAL PRINCIPLE:
-Plan a complete, wholesome family meal combination containing:
-1. Complex Carbohydrate Base (Whole wheat, unpolished rice, traditional millets: Ragi/Jowar/Bajra, Poha)
-2. High-Quality Protein Anchor (Diverse Dals/Pulses, Paneer, Curd/Buttermilk, Sprouts, Soya, Eggs, Fish, Chicken based on family diet)
-3. Fibre & Micronutrient Diversity (At least 1-2 seasonal vegetables or salads)
-4. Healthy Fats & Digestion Aids (Tempering with jeera, hing, turmeric, cold-pressed oil/ghee in moderation)
+CRITICAL CUISINE SEPARATION RULE:
+- Physical Residence: ${residenceCity}, ${residenceState} (Use ONLY for seasonal market produce context, e.g., local gourds, greens, climate).
+- PRIMARY FAMILY CUISINE PREFERENCE: ${primary} (MUST constitute the core style of the meal).
+- SECONDARY PREFERENCES: ${secondary || "None"}
+- VARIETY RATIO MODE: ${cuisineProfile.varietyMode}
 
-PULSE & PROTEIN DIVERSITY RULES (STRICT ROTATION):
-- Do NOT default repeatedly to Masoor Dal or standard yellow lentils.
-- Utilize India's vast spectrum of legumes:
-  * Toor / Arhar Dal (Tadka, Sambar, Gujarati, Maharashtrian Varan)
-  * Whole Green Moong / Split Moong (Chilka dal, curry, sprouted salad)
-  * Chana Dal / Kala Chana / Kabuli Chana (Lauki-chana dal, Ghugni, Chole)
-  * Rajma (Jammu style, Punjabi masala)
-  * Urad / Dhuli Urad (Urad dal tadka, Bedmi base, Dosa/Idli fermented mix)
-  * Lobia / Cowpeas (Rongi curry, dry lobia sabzi)
-  * Mixed Panchmel Dal / Dal Maharani
+DO NOT default to the resident state's cuisine if it differs from the family preference (e.g., if the family is North Indian living in Karnataka, do NOT recommend Jolada Rotti, Bisi Bele Bath, or South Indian Palya unless specifically requested). Deliver authentic ${primary} home-style food (e.g., Phulka/Roti, Dal Tadka, Seasonal North Indian Sabzi, Dahi, Jeera Rice).
 
-RECENTLY CONSUMED DISHES & PULSES TO EXCLUDE/PENALIZE:
-- Excluded Dishes: ${JSON.stringify(recentDishes.slice(-7))}
+PULSE & PROTEIN DIVERSITY RULES:
+- Rotate pulses across Toor Dal, Chana Dal, Whole Moong, Rajma, Lobia, and Urad Dal. Do not repeat Masoor Dal continuously.
+- Excluded Recent Dishes: ${JSON.stringify(recentDishes.slice(-7))}
 - Pulses to Rotate Away From: ${JSON.stringify(recentPulses.slice(-3))}
 
-${userPromptOverride ? `USER SPECIAL CRAVING/OVERRIDE: "${userPromptOverride}" (Give this highest priority while maintaining nutritional balance)` : ""}
+${userPromptOverride ? `USER SPECIAL CRAVING: "${userPromptOverride}" (Give top priority)` : ""}
 
-OUTPUT FORMAT REQUIREMENT:
-Provide:
-1. Primary Recommended Meal (Complete meal plate with Roti/Rice + Dal/Protein + Sabzi + Curd/Salad).
-2. Alternative Option 1 (Distinct flavour profile and different pulse/protein source).
-3. Alternative Option 2 (Distinct preparation style, e.g., Millet/Grain plate or stuffed bread + legume side).
-All 3 options must be balanced in protein, fibre, and vegetable content.
+OUTPUT FORMAT:
+Provide 1 Primary Recommended Meal and 2 distinct Alternatives adhering strictly to ${primary} cuisine preferences.
 `.trim();
 }
 
