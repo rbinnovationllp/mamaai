@@ -184,9 +184,9 @@ export function MealCard({
                         {labels.alternativesHeader}
                     </h4>
                     <div className="space-y-2.5">
-                        {alternatives.map((alt, idx) => (
+                        {alternatives.map((alt) => (
                             <div
-                                key={idx}
+                                key={`${dishName}-${alt.title}-${alt.prepTimeMinutes}`}
                                 className="flex items-center justify-between p-3.5 bg-emerald-50/40 border border-emerald-100/80 rounded-2xl transition hover:bg-emerald-50"
                             >
                                 <div className="pr-3">

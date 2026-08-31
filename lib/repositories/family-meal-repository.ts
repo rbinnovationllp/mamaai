@@ -16,10 +16,29 @@ export interface FamilyContextRecord {
   members: FamilyMember[];
 }
 
+function dedupeFamilyMembers(members: FamilyMember[]) {
+  const seenMemberIds = new Set<string>();
+  const seenProfiles = new Set<string>();
+  return members.filter((member) => {
+    const profileKey = [
+      member.name?.trim().toLowerCase(),
+      member.relationship?.trim().toLowerCase(),
+      member.age,
+      member.dietType,
+    ].join("#");
+    if (member.memberId && seenMemberIds.has(member.memberId)) return false;
+    if (seenProfiles.has(profileKey)) return false;
+    if (member.memberId) seenMemberIds.add(member.memberId);
+    seenProfiles.add(profileKey);
+    return true;
+  });
+}
+
 export class FamilyMealRepository {
   async saveFamilyContext(input: FamilyContextRecord): Promise<FamilyContextRecord> {
     const tableName = getMamaAiTableName();
     const updatedAt = nowIso();
+    const members = dedupeFamilyMembers(input.members);
 
     await mamaAiDynamoDb.send(
       new PutCommand({
@@ -36,7 +55,33 @@ export class FamilyMealRepository {
       })
     );
 
-    for (const member of input.members) {
+    const existing = await mamaAiDynamoDb.send(
+      new QueryCommand({
+        TableName: tableName,
+        KeyConditionExpression: "PK = :pk",
+        ExpressionAttributeValues: {
+          ":pk": familyPk(input.family.familyId),
+        },
+      })
+    );
+
+    await Promise.all(
+      (existing.Items ?? [])
+        .filter((item) => typeof item.SK === "string" && item.SK.startsWith("MEMBER#"))
+        .map((item) =>
+          mamaAiDynamoDb.send(
+            new DeleteCommand({
+              TableName: tableName,
+              Key: {
+                PK: familyPk(input.family.familyId),
+                SK: item.SK,
+              },
+            })
+          )
+        )
+    );
+
+    for (const member of members) {
       await mamaAiDynamoDb.send(
         new PutCommand({
           TableName: tableName,
@@ -53,7 +98,7 @@ export class FamilyMealRepository {
       );
     }
 
-    return input;
+    return { ...input, members };
   }
 
   async getFamilyContext(familyId: string): Promise<FamilyContextRecord | null> {
@@ -70,10 +115,10 @@ export class FamilyMealRepository {
     const familyItem = response.Items?.find((item) => item.SK === "FAMILY#PROFILE")?.record as Family | undefined;
     if (!familyItem) return null;
 
-    const members = (response.Items ?? [])
+    const members = dedupeFamilyMembers((response.Items ?? [])
       .filter((item) => typeof item.SK === "string" && item.SK.startsWith("MEMBER#"))
       .map((item) => item.record as FamilyMember | undefined)
-      .filter((member): member is FamilyMember => Boolean(member));
+      .filter((member): member is FamilyMember => Boolean(member)));
 
     return { family: familyItem, members };
   }

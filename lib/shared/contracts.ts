@@ -7,6 +7,8 @@ export type ActivityLevel = "sedentary" | "light" | "moderate" | "heavy" | "athl
 export type DietType = "vegetarian" | "non_vegetarian" | "eggitarian" | "vegan" | "jain" | "satvik" | "other";
 
 export type FamilyDietPreference = "vegetarian" | "non_vegetarian" | "semi_vegetarian" | "eggetarian" | "vegan" | "mixed";
+export type FoodPreferenceCode = "VEG" | "EGG" | "NV-CH" | "NV-MT" | "NV-FI" | "NV-SF" | "NV-MIX";
+export type MealStyle = "everyday" | "occasional" | "festive";
 
 export type NonVegetarianFrequency =
   | "occasionally"
@@ -429,6 +431,18 @@ export interface CommonMeal {
   name: string;
   mealTime: MealTime;
   description: string;
+  country?: string;
+  region?: string;
+  state?: string;
+  subRegionOrCuisine?: string;
+  foodPreferenceTags?: FoodPreferenceCode[];
+  dishCategory?: string;
+  proteinSource?: string;
+  grainBase?: string;
+  mainVegetable?: string;
+  typicalCombination?: string;
+  mealStyle?: MealStyle;
+  seasonalSuitability?: string;
   ingredients: Ingredient[];
   components?: MealComponent[];
   prepTimeMinutes: number;

@@ -164,6 +164,25 @@ const familyProfileSchema = z.object({
   members: z.array(memberSchema).min(1),
 });
 
+type PostedMember = z.infer<typeof memberSchema>;
+
+function uniqueProfileMembers(members: PostedMember[]) {
+  const seenIds = new Set<string>();
+  const seenProfiles = new Set<string>();
+  return members.filter((member) => {
+    const profileKey = [
+      member.name.trim().toLowerCase(),
+      member.relation.trim().toLowerCase(),
+      member.age ?? "unknown",
+      member.foodPreference,
+    ].join("#");
+    if (seenIds.has(member.id) || seenProfiles.has(profileKey)) return false;
+    seenIds.add(member.id);
+    seenProfiles.add(profileKey);
+    return true;
+  });
+}
+
 function identityFor(customer: z.infer<typeof familyProfileSchema>["customer"]) {
   return customer.mobile || customer.email || customer.name;
 }
@@ -203,7 +222,7 @@ export async function POST(request: Request) {
     }
 
     const { customer } = parsed.data;
-    const members = parsed.data.members.map((member) => ({
+    const members = uniqueProfileMembers(parsed.data.members).map((member) => ({
       id: member.id,
       name: member.name,
       relation: member.relation,
