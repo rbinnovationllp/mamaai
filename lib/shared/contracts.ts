@@ -90,6 +90,30 @@ export interface CulturalFoodProfile {
   preferredCuisines?: string[];
 }
 
+export type RegionalCuisinePreference =
+  | "north_indian"       // Punjab, Haryana, UP, Delhi, Rajasthan
+  | "south_indian"       // Karnataka, Tamil Nadu, Kerala, AP, Telangana
+  | "eastern_indian"     // West Bengal, Odisha, Bihar, Jharkhand
+  | "western_indian"     // Maharashtra, Gujarat, Goa
+  | "central_indian"     // MP, Chhattisgarh
+  | "northeast_indian"   // Assam, Meghalaya, etc.
+  | "pahadi"             // Uttarakhand, Himachal Pradesh
+  | "kashmiri"           // Kashmiri cuisine
+  | "pan_indian"         // Mixed Indian household
+  | "custom";            // Other specific preference
+
+export type FoodVarietyMode =
+  | "mostly_primary"     // ~70-80% meals from Primary Cuisine
+  | "balanced_mix"       // Balanced rotation between Primary & Secondary
+  | "pan_india_rotation"; // Broad Pan-India exploration
+
+export interface FamilyCuisineProfile {
+  primaryCuisine: RegionalCuisinePreference;
+  secondaryCuisines: RegionalCuisinePreference[];
+  varietyMode: FoodVarietyMode;
+  customCuisineNotes?: string;
+}
+
 export type PlanType = "daily" | "weekly" | "monthly";
 
 export type MealTime = "breakfast" | "lunch" | "dinner" | "snack" | "evening_snack" | "high_tea";
@@ -250,6 +274,12 @@ export interface KitchenProfile {
   cookingTimePreference: "under_30" | "30_to_60" | "over_60";
 }
 
+export interface CuisinePreferenceWeight {
+  cuisine: string;
+  frequency: "mostly" | "often" | "sometimes" | "rarely";
+  percentage?: number;
+}
+
 export interface Family {
   familyId: ID;
   userId: ID;
@@ -259,6 +289,7 @@ export interface Family {
   city: string;
   dietPreference: FamilyDietPreference;
   cuisinePreferences: string[];
+  cuisineProfile?: FamilyCuisineProfile;
   cuisinePreferenceWeights?: CuisinePreferenceWeight[];
   indianRegionalPreferences?: string[];
   localIngredientAvailabilityNotes?: string[];
@@ -280,10 +311,18 @@ export interface Family {
   updatedAt: string;
 }
 
-export interface CuisinePreferenceWeight {
-  cuisine: string;
-  frequency: "mostly" | "often" | "sometimes" | "rarely";
-  percentage?: number;
+export interface FastingPreference {
+  observesFasting: "no" | "yes" | "occasionally";
+  regularDays: string[];
+  fastType?: "full_fast" | "restricted_food_fast" | "time_restricted" | "custom";
+  reasonOrTradition?: string;
+  allowedFoods: string[];
+  avoidedFoods: string[];
+  fastingMealCount?: number;
+  fruitsAllowed: boolean;
+  dairyAllowed: boolean;
+  grainsRestricted: boolean;
+  customRules: string[];
 }
 
 export interface FamilyMember {
@@ -314,20 +353,6 @@ export interface FamilyMember {
   doctorRestrictions: string[];
   specialStatuses: string[];
   fastingPreference?: FastingPreference;
-}
-
-export interface FastingPreference {
-  observesFasting: "no" | "yes" | "occasionally";
-  regularDays: string[];
-  fastType?: "full_fast" | "restricted_food_fast" | "time_restricted" | "custom";
-  reasonOrTradition?: string;
-  allowedFoods: string[];
-  avoidedFoods: string[];
-  fastingMealCount?: number;
-  fruitsAllowed: boolean;
-  dairyAllowed: boolean;
-  grainsRestricted: boolean;
-  customRules: string[];
 }
 
 export interface NutritionContext {
@@ -719,6 +744,7 @@ export interface CreateFamilyInput {
   city: string;
   dietPreference: FamilyDietPreference;
   cuisinePreferences: string[];
+  cuisineProfile?: FamilyCuisineProfile;
   weeklyFoodRoutineStatus?: WeeklyFoodRoutineStatus;
   weeklyFoodRoutine?: DayWiseFoodRoutinePreference[];
   mealTypePreferences?: MealTypePreferenceProfile;
