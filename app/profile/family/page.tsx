@@ -778,6 +778,13 @@ export default function FamilyProfilePage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [mealStrategy, setMealStrategy] =
     useState<FamilyMemberProfile['mealStrategyPreference']>('common');
+  const [showOptionalMemberDetails, setShowOptionalMemberDetails] = useState(false);
+
+  const uxCopy = {
+    en: { optional: 'Optional', moreDetails: 'Add optional details', hideDetails: 'Hide optional details', draftSaved: 'Your progress is saved on this device.', accountOptional: 'Contact details are optional. Add them only if you want them connected to this profile.' },
+    hi: { optional: '\u0935\u0948\u0915\u0932\u094d\u092a\u093f\u0915', moreDetails: '\u0935\u0948\u0915\u0932\u094d\u092a\u093f\u0915 \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u091c\u094b\u0921\u093c\u0947\u0902', hideDetails: '\u0935\u0948\u0915\u0932\u094d\u092a\u093f\u0915 \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u091b\u093f\u092a\u093e\u090f\u0902', draftSaved: '\u0906\u092a\u0915\u0940 \u092a\u094d\u0930\u0917\u0924\u093f \u0907\u0938 device \u092a\u0930 \u0938\u0941\u0930\u0915\u094d\u0937\u093f\u0924 \u0939\u0948\u0964', accountOptional: '\u0938\u0902\u092a\u0930\u094d\u0915 \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u0935\u0948\u0915\u0932\u094d\u092a\u093f\u0915 \u0939\u0948\u0964 \u0907\u0938\u0947 \u092a\u094d\u0930\u094b\u092b\u093e\u0907\u0932 \u0938\u0947 \u091c\u094b\u0921\u093c\u0928\u093e \u0939\u094b \u0924\u092d\u0940 \u092d\u0930\u0947\u0902\u0964' },
+    kn: { optional: '\u0c90\u0c9a\u0ccd\u0c9b\u0cbf\u0c95', moreDetails: '\u0c90\u0c9a\u0ccd\u0c9b\u0cbf\u0c95 \u0cae\u0cbe\u0cb9\u0cbf\u0ca4\u0cbf \u0cb8\u0cc7\u0cb0\u0cbf\u0cb8\u0cbf', hideDetails: '\u0c90\u0c9a\u0ccd\u0c9b\u0cbf\u0c95 \u0cae\u0cbe\u0cb9\u0cbf\u0ca4\u0cbf\u0caf\u0ca8\u0ccd\u0ca8\u0cc1 \u0cae\u0cb0\u0cc6\u0cae\u0cbe\u0ca1\u0cbf', draftSaved: '\u0ca8\u0cbf\u0cae\u0ccd\u0cae \u0caa\u0ccd\u0cb0\u0c97\u0ca4\u0cbf\u0caf\u0ca8\u0ccd\u0ca8\u0cc1 \u0c88 device \u0ca8\u0cb2\u0ccd\u0cb2\u0cbf \u0c89\u0cb3\u0cbf\u0cb8\u0cb2\u0cbe\u0c97\u0cbf\u0ca6\u0cc6.', accountOptional: '\u0cb8\u0c82\u0caa\u0cb0\u0ccd\u0c95 \u0cae\u0cbe\u0cb9\u0cbf\u0ca4\u0cbf \u0c90\u0c9a\u0ccd\u0c9b\u0cbf\u0c95. \u0c88 profile \u0c97\u0cc6 \u0cb8\u0c82\u0caa\u0cb0\u0ccd\u0c95\u0cbf\u0cb8\u0cac\u0cc7\u0c95\u0cbe\u0ca6\u0cb0\u0cc6 \u0cae\u0cbe\u0ca4\u0ccd\u0cb0 \u0cb8\u0cc7\u0cb0\u0cbf\u0cb8\u0cbf.' },
+  }[language];
 
   useEffect(() => {
     try {
@@ -928,8 +935,8 @@ export default function FamilyProfilePage() {
     const cleanRelation = relation.trim();
     const parsedAge = Number(ageInput);
 
-    if (!cleanName || !cleanRelation || !Number.isInteger(parsedAge) || parsedAge < 0 || parsedAge > 120) {
-      setFormError('Please enter member name, relation and valid age before adding.');
+    if (!cleanName || !cleanRelation || (ageInput.trim() && (!Number.isInteger(parsedAge) || parsedAge < 0 || parsedAge > 120))) {
+      setFormError('Please enter member name and relation. If age is added, use a number from 0 to 120.');
       return;
     }
 
@@ -942,7 +949,7 @@ export default function FamilyProfilePage() {
       id: `m_${Date.now()}`,
       name: cleanName,
       relation: cleanRelation,
-      age: parsedAge,
+      age: ageInput.trim() ? parsedAge : undefined,
       activityLevel,
       foodPreference: memberFoodPreference,
       nonVegFrequency: nonVegFoodPreferences.has(memberFoodPreference) ? nonVegFrequency : undefined,
@@ -968,6 +975,7 @@ export default function FamilyProfilePage() {
     setNonVegAvoidDays([]);
     setNonVegCustomRule('');
     setMealStrategy('common');
+    setShowOptionalMemberDetails(false);
   };
 
   const handleRemoveMember = (memberId: string) => {
@@ -1101,8 +1109,8 @@ export default function FamilyProfilePage() {
       return;
     }
 
-    if (!cleanCustomerName || (!cleanMobile && !cleanEmail)) {
-      setFormError('Please enter your name and either mobile number or email before continuing.');
+    if (!cleanCustomerName) {
+      setFormError('Please enter your name before continuing.');
       return;
     }
 
@@ -1144,7 +1152,7 @@ export default function FamilyProfilePage() {
       window.localStorage.removeItem(FAMILY_PROFILE_DRAFT_KEY);
       setSaveStatus(t.saved);
       window.setTimeout(() => {
-        window.location.href = '/subscription';
+        window.location.href = '/planner';
       }, 500);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Unable to save family profile.');
@@ -1165,6 +1173,7 @@ export default function FamilyProfilePage() {
         <section className="mb-8 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
           <h1 className="text-3xl font-bold tracking-tight text-slate-950">{t.title}</h1>
           <p className="mt-3 text-base leading-7 text-slate-600">{t.subtitle}</p>
+          <p className="mt-3 text-sm font-semibold text-emerald-700">{uxCopy.draftSaved}</p>
         </section>
 
         <section className="mb-8 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-emerald-100 sm:p-6">
@@ -1550,7 +1559,7 @@ export default function FamilyProfilePage() {
 
             <div className="grid gap-5 sm:grid-cols-2">
               <label className="grid gap-2">
-                <span className="text-sm font-semibold text-slate-700">{t.age}</span>
+                <span className="text-sm font-semibold text-slate-700">{t.age} <span className="font-normal text-slate-500">({uxCopy.optional})</span></span>
                 <VoiceTextInput
                   type="number"
                   value={ageInput}
@@ -1559,11 +1568,10 @@ export default function FamilyProfilePage() {
                   inputClassName={inputClassName}
                   min={0}
                   max={120}
-                  required
                 />
               </label>
 
-              <label className="grid gap-2">
+              {showOptionalMemberDetails ? <label className="grid gap-2">
                 <span className="text-sm font-semibold text-slate-700">{t.activity}</span>
                 <select
                   value={activityLevel}
@@ -1576,7 +1584,7 @@ export default function FamilyProfilePage() {
                   <option value="heavy">{t.activityOptions.heavy}</option>
                   <option value="athlete">{t.activityOptions.athlete}</option>
                 </select>
-              </label>
+              </label> : null}
             </div>
 
             <label className="grid gap-2">
@@ -1589,6 +1597,7 @@ export default function FamilyProfilePage() {
               />
             </label>
 
+            {showOptionalMemberDetails ? <>
             <label className="grid gap-2">
               <span className="text-sm font-semibold text-slate-700">{t.doctor}</span>
               <VoiceTextInput
@@ -1622,6 +1631,11 @@ export default function FamilyProfilePage() {
                 <option value="allow_separate">{t.separateMeal}</option>
               </select>
             </label>
+            </> : null}
+
+            <button type="button" onClick={() => setShowOptionalMemberDetails((current) => !current)} className="min-h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-left text-sm font-bold text-slate-700">
+              {showOptionalMemberDetails ? uxCopy.hideDetails : uxCopy.moreDetails}
+            </button>
 
             <label className="grid gap-2">
               <span className="text-sm font-semibold text-slate-700">{t.memberFood}</span>
@@ -1643,7 +1657,7 @@ export default function FamilyProfilePage() {
 
             {nonVegFoodPreferences.has(memberFoodPreference) ? (
               <section className="grid gap-4 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
-                <label className="grid gap-2">
+            <label className="grid gap-2">
                   <span className="text-sm font-semibold text-amber-950">{t.nonVegFrequency}</span>
                   <select
                     value={nonVegFrequency}
@@ -1657,7 +1671,7 @@ export default function FamilyProfilePage() {
                     <option value="most_days">{t.nonVegFrequencyOptions.most_days}</option>
                     <option value="custom">{t.nonVegFrequencyOptions.custom}</option>
                   </select>
-                </label>
+            </label>
 
                 <div className="grid gap-2">
                   <span className="text-sm font-semibold text-amber-950">{t.nonVegAvoidDays}</span>
@@ -1680,7 +1694,7 @@ export default function FamilyProfilePage() {
                   {!nonVegAvoidDays.length ? <p className="text-xs font-semibold text-amber-800">{t.noFixedRestriction}</p> : null}
                 </div>
 
-                <label className="grid gap-2">
+            <label className="grid gap-2">
                   <span className="text-sm font-semibold text-amber-950">{t.nonVegCustomRule}</span>
                   <VoiceTextInput
                     value={nonVegCustomRule}
@@ -1688,7 +1702,7 @@ export default function FamilyProfilePage() {
                     placeholder="Example: avoid on festivals or fasting days"
                     inputClassName={inputClassName}
                   />
-                </label>
+            </label>
               </section>
             ) : null}
 
@@ -1789,7 +1803,7 @@ export default function FamilyProfilePage() {
           <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-emerald-100">
             <div className="mb-5">
               <h2 className="text-2xl font-bold text-slate-950">{t.accountTitle}</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{t.accountText}</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{uxCopy.accountOptional}</p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">

@@ -21,6 +21,7 @@ interface Props {
     language: "en" | "hi" | "kn";
     onSelectAlternative: (alt: AlternativeOption) => void | Promise<void>;
     onShowAnotherOption: (userCraving?: string) => Promise<void>;
+    compact?: boolean;
 }
 
 export function MealCard({
@@ -36,6 +37,7 @@ export function MealCard({
     language = "hi",
     onSelectAlternative,
     onShowAnotherOption,
+    compact = false,
 }: Props) {
     const [loading, setLoading] = useState(false);
     const [showCravingInput, setShowCravingInput] = useState(false);
@@ -153,6 +155,7 @@ export function MealCard({
                 </div>
             </div>
 
+            {!compact ? <>
             {/* Recipe Steps */}
             {recipeSteps.length > 0 && (
                 <div className="mb-6 bg-slate-50/70 p-4 rounded-2xl border border-slate-100">
@@ -253,6 +256,7 @@ export function MealCard({
                     </div>
                 )}
             </div>
+            </> : null}
         </div>
     );
 }

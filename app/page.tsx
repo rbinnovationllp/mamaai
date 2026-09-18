@@ -16,20 +16,8 @@ export default function HomePage() {
 
   const handlePlanMyFamilyMeals = async () => {
     setLoading(true);
-    try {
-      const res = await fetch("/api/customer/session", { cache: "no-store" });
-      const data = await res.json();
-
-      if (data.nextRoute) {
-        router.push(data.nextRoute);
-      } else {
-        router.push("/profile/family");
-      }
-    } catch {
-      router.push("/profile/family");
-    } finally {
-      setLoading(false);
-    }
+    router.push("/planner?start=simple");
+    setLoading(false);
   };
 
   return (
@@ -42,10 +30,9 @@ export default function HomePage() {
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-bold text-stone-600 md:flex">
             <a href="#how">{t.navHow}</a>
-            <a href="#plans">{t.navPlans}</a>
             <Link href="/planner">{t.navPlanner}</Link>
             <Link href="/pantry">{t.navPantry}</Link>
-            <Link href="/subscription">{t.navSubscription}</Link>
+            <Link href="/more">{t.navSubscription}</Link>
           </nav>
           <LanguageSelector />
           <button
@@ -60,12 +47,13 @@ export default function HomePage() {
       </header>
 
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.16),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(22,101,52,0.14),transparent_34%)]" />
-        <div className="relative mx-auto grid min-h-[calc(100vh-72px)] max-w-7xl items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[0.88fr_1.12fr] lg:px-8">
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,248,238,0.85),rgba(236,253,245,0.72))]" />
+        <div className="relative mx-auto grid min-h-[calc(100vh-72px)] max-w-7xl items-center gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[0.92fr_1.08fr] lg:px-8">
           <div className="z-10 max-w-2xl">
             <p className="mb-4 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-emerald-900">
               {t.eyebrow}
             </p>
+            <p className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-stone-500">{t.credibility}</p>
             <h1 className="text-4xl font-black leading-[1.02] tracking-tight text-stone-950 sm:text-6xl lg:text-7xl">
               {t.headlineA} <span className="text-emerald-800">{t.headlineB}</span>
             </h1>
@@ -81,14 +69,14 @@ export default function HomePage() {
                 {loading ? "लोड हो रहा है..." : t.primaryCta}
               </button>
               <Link
-                href="/planner?slot=lunch"
-                className="rounded-full bg-emerald-800 px-7 py-3.5 text-sm font-black text-white shadow-xl shadow-emerald-900/20 transition hover:bg-emerald-900"
+                href="/profile/family"
+                className="rounded-full border border-emerald-200 bg-white px-7 py-3.5 text-sm font-black text-emerald-900 shadow-sm transition hover:border-emerald-400"
               >
                 {t.plannerCta}
               </Link>
               <Link
                 href="/ask-mama"
-                className="rounded-full border border-emerald-200 bg-white px-7 py-3.5 text-sm font-black text-emerald-900 shadow-sm transition hover:border-emerald-400"
+                className="rounded-full border border-stone-200 bg-white px-7 py-3.5 text-sm font-black text-stone-700 shadow-sm transition hover:border-stone-400"
               >
                 {t.demoCta}
               </Link>
@@ -96,7 +84,7 @@ export default function HomePage() {
 
             <div className="mt-7 grid gap-3 text-sm font-bold text-stone-700 sm:grid-cols-2">
               {t.checks.map((item) => (
-                <div key={item} className="rounded-2xl border border-amber-100 bg-white/80 px-4 py-3 shadow-sm">
+                <div key={item} className="rounded-2xl border border-emerald-100 bg-white/85 px-4 py-3 shadow-sm">
                   <span className="mr-2 text-emerald-700">✓</span>
                   {item}
                 </div>
@@ -108,7 +96,7 @@ export default function HomePage() {
             <img
               src="/images/mamaai-family-kitchen-hero.png"
               alt="A warm multigenerational family around a kitchen meal with an AI kitchen companion and a separate four-paw family member nearby."
-              className="aspect-[16/10] w-full rounded-[2rem] border border-white/70 object-cover shadow-2xl shadow-stone-900/20"
+              className="aspect-[16/10] w-full rounded-3xl border border-white/70 object-cover shadow-2xl shadow-stone-900/20"
             />
             <div className="absolute left-4 top-4 max-w-[15rem] rounded-3xl bg-white/92 p-4 shadow-xl backdrop-blur">
               <p className="text-xs font-black uppercase tracking-wide text-orange-600">{t.questionLabel}</p>

@@ -1096,6 +1096,13 @@ export default function PlannerPage() {
   const [isLoadingServerProfile, setIsLoadingServerProfile] = useState(true);
   const [lastPlan, setLastPlan] = useState('');
   const [feedbackStatus, setFeedbackStatus] = useState('');
+  const [simpleStart, setSimpleStart] = useState(false);
+  const [simpleStep, setSimpleStep] = useState(1);
+  const [simpleHistory, setSimpleHistory] = useState('');
+  const [simpleMembers, setSimpleMembers] = useState('');
+  const [simpleFoodPreference, setSimpleFoodPreference] = useState<'vegetarian' | 'eggetarian' | 'non_vegetarian' | 'semi_vegetarian' | 'vegan' | 'other'>('vegetarian');
+  const [isSavingSimpleProfile, setIsSavingSimpleProfile] = useState(false);
+  const [resultPanel, setResultPanel] = useState<'recipe' | 'change' | 'grocery' | 'guidance' | null>(null);
 
   const nextWeekStart = useMemo(() => nextMondayLocalDate(), []);
 
@@ -1110,6 +1117,12 @@ export default function PlannerPage() {
   // 2. Hydrate Client Storage & Backend Profile
   useEffect(() => {
     let cancelled = false;
+
+    const query = new URLSearchParams(window.location.search);
+    setSimpleStart(query.get('start') === 'simple');
+    if (query.get('view') === 'week' || query.get('view') === 'next_week') {
+      setPlannerView('week');
+    }
 
     try {
       const savedMembers = window.localStorage.getItem(HOUSEHOLD_STORAGE_KEY);
@@ -1430,15 +1443,65 @@ export default function PlannerPage() {
 
   const suggestedPlan = useMemo(() => planFromMemberCount(members.length), [members.length]);
   const canGenerate = members.length > 0;
-  const membersMissingAge = members.filter((member) => typeof member.age !== 'number' || Number.isNaN(member.age));
+
+  const simpleCopy = {
+    en: {
+      eyebrow: 'Quick start', title: "Let's plan today's meal", progress: 'Step {step} of 3',
+      historyTitle: 'What has your family eaten recently?', historyHelp: "Share whatever you remember from the last week. This helps MAMAAI understand your taste and avoid repetition. It does not need to be complete.",
+      historyPlaceholder: 'Example: Monday rajma rice for lunch, roti and aloo gobhi for dinner; Tuesday idli for breakfast...',
+      membersTitle: 'Who is in your family?', membersHelp: 'Add one person per line. Age is optional for now, for example: Rajesh, 62', membersPlaceholder: 'Rajesh, 62\nSunita, 58\nAman, 14',
+      foodTitle: 'What type of food does your family usually prefer?', continue: 'Continue', back: 'Back', skip: 'Skip for now', save: 'Save and plan my meal', saving: 'Saving...', invalidMembers: 'Please add at least one family member.', saveError: 'We could not save this quick setup. Please try again.',
+      options: { vegetarian: 'Vegetarian', eggetarian: 'Eggetarian', non_vegetarian: 'Non-Vegetarian', semi_vegetarian: 'Mostly Vegetarian', vegan: 'Vegan', other: 'Other' },
+    },
+    hi: {
+      eyebrow: '\u091c\u0932\u094d\u0926 \u0936\u0941\u0930\u0942 \u0915\u0930\u0947\u0902', title: '\u0906\u091c \u0915\u093e \u092d\u094b\u091c\u0928 \u092a\u094d\u0932\u093e\u0928 \u0915\u0930\u0947\u0902', progress: '\u091a\u0930\u0923 {step} / 3',
+      historyTitle: '\u0906\u092a\u0915\u0947 \u092a\u0930\u093f\u0935\u093e\u0930 \u0928\u0947 \u0939\u093e\u0932 \u092e\u0947\u0902 \u0915\u094d\u092f\u093e \u0916\u093e\u092f\u093e?', historyHelp: '\u092a\u093f\u091b\u0932\u0947 \u0938\u092a\u094d\u0924\u093e\u0939 \u0915\u093e \u091c\u093f\u0924\u0928\u093e \u092f\u093e\u0926 \u0939\u0948, \u0932\u093f\u0916\u0947\u0902\u0964 \u0907\u0938\u0938\u0947 MAMAAI \u0906\u092a\u0915\u0940 \u092a\u0938\u0902\u0926 \u0938\u092e\u091d\u0947\u0917\u093e \u0914\u0930 \u0916\u093e\u0928\u093e \u0926\u094b\u0939\u0930\u093e\u0928\u0947 \u0938\u0947 \u092c\u091a\u0947\u0917\u093e\u0964',
+      historyPlaceholder: '\u0909\u0926\u093e\u0939\u0930\u0923: \u0938\u094b\u092e\u0935\u093e\u0930 \u0926\u094b\u092a\u0939\u0930 \u0930\u093e\u091c\u092e\u093e-\u091a\u093e\u0935\u0932, \u0930\u093e\u0924 \u0915\u094b \u0930\u094b\u091f\u0940 \u0914\u0930 \u0906\u0932\u0942-\u0917\u094b\u092d\u0940...',
+      membersTitle: '\u0906\u092a\u0915\u0947 \u092a\u0930\u093f\u0935\u093e\u0930 \u092e\u0947\u0902 \u0915\u094c\u0928-\u0915\u094c\u0928 \u0939\u0948\u0902?', membersHelp: '\u0939\u0930 \u0932\u093e\u0907\u0928 \u092e\u0947\u0902 \u090f\u0915 \u0928\u093e\u092e \u0932\u093f\u0916\u0947\u0902\u0964 \u0909\u092e\u094d\u0930 \u0905\u092d\u0940 \u0935\u0948\u0915\u0932\u094d\u092a\u093f\u0915 \u0939\u0948, \u091c\u0948\u0938\u0947: Rajesh, 62', membersPlaceholder: 'Rajesh, 62\nSunita, 58\nAman, 14',
+      foodTitle: '\u0906\u092a\u0915\u093e \u092a\u0930\u093f\u0935\u093e\u0930 \u0906\u092e \u0924\u094c\u0930 \u092a\u0930 \u0915\u0948\u0938\u093e \u0916\u093e\u0928\u093e \u092a\u0938\u0902\u0926 \u0915\u0930\u0924\u093e \u0939\u0948?', continue: '\u0906\u0917\u0947', back: '\u0935\u093e\u092a\u0938', skip: '\u0905\u092d\u0940 \u091b\u094b\u0921\u093c\u0947\u0902', save: '\u0938\u0939\u0947\u091c\u0947\u0902 \u0914\u0930 \u092d\u094b\u091c\u0928 \u092a\u094d\u0932\u093e\u0928 \u0915\u0930\u0947\u0902', saving: '\u0938\u0939\u0947\u091c\u093e \u091c\u093e \u0930\u0939\u093e \u0939\u0948...', invalidMembers: '\u0915\u092e \u0938\u0947 \u0915\u092e \u090f\u0915 \u092a\u0930\u093f\u0935\u093e\u0930 \u0938\u0926\u0938\u094d\u092f \u091c\u094b\u0921\u093c\u0947\u0902\u0964', saveError: '\u092f\u0939 \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u0938\u0939\u0947\u091c\u0940 \u0928\u0939\u0940\u0902 \u091c\u093e \u0938\u0915\u0940\u0964 \u092b\u093f\u0930 \u0915\u094b\u0936\u093f\u0936 \u0915\u0930\u0947\u0902\u0964',
+      options: { vegetarian: '\u0936\u093e\u0915\u093e\u0939\u093e\u0930\u0940', eggetarian: '\u0905\u0902\u0921\u093e\u0939\u093e\u0930\u0940', non_vegetarian: '\u092e\u093e\u0902\u0938\u093e\u0939\u093e\u0930\u0940', semi_vegetarian: '\u091c\u094d\u092f\u093e\u0926\u093e\u0924\u0930 \u0936\u093e\u0915\u093e\u0939\u093e\u0930\u0940', vegan: '\u0935\u0940\u0917\u0928', other: '\u0905\u0928\u094d\u092f' },
+    },
+    kn: {
+      eyebrow: '\u0ca4\u0ccd\u0cb5\u0cb0\u0cbf\u0ca4 \u0c86\u0cb0\u0c82\u0cad', title: '\u0c87\u0c82\u0ca6\u0cbf\u0ca8 \u0c8a\u0c9f\u0cb5\u0ca8\u0ccd\u0ca8\u0cc1 \u0caf\u0ccb\u0c9c\u0cbf\u0cb8\u0ccb\u0ca3', progress: '\u0cb9\u0c82\u0ca4 {step} / 3',
+      historyTitle: '\u0ca8\u0cbf\u0cae\u0ccd\u0cae \u0c95\u0cc1\u0c9f\u0cc1\u0c82\u0cac \u0c87\u0ca4\u0ccd\u0ca4\u0cc0\u0c9a\u0cc6\u0c97\u0cc6 \u0c8f\u0ca8\u0cc1 \u0c8a\u0c9f \u0cae\u0cbe\u0ca1\u0cbf\u0ca6\u0cc6?', historyHelp: '\u0c95\u0cb3\u0cc6\u0ca6 \u0cb5\u0cbe\u0cb0\u0ca6\u0cb2\u0ccd\u0cb2\u0cbf \u0ca8\u0cc6\u0ca8\u0caa\u0cbf\u0cb0\u0cc1\u0cb5\u0cb7\u0ccd\u0c9f\u0ca8\u0ccd\u0ca8\u0cc1 \u0cac\u0cb0\u0cc6\u0caf\u0cbf\u0cb0\u0cbf. \u0c87\u0ca6\u0cc1 MAMAAI \u0ca8\u0cbf\u0cae\u0ccd\u0cae \u0cb0\u0cc1\u0c9a\u0cbf\u0caf\u0ca8\u0ccd\u0ca8\u0cc1 \u0ca4\u0cbf\u0cb3\u0cbf\u0caf\u0cb2\u0cc1 \u0cae\u0ca4\u0ccd\u0ca4\u0cc1 \u0caa\u0cc1\u0ca8\u0cb0\u0cbe\u0cb5\u0cb0\u0ccd\u0ca4\u0ca8\u0cc6 \u0ca4\u0caa\u0ccd\u0caa\u0cbf\u0cb8\u0cb2\u0cc1 \u0cb8\u0cb9\u0cbe\u0caf \u0cae\u0cbe\u0ca1\u0cc1\u0ca4\u0ccd\u0ca4\u0ca6\u0cc6.',
+      historyPlaceholder: '\u0c89\u0ca6\u0cbe\u0cb9\u0cb0\u0ca3\u0cc6: \u0cb8\u0ccb\u0cae\u0cb5\u0cbe\u0cb0 \u0cae\u0ca7\u0ccd\u0caf\u0cbe\u0cb9\u0ccd\u0ca8 \u0cb0\u0cbe\u0c9c\u0ccd\u0cae\u0cbe \u0c85\u0ca8\u0ccd\u0ca8, \u0cb0\u0cbe\u0ca4\u0ccd\u0cb0\u0cbf \u0cb0\u0cca\u0c9f\u0ccd\u0c9f\u0cbf \u0cae\u0ca4\u0ccd\u0ca4\u0cc1 \u0c86\u0cb2\u0cc2 \u0c97\u0ccb\u0cac\u0cbf...',
+      membersTitle: '\u0ca8\u0cbf\u0cae\u0ccd\u0cae \u0c95\u0cc1\u0c9f\u0cc1\u0c82\u0cac\u0ca6\u0cb2\u0ccd\u0cb2\u0cbf \u0caf\u0cbe\u0cb0\u0cc6\u0cb2\u0ccd\u0cb2 \u0c87\u0ca6\u0ccd\u0ca6\u0cbe\u0cb0\u0cc6?', membersHelp: '\u0caa\u0ccd\u0cb0\u0ca4\u0cbf \u0cb8\u0cbe\u0cb2\u0cbf\u0ca8\u0cb2\u0ccd\u0cb2\u0cbf \u0c92\u0cac\u0ccd\u0cac\u0cb0 \u0cb9\u0cc6\u0cb8\u0cb0\u0cc1 \u0cac\u0cb0\u0cc6\u0caf\u0cbf\u0cb0\u0cbf. \u0cb5\u0caf\u0cb8\u0ccd\u0cb8\u0cc1 \u0c88\u0c97 \u0c90\u0c9a\u0ccd\u0c9b\u0cbf\u0c95, \u0c89\u0ca6\u0cbe: Rajesh, 62', membersPlaceholder: 'Rajesh, 62\nSunita, 58\nAman, 14',
+      foodTitle: '\u0ca8\u0cbf\u0cae\u0ccd\u0cae \u0c95\u0cc1\u0c9f\u0cc1\u0c82\u0cac \u0cb8\u0cbe\u0cae\u0cbe\u0ca8\u0ccd\u0caf\u0cb5\u0cbe\u0c97\u0cbf \u0caf\u0cbe\u0cb5 \u0cb0\u0cc0\u0ca4\u0cbf\u0caf \u0c86\u0cb9\u0cbe\u0cb0\u0cb5\u0ca8\u0ccd\u0ca8\u0cc1 \u0c87\u0cb7\u0ccd\u0c9f\u0caa\u0ca1\u0cc1\u0ca4\u0ccd\u0ca4\u0ca6\u0cc6?', continue: '\u0cae\u0cc1\u0c82\u0ca6\u0cc6', back: '\u0cb9\u0cbf\u0c82\u0ca6\u0cc6', skip: '\u0c88\u0c97 \u0cac\u0cbf\u0c9f\u0ccd\u0c9f\u0cc1\u0cac\u0cbf\u0ca1\u0cbf', save: '\u0c89\u0cb3\u0cbf\u0cb8\u0cbf \u0c8a\u0c9f \u0caf\u0ccb\u0c9c\u0cbf\u0cb8\u0cbf', saving: '\u0c89\u0cb3\u0cbf\u0cb8\u0cb2\u0cbe\u0c97\u0cc1\u0ca4\u0ccd\u0ca4\u0cbf\u0ca6\u0cc6...', invalidMembers: '\u0c95\u0ca8\u0cbf\u0cb7\u0ccd\u0ca0 \u0c92\u0cac\u0ccd\u0cac \u0c95\u0cc1\u0c9f\u0cc1\u0c82\u0cac \u0cb8\u0ca6\u0cb8\u0ccd\u0caf\u0cb0\u0ca8\u0ccd\u0ca8\u0cc1 \u0cb8\u0cc7\u0cb0\u0cbf\u0cb8\u0cbf.', saveError: '\u0c88 \u0cae\u0cbe\u0cb9\u0cbf\u0ca4\u0cbf\u0caf\u0ca8\u0ccd\u0ca8\u0cc1 \u0c89\u0cb3\u0cbf\u0cb8\u0cb2\u0cc1 \u0cb8\u0cbe\u0ca7\u0ccd\u0caf\u0cb5\u0cbe\u0c97\u0cb2\u0cbf\u0cb2\u0ccd\u0cb2. \u0ca6\u0caf\u0cb5\u0cbf\u0c9f\u0ccd\u0c9f\u0cc1 \u0caa\u0ccd\u0cb0\u0caf\u0ca4\u0ccd\u0ca8\u0cbf\u0cb8\u0cbf.',
+      options: { vegetarian: '\u0cb8\u0cb8\u0ccd\u0caf\u0cbe\u0cb9\u0cbe\u0cb0\u0cbf', eggetarian: '\u0cae\u0cca\u0c9f\u0ccd\u0c9f\u0cc6-\u0cb8\u0cb8\u0ccd\u0caf\u0cbe\u0cb9\u0cbe\u0cb0\u0cbf', non_vegetarian: '\u0cae\u0cbe\u0c82\u0cb8\u0cbe\u0cb9\u0cbe\u0cb0\u0cbf', semi_vegetarian: '\u0cb9\u0cc6\u0c9a\u0ccd\u0c9a\u0cbe\u0c97\u0cbf \u0cb8\u0cb8\u0ccd\u0caf\u0cbe\u0cb9\u0cbe\u0cb0\u0cbf', vegan: '\u0cb5\u0cc0\u0c97\u0ca8\u0ccd', other: '\u0c87\u0ca4\u0cb0\u0cc6' },
+    },
+  }[language];
+
+  const resultCopy = {
+    en: { recipe: 'View Recipe', change: 'Change a Dish', grocery: 'Grocery List', save: 'Save Meal', saved: 'Meal Saved', guidance: 'Family Guidance', choose: 'Choose another suitable meal' },
+    hi: { recipe: '\u0930\u0947\u0938\u093f\u092a\u0940 \u0926\u0947\u0916\u0947\u0902', change: '\u092d\u094b\u091c\u0928 \u092c\u0926\u0932\u0947\u0902', grocery: '\u0915\u093f\u0930\u093e\u0928\u0947 \u0915\u0940 \u0938\u0942\u091a\u0940', save: '\u092d\u094b\u091c\u0928 \u0938\u0939\u0947\u091c\u0947\u0902', saved: '\u092d\u094b\u091c\u0928 \u0938\u0939\u0947\u091c\u093e \u0917\u092f\u093e', guidance: '\u092a\u0930\u093f\u0935\u093e\u0930 \u0915\u0947 \u0932\u093f\u090f \u092e\u093e\u0930\u094d\u0917\u0926\u0930\u094d\u0936\u0928', choose: '\u0926\u0942\u0938\u0930\u093e \u0909\u092a\u092f\u0941\u0915\u094d\u0924 \u092d\u094b\u091c\u0928 \u091a\u0941\u0928\u0947\u0902' },
+    kn: { recipe: '\u0cb0\u0cc6\u0cb8\u0cbf\u0caa\u0cbf \u0ca8\u0ccb\u0ca1\u0cbf', change: '\u0c8a\u0c9f \u0cac\u0ca6\u0cb2\u0cbe\u0caf\u0cbf\u0cb8\u0cbf', grocery: '\u0c95\u0cbf\u0cb0\u0cbe\u0ca3\u0cbf \u0caa\u0c9f\u0ccd\u0c9f\u0cbf', save: '\u0c8a\u0c9f \u0c89\u0cb3\u0cbf\u0cb8\u0cbf', saved: '\u0c8a\u0c9f \u0c89\u0cb3\u0cbf\u0cb8\u0cb2\u0cbe\u0c97\u0cbf\u0ca6\u0cc6', guidance: '\u0c95\u0cc1\u0c9f\u0cc1\u0c82\u0cac \u0cae\u0cbe\u0cb0\u0ccd\u0c97\u0ca6\u0cb0\u0ccd\u0cb6\u0ca8', choose: '\u0cac\u0cc7\u0cb0\u0cc6 \u0cb8\u0cc2\u0c95\u0ccd\u0ca4 \u0c8a\u0c9f\u0cb5\u0ca8\u0ccd\u0ca8\u0cc1 \u0c86\u0caf\u0ccd\u0c95\u0cc6 \u0cae\u0cbe\u0ca1\u0cbf' },
+  }[language];
+
+  const saveSimpleProfile = async () => {
+    const parsedMembers = simpleMembers.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line, index) => {
+      const parts = line.split(',').map((part) => part.trim());
+      const age = Number(parts[1]);
+      return { id: `member_${Date.now()}_${index}`, name: parts[0], relation: index === 0 ? 'Primary user' : 'Family member', age: Number.isFinite(age) && age >= 0 && age <= 120 ? age : undefined, activityLevel: 'moderate' as const, foodPreference: simpleFoodPreference, nonVegAvoidDays: [], allergies: [], doctorAdvisedRestrictions: [], dislikes: [], mealStrategyPreference: 'common' as const };
+    });
+    if (!parsedMembers.length) { setError(simpleCopy.invalidMembers); return; }
+    setIsSavingSimpleProfile(true); setError('');
+    try {
+      const recentMealHistory = simpleHistory.trim() ? [{ day: 'Recent week', dinner: simpleHistory.trim() }] : [];
+      const response = await fetch('/api/customer/family-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer: { name: parsedMembers[0].name, preferredLanguage: language, householdFoodPreference: simpleFoodPreference, cookingHabit: 'fresh_home_cooked', budgetPreference: 'moderate', weeklyFoodRoutineStatus: 'skip', weeklyFoodRoutine: [], mealTypePreferences: { breakfast: [], lunch: [], snacks: [], dinner: [] }, mealTimings: {}, favoriteFoodTags: [], recentMealHistory, nonVegPreferredFoods: [] }, members: parsedMembers }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error?.message || simpleCopy.saveError);
+      const nextCustomer = { ...(data.customer || {}), familyId: data.familyProfile?.familyId, recentMealHistory };
+      setMembers(parsedMembers); setCustomer(nextCustomer); setSimpleStart(false);
+      window.localStorage.setItem(HOUSEHOLD_STORAGE_KEY, JSON.stringify(parsedMembers));
+      window.localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(nextCustomer));
+      setStatus(t.readyTitle);
+    } catch (saveError) { setError(saveError instanceof Error ? saveError.message : simpleCopy.saveError); }
+    finally { setIsSavingSimpleProfile(false); }
+  };
 
   // 7. Active Generation Action (Direct Daily Generator)
   const generatePlan = async (cravingOverride?: string) => {
     if (!canGenerate || isGenerating) return;
-    if (membersMissingAge.length) {
-      setError(t.incompleteText);
-      return;
-    }
 
     const activeAttendanceForValidation = mealAttendance[activeMealSlot] ?? {
       participatingMemberIds: members.map((member) => member.id),
@@ -1697,7 +1760,24 @@ export default function PlannerPage() {
           <LanguageSelector />
         </div>
 
-        {isLoadingServerProfile && !canGenerate ? (
+        {simpleStart && !canGenerate && !isLoadingServerProfile ? (
+          <section className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-7">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">{simpleCopy.eyebrow}</p>
+              <p className="text-xs font-bold text-slate-500">{simpleCopy.progress.replace('{step}', String(simpleStep))}</p>
+            </div>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-emerald-700 transition-all" style={{ width: `${(simpleStep / 3) * 100}%` }} /></div>
+            <h2 className="mt-6 text-2xl font-black text-slate-950">{simpleStep === 1 ? simpleCopy.historyTitle : simpleStep === 2 ? simpleCopy.membersTitle : simpleCopy.foodTitle}</h2>
+            {simpleStep === 1 ? <><p className="mt-3 text-sm leading-6 text-slate-600">{simpleCopy.historyHelp}</p><textarea value={simpleHistory} onChange={(event) => setSimpleHistory(event.target.value)} placeholder={simpleCopy.historyPlaceholder} rows={6} className="mt-5 w-full rounded-2xl border border-slate-200 p-4 text-base outline-none focus:border-emerald-600" /></> : null}
+            {simpleStep === 2 ? <><p className="mt-3 text-sm leading-6 text-slate-600">{simpleCopy.membersHelp}</p><textarea value={simpleMembers} onChange={(event) => setSimpleMembers(event.target.value)} placeholder={simpleCopy.membersPlaceholder} rows={6} className="mt-5 w-full rounded-2xl border border-slate-200 p-4 text-base outline-none focus:border-emerald-600" /></> : null}
+            {simpleStep === 3 ? <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">{Object.entries(simpleCopy.options).map(([value, label]) => <button key={value} type="button" onClick={() => setSimpleFoodPreference(value as typeof simpleFoodPreference)} className={`min-h-12 rounded-2xl px-3 py-3 text-sm font-bold ring-1 ${simpleFoodPreference === value ? 'bg-emerald-800 text-white ring-emerald-800' : 'bg-white text-slate-700 ring-slate-200'}`}>{label}</button>)}</div> : null}
+            {error ? <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p> : null}
+            <div className="mt-6 flex items-center justify-between gap-3">
+              {simpleStep > 1 ? <button type="button" onClick={() => { setError(''); setSimpleStep((step) => step - 1); }} className="min-h-12 rounded-xl px-4 text-sm font-bold text-slate-700 ring-1 ring-slate-200">{simpleCopy.back}</button> : <button type="button" onClick={() => setSimpleStep(2)} className="min-h-12 px-2 text-sm font-bold text-slate-500">{simpleCopy.skip}</button>}
+              {simpleStep < 3 ? <button type="button" onClick={() => { if (simpleStep === 2 && !simpleMembers.trim()) { setError(simpleCopy.invalidMembers); return; } setError(''); setSimpleStep((step) => step + 1); }} className="min-h-12 rounded-xl bg-emerald-800 px-6 text-sm font-bold text-white">{simpleCopy.continue}</button> : <button type="button" disabled={isSavingSimpleProfile} onClick={saveSimpleProfile} className="min-h-12 rounded-xl bg-emerald-800 px-5 text-sm font-bold text-white disabled:opacity-60">{isSavingSimpleProfile ? simpleCopy.saving : simpleCopy.save}</button>}
+            </div>
+          </section>
+        ) : isLoadingServerProfile && !canGenerate ? (
           <section className="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
             <p className="text-sm font-bold text-emerald-800">{t.loadingProfile}</p>
           </section>
@@ -2150,9 +2230,35 @@ export default function PlannerPage() {
                   language={language}
                   onSelectAlternative={handleSelectAlternative}
                   onShowAnotherOption={handleShowAnotherOption}
+                  compact
                 />
 
+                <div className="mx-auto grid w-full max-w-xl grid-cols-2 gap-3 sm:grid-cols-4">
+                  <button type="button" onClick={() => setResultPanel(resultPanel === 'recipe' ? null : 'recipe')} className="min-h-12 rounded-2xl bg-emerald-800 px-3 text-sm font-bold text-white">{resultCopy.recipe}</button>
+                  <button type="button" onClick={() => setResultPanel(resultPanel === 'change' ? null : 'change')} className="min-h-12 rounded-2xl border border-amber-200 bg-amber-50 px-3 text-sm font-bold text-amber-950">{resultCopy.change}</button>
+                  <button type="button" onClick={() => setResultPanel(resultPanel === 'grocery' ? null : 'grocery')} className="min-h-12 rounded-2xl border border-emerald-200 bg-white px-3 text-sm font-bold text-emerald-800">{resultCopy.grocery}</button>
+                  <button type="button" onClick={() => submitMealFeedback('cooked')} className="min-h-12 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700">{feedbackStatus ? resultCopy.saved : resultCopy.save}</button>
+                </div>
+
+                <button type="button" onClick={() => setResultPanel(resultPanel === 'guidance' ? null : 'guidance')} className="mx-auto block text-sm font-bold text-emerald-800 underline underline-offset-4">{resultCopy.guidance}</button>
+
+                {resultPanel === 'change' ? (
+                  <article className="mx-auto w-full max-w-xl rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                    <h3 className="text-lg font-bold text-slate-950">{resultCopy.choose}</h3>
+                    <div className="mt-4 grid gap-3">
+                      {mealPlan.commonMeal.alternativeOptions?.map((alternative) => (
+                        <button key={alternative.title} type="button" onClick={() => handleSelectAlternative(alternative)} className="rounded-2xl bg-emerald-50 p-4 text-left ring-1 ring-emerald-100">
+                          <span className="block font-bold text-slate-950">{alternative.title}</span>
+                          <span className="mt-1 block text-sm text-slate-600">{alternative.description}</span>
+                        </button>
+                      ))}
+                      <button type="button" onClick={() => handleShowAnotherOption()} className="min-h-12 rounded-2xl bg-amber-50 px-4 text-sm font-bold text-amber-950 ring-1 ring-amber-200">{resultCopy.change}</button>
+                    </div>
+                  </article>
+                ) : null}
+
                 <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+                  {resultPanel === 'recipe' ? (
                   <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                     <h3 className="text-base font-bold text-slate-950">{t.recipe}</h3>
                     <ol className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
@@ -2190,9 +2296,11 @@ export default function PlannerPage() {
                       {feedbackStatus ? <p className="mt-3 text-xs font-semibold text-emerald-800">{feedbackStatus}</p> : null}
                     </div>
                   </article>
+                  ) : null}
 
                   <div className="grid gap-6">
                     {/* Portion Guidance */}
+                    {resultPanel === 'guidance' ? (
                     <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                       <h3 className="text-lg font-bold text-slate-950">{t.portions}</h3>
                       <div className="mt-4 grid gap-3">
@@ -2205,8 +2313,10 @@ export default function PlannerPage() {
                         ))}
                       </div>
                     </article>
+                    ) : null}
 
                     {/* Grocery Deficit Engine */}
+                    {resultPanel === 'grocery' ? (
                     <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                       <h3 className="text-lg font-bold text-slate-950">{t.grocery}</h3>
                       {pantryItems.length ? (
@@ -2244,8 +2354,10 @@ export default function PlannerPage() {
                         </div>
                       ) : null}
                     </article>
+                    ) : null}
 
                     {/* Fruits & Hydration */}
+                    {resultPanel === 'guidance' ? (
                     <article className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                       <h3 className="text-lg font-bold text-slate-950">{t.fruit}</h3>
                       <div className="mt-4 grid gap-3 text-sm text-slate-700">
@@ -2257,6 +2369,7 @@ export default function PlannerPage() {
                         ))}
                       </div>
                     </article>
+                    ) : null}
                   </div>
                 </div>
               </section>

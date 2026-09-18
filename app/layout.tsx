@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { LanguageProvider } from "@/components/LanguageProvider";
+import { MobilePrimaryNav } from "@/components/MobilePrimaryNav";
+import { AskMamaLauncher } from "@/components/ask-mama/AskMamaLauncher";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -29,8 +31,12 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>
-        <LanguageProvider>{children}</LanguageProvider>
+      <body className="pb-20 md:pb-0">
+        <LanguageProvider>
+          {children}
+          <AskMamaLauncher />
+          <MobilePrimaryNav />
+        </LanguageProvider>
         <Analytics />
       </body>
     </html>
