@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLanguage } from '@/components/LanguageProvider';
 
 interface Props {
@@ -18,6 +18,8 @@ export function AskMamaModal({ isOpen, onClose }: Props) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [profileContext, setProfileContext] = useState<Record<string, unknown> | null>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const labels = {
         en: {
@@ -49,6 +51,20 @@ export function AskMamaModal({ isOpen, onClose }: Props) {
         },
     }[language];
 
+    useEffect(() => {
+        if (!isOpen) return;
+        try {
+            const members = JSON.parse(window.localStorage.getItem('mamaai_household_members_v1') || '[]');
+            const customer = JSON.parse(window.localStorage.getItem('mamaai_customer_account_v1') || '{}');
+            const pantryItems = JSON.parse(window.localStorage.getItem('mamaai_pantry_items_v1') || '[]');
+            setProfileContext({ ...customer, members: Array.isArray(members) ? members : [], pantryItems: Array.isArray(pantryItems) ? pantryItems.slice(0, 20) : [] });
+        } catch { setProfileContext(null); }
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (isOpen) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [isOpen, messages, loading]);
+
     if (!isOpen) return null;
 
     const handleSend = async () => {
@@ -60,21 +76,24 @@ export function AskMamaModal({ isOpen, onClose }: Props) {
         setLoading(true);
 
         try {
+            const history = messages.map((message) => ({ role: (message.sender === 'user' ? 'user' : 'model') as 'user' | 'model', parts: message.text }));
             const res = await fetch('/api/ask-mama', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    question: userMessage,
-                    responseLanguage: language,
+                    message: userMessage,
+                    history,
+                    language,
+                    profileContext,
                 }),
             });
 
-            const data = await res.json();
-            if (!res.ok || !data.success) {
-                throw new Error(data.error?.message || labels.error);
-            }
+            const contentType = res.headers.get('content-type') || '';
+            const raw = await res.text();
+            const data = contentType.includes('application/json') ? JSON.parse(raw) : null;
+            if (!res.ok || !data?.response) throw new Error(data?.error?.message || labels.error);
 
-            setMessages((prev) => [...prev, { sender: 'mama', text: data.answer }]);
+            setMessages((prev) => [...prev, { sender: 'mama', text: data.response }]);
         } catch (err: any) {
             setMessages((prev) => [...prev, { sender: 'mama', text: labels.error }]);
         } finally {
@@ -83,8 +102,8 @@ export function AskMamaModal({ isOpen, onClose }: Props) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
-            <div className="flex h-[580px] w-full max-w-lg flex-col rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200">
+        <div role="dialog" aria-modal="true" aria-label={labels.title} className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-900/50 p-3 pb-24 backdrop-blur-sm sm:items-center sm:p-4">
+            <div className="flex h-[min(680px,calc(100dvh-7rem))] w-full max-w-lg flex-col rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200 sm:rounded-3xl">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-slate-100 p-4">
                     <div>
@@ -92,10 +111,12 @@ export function AskMamaModal({ isOpen, onClose }: Props) {
                         <p className="text-xs text-slate-500">{labels.subtitle}</p>
                     </div>
                     <button
+                        type="button"
                         onClick={onClose}
+                        aria-label="Close Ask MAMA"
                         className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                     >
-                        ✕
+                        &times;
                     </button>
                 </div>
 
@@ -128,6 +149,7 @@ export function AskMamaModal({ isOpen, onClose }: Props) {
                             </div>
                         </div>
                     )}
+                    <div ref={messagesEndRef} />
                 </div>
 
                 {/* Input Bar */}
