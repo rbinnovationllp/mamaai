@@ -90,11 +90,14 @@ export async function POST(request: Request) {
 
     const subscription = body.payload?.subscription?.entity;
     const payment = body.payload?.payment?.entity;
-    const notes = subscription?.notes ?? payment?.notes ?? {};
+    const notes = { ...(payment?.notes ?? {}), ...(subscription?.notes ?? {}) };
     const subscriptionId = subscription?.id;
 
     if (!subscriptionId) {
       return NextResponse.json({ received: true, persisted: false, reason: "No subscription entity present." });
+    }
+    if (!notes.userId) {
+      return NextResponse.json({ error: { code: "WEBHOOK_METADATA_MISSING", message: "Webhook customer metadata is missing." } }, { status: 422 });
     }
 
     const record = await service.upsertSubscriptionFromProvider({

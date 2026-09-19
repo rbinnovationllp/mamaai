@@ -15,16 +15,9 @@ async function hasMealPlanningEntitlement(
   requestData: CreateMealPlanRequest
 ): Promise<{ ok: boolean; userId?: string }> {
   const session = await getSession();
-  let resolvedUserId = session?.userId || requestData.userId;
-
-  if (!resolvedUserId) {
-    try {
-      const user = requireUser(request, requestData.userId);
-      resolvedUserId = user.userId;
-    } catch {
-      // Proceed with session checks
-    }
-  }
+  const user = requireUser(request);
+  const resolvedUserId = user.userId;
+  if (requestData.userId && requestData.userId !== resolvedUserId) return { ok: false, userId: resolvedUserId };
 
   // Admin / Judge / Active Entitlement quick pass
   if (
@@ -69,11 +62,12 @@ async function hasMealPlanningEntitlement(
     console.warn("[WeeklyMealPlan Route] SubscriptionRepository check failed:", error);
   }
 
-  return { ok: true, userId: resolvedUserId }; // Fail-safe to avoid blocking active paid subscribers
+  return { ok: false, userId: resolvedUserId };
 }
 
 export async function GET(request: Request) {
   try {
+    const user = requireUser(request);
     const url = new URL(request.url);
     const familyId = url.searchParams.get("familyId");
     const targetDate = url.searchParams.get("targetDate") || url.searchParams.get("targetWeekStart") || new Date().toISOString().slice(0, 10);
@@ -86,8 +80,13 @@ export async function GET(request: Request) {
     }
 
     const weeklyPlan = await new WeeklyMealPlanningService().getCurrent(familyId, targetDate);
+    if (weeklyPlan && weeklyPlan.userId !== user.userId) {
+      return NextResponse.json({ error: { code: "FORBIDDEN", message: "You cannot access this family plan." } }, { status: 403 });
+    }
     return NextResponse.json({ success: true, weeklyPlan: weeklyPlan ?? null });
   } catch (error) {
+    const authResponse = authErrorResponse(error);
+    if (authResponse) return authResponse;
     return NextResponse.json(
       {
         error: {

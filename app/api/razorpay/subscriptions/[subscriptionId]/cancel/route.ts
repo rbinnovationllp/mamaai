@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { RazorpayService } from "@/lib/services/razorpay-service";
 import { cancelRazorpaySubscriptionSchema } from "@/lib/shared/schemas";
 import { authErrorResponse, requireUser } from "@/lib/server/auth";
+import { SubscriptionRepository } from "@/lib/repositories/subscription-repository";
 
 interface RouteContext {
   params: Promise<{
@@ -23,6 +24,10 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const user = requireUser(request, parsed.data.userId);
+    const owned = await new SubscriptionRepository().getSubscriptionForUserByRazorpaySubscriptionId(user.userId, subscriptionId);
+    if (!owned) {
+      return NextResponse.json({ error: { code: "FORBIDDEN", message: "This subscription does not belong to the signed-in customer." } }, { status: 403 });
+    }
     const result = await new RazorpayService().cancelSubscription({
       userId: user.userId,
       razorpaySubscriptionId: subscriptionId,

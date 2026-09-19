@@ -263,6 +263,20 @@ export class RazorpayService {
     );
   }
 
+  async resolveProviderPlan(razorpaySubscriptionId: string) {
+    const keys = configuredRazorpayKey();
+    if (!keys.keyId || !keys.keySecret) throw new Error("Razorpay credentials are not configured.");
+    const response = await fetch(`https://api.razorpay.com/v1/subscriptions/${encodeURIComponent(razorpaySubscriptionId)}`, {
+      headers: { Authorization: `Basic ${Buffer.from(`${keys.keyId}:${keys.keySecret}`).toString("base64")}` },
+      cache: "no-store",
+    });
+    const provider = (await response.json()) as RazorpaySubscriptionResponse & { error?: { description?: string } };
+    if (!response.ok || !provider.plan_id) throw new Error(provider.error?.description ?? "Unable to verify Razorpay subscription plan.");
+    const plan = findPlanByRazorpayPlanId(normalizeRazorpayPlanId(provider.plan_id));
+    if (!plan) throw new Error("The Razorpay plan is not mapped to a MamaAI subscription.");
+    return { plan, planId: normalizeRazorpayPlanId(provider.plan_id), status: provider.status };
+  }
+
   async upsertSubscriptionFromProvider(input: {
     userId: string;
     plan?: SubscriptionPlan;

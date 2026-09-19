@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 import { RazorpayService } from '@/lib/services/razorpay-service';
-import { normalizePlanTier } from '@/lib/shared/schemas';
-import type { SubscriptionPlan } from '@/lib/shared/contracts';
 import { authErrorResponse, requireUser } from '@/lib/server/auth';
 
 export async function POST(req: Request) {
@@ -12,10 +10,13 @@ export async function POST(req: Request) {
       razorpay_subscription_id,
       razorpay_signature,
       userId,
-      planTier,
+      planTier: _clientPlanTier,
     } = body;
 
-    const user = requireUser(req, userId);
+    const user = requireUser(req);
+    if (userId && userId !== user.userId) {
+      return NextResponse.json({ error: { code: 'FORBIDDEN', message: 'The payment customer does not match the signed-in customer.' } }, { status: 403 });
+    }
     const service = new RazorpayService();
 
     if (
@@ -31,11 +32,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const normalizedPlan = normalizePlanTier(planTier || 'starter') as SubscriptionPlan;
+    const providerPlan = await service.resolveProviderPlan(razorpay_subscription_id);
+
     const subscriptionRecord = await service.upsertSubscriptionFromProvider({
       userId: user.userId,
-      plan: normalizedPlan,
+      plan: providerPlan.plan,
       razorpaySubscriptionId: razorpay_subscription_id,
+      razorpayPlanId: providerPlan.planId,
       razorpayPaymentId: razorpay_payment_id,
       eventType: 'subscription.activated',
       providerStatus: 'active',

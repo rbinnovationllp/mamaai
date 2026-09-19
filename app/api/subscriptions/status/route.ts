@@ -8,10 +8,9 @@ export async function GET(request: Request) {
     const service = new SubscriptionService();
     const repository = new SubscriptionRepository();
     const url = new URL(request.url);
-    const fallbackUserId = request.headers.get("x-demo-user-id") ?? url.searchParams.get("userId") ?? "demo-user";
-    const user = requireUser(request, fallbackUserId);
+    const user = requireUser(request);
     const userId = user.userId;
-    const judgeMode = url.searchParams.get("mode") === "judge";
+    const judgeMode = false;
 
     const latestSubscriptionRecord = judgeMode
       ? undefined

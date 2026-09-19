@@ -2,7 +2,13 @@
 import crypto from "crypto";
 import { cookies } from "next/headers";
 
-const SESSION_SECRET = process.env.AUTH_SECRET || "mamaai-production-secret-key-32chars!";
+function sessionSecret() {
+    const secret = process.env.AUTH_SECRET;
+    if (!secret || secret.length < 32) {
+        throw new Error("AUTH_SECRET must be configured with at least 32 characters.");
+    }
+    return secret;
+}
 const SESSION_COOKIE_NAME = "mamaai_session";
 
 export interface UserSession {
@@ -16,14 +22,14 @@ export interface UserSession {
 
 export function signToken(payload: object): string {
     const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
-    const signature = crypto.createHmac("sha256", SESSION_SECRET).update(data).digest("base64url");
+    const signature = crypto.createHmac("sha256", sessionSecret()).update(data).digest("base64url");
     return `${data}.${signature}`;
 }
 
 export function verifyToken<T>(token: string): T | null {
     if (!token || !token.includes(".")) return null;
     const [data, signature] = token.split(".");
-    const expectedSig = crypto.createHmac("sha256", SESSION_SECRET).update(data).digest("base64url");
+    const expectedSig = crypto.createHmac("sha256", sessionSecret()).update(data).digest("base64url");
     if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSig))) {
         return null;
     }
