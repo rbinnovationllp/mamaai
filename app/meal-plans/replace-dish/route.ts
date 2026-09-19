@@ -8,6 +8,7 @@ const dbClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: proces
 
 export async function POST(req: Request) {
   try {
+    return NextResponse.json({ error: { code: "GONE", message: "Use the authenticated meal replacement endpoint." } }, { status: 410 });
     const { userId, date, mealType, reason } = await req.json();
 
     // 1. Fetch compact memory profile (Deterministic Read)

@@ -293,12 +293,21 @@ export class MealPlanningService {
     } catch (genErr) {
       console.warn("[MAMAAI Generation Fallback Activated]:", genErr);
       generatedMealPlan = this.aiService.generateFamilyMealPlan({
-        family: familyContext.family,
+        family: {
+          ...familyContext.family,
+          mealTimings: request.customMealTimings || familyContext.family.mealTimings,
+          mealSchedule: request.mealSchedule || familyContext.family.mealSchedule,
+        },
         members: familyContext.members,
-        planType: "daily",
+        planType: request.planType || "daily",
         mealTime: targetSlot,
+        mealTimeContext: request.mealTimeContext,
         mealAttendance,
+        highTeaPreference: request.highTeaPreference,
+        userPlanningMode: request.userPlanningMode,
         targetDate,
+        userPromptOverride: request.userPromptOverride,
+        excludeDishes: request.excludeDishes,
       });
     }
 
@@ -309,10 +318,9 @@ export class MealPlanningService {
       )
     );
 
+    await this.repository.saveMealPlan(finalizedMealPlan);
+    store.mealPlans = store.mealPlans.filter((plan) => plan.mealPlanId !== finalizedMealPlan.mealPlanId);
     store.mealPlans.push(finalizedMealPlan);
-    this.repository.saveMealPlan(finalizedMealPlan).catch((saveErr) => {
-      console.warn("[MAMAAI DynamoDB Persistence Non-Fatal Warning]:", saveErr);
-    });
 
     return { nutritionContexts, mealPlan: finalizedMealPlan };
   }
@@ -365,9 +373,7 @@ export class MealPlanningService {
       updatedAt: nowIso(),
     };
 
-    this.repository.saveMealPlan(replacementPlan).catch((saveErr) => {
-      console.warn("[MAMAAI Meal Replacement Persistence Warning]:", saveErr);
-    });
+    await this.repository.saveMealPlan(replacementPlan);
 
     return { mealPlan: replacementPlan };
   }

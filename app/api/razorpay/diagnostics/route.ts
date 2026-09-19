@@ -65,6 +65,9 @@ async function checkRazorpayAuth(keyId?: string, keySecret?: string) {
 
 export async function POST(request: Request) {
   try {
+    if (process.env.NODE_ENV === "production") {
+      return NextResponse.json({ error: { code: "NOT_FOUND", message: "Diagnostics are disabled in production." } }, { status: 404 });
+    }
     const body = await request.json().catch(() => ({}));
     const suppliedKey =
       request.headers.get("x-mamaai-diagnostic-key") ??

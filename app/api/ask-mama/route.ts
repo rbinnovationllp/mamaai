@@ -123,7 +123,6 @@ export async function POST(request: Request) {
 
     const session = await getSession();
     const isJudge = Boolean(
-      body.isJudgeMode ||
       session?.role === "admin" ||
       session?.entitlement === "judge"
     );

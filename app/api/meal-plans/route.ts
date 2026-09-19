@@ -85,16 +85,17 @@ export async function POST(request: Request) {
 
     // 1. Resolve User Identity
     const session = await getSession();
-    let resolvedUserId = session?.userId || requestData.userId;
+    let resolvedUserId = session?.userId;
 
-    if (!resolvedUserId) {
-      try {
-        const user = requireUser(request, requestData.userId);
-        resolvedUserId = user.userId;
-      } catch (authErr) {
-        const authResponse = authErrorResponse(authErr);
-        if (authResponse) return authResponse;
+    try {
+      const user = requireUser(request);
+      if (resolvedUserId && resolvedUserId !== user.userId) {
+        return NextResponse.json({ error: { code: "FORBIDDEN", message: "The requested user does not match the signed-in customer." } }, { status: 403 });
       }
+      resolvedUserId = user.userId;
+    } catch (authErr) {
+      const authResponse = authErrorResponse(authErr);
+      if (authResponse) return authResponse;
     }
 
     // 2. Server-side Entitlement Check
@@ -115,7 +116,7 @@ export async function POST(request: Request) {
 
     // 3. Delegate to Resilient MealPlanningService
     const mealPlanningService = new MealPlanningService();
-    const result = await mealPlanningService.generate(requestData);
+    const result = await mealPlanningService.generate({ ...requestData, userId: resolvedUserId });
 
     return NextResponse.json({
       success: true,

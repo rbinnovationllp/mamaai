@@ -237,7 +237,13 @@ export async function POST(request: Request) {
       dislikes: member.dislikes ?? [],
       mealStrategyPreference: member.mealStrategyPreference ?? "common",
     }));
-    const userId = customerUserIdFromIdentity(identityFor(customer));
+    const authenticated = (() => {
+      try { return requireUser(request).userId; } catch { return undefined; }
+    })();
+    if (!authenticated && !customer.mobile && !customer.email) {
+      return NextResponse.json({ error: { code: "IDENTITY_REQUIRED", message: "Please provide a mobile number or email before saving your family profile." } }, { status: 401 });
+    }
+    const userId = authenticated ?? customerUserIdFromIdentity(identityFor(customer));
     const repository = new CustomerProfileRepository();
 
     const customerRecord = await repository.upsertCustomer({

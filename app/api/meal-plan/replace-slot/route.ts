@@ -6,8 +6,7 @@ import { QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { MealPlanningService } from "@/lib/services/meal-planning-service";
 
 export async function POST(req: Request) {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: { code: "GONE", message: "Use the authenticated meal replacement endpoint." } }, { status: 410 });
 
     const { familyId, mealPlanId, rejectedDish, userPromptOverride, targetSlot = "dinner", language = "hi" } = await req.json();
 
