@@ -21,13 +21,21 @@ export const docClient = DynamoDBDocumentClient.from(client, {
     marshallOptions: { removeUndefinedValues: true },
 });
 
+function getLegacyTableName(variableName: string, productionFallback: string) {
+    const configured = process.env[variableName];
+    if (process.env.VERCEL_ENV === "preview" && !configured) {
+        throw new Error(`${variableName} must be configured in Preview; production fallback tables are disabled.`);
+    }
+    return configured || productionFallback;
+}
+
 export const TABLE_NAMES = {
-    USERS: process.env.DYNAMODB_USERS_TABLE || "mamaai_users",
-    FAMILIES: process.env.DYNAMODB_FAMILIES_TABLE || "mamaai_families",
-    MEAL_PLANS: process.env.DYNAMODB_MEAL_PLANS_TABLE || "mamaai_meal_plans",
-    PANTRY: process.env.DYNAMODB_PANTRY_TABLE || "mamaai_pantry",
-    FEEDBACK: process.env.DYNAMODB_FEEDBACK_TABLE || "mamaai_feedback",
-    ANALYTICS: process.env.DYNAMODB_ANALYTICS_TABLE || "mamaai_analytics",
+    USERS: getLegacyTableName("DYNAMODB_USERS_TABLE", "mamaai_users"),
+    FAMILIES: getLegacyTableName("DYNAMODB_FAMILIES_TABLE", "mamaai_families"),
+    MEAL_PLANS: getLegacyTableName("DYNAMODB_MEAL_PLANS_TABLE", "mamaai_meal_plans"),
+    PANTRY: getLegacyTableName("DYNAMODB_PANTRY_TABLE", "mamaai_pantry"),
+    FEEDBACK: getLegacyTableName("DYNAMODB_FEEDBACK_TABLE", "mamaai_feedback"),
+    ANALYTICS: getLegacyTableName("DYNAMODB_ANALYTICS_TABLE", "mamaai_analytics"),
 };
 
 // Family Repository Implementation
