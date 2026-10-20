@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     const service = new SubscriptionService();
     const repository = new SubscriptionRepository();
     const url = new URL(request.url);
-    const user = requireUser(request);
+    const user = await requireUser(request);
     const userId = user.userId;
     const judgeMode = false;
 
@@ -63,3 +63,5 @@ export async function GET(request: Request) {
     );
   }
 }
+
+

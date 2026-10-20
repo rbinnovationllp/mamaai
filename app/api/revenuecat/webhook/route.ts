@@ -28,3 +28,5 @@ export async function POST(request: Request) {
     message: "RevenueCat webhook contract is ready. Persist entitlement changes after DynamoDB subscription repository is connected."
   });
 }
+
+

@@ -15,7 +15,7 @@ async function hasMealPlanningEntitlement(
   requestData: CreateMealPlanRequest
 ): Promise<{ ok: boolean; userId?: string }> {
   const session = await getSession();
-  const user = requireUser(request);
+  const user = await requireUser(request);
   const resolvedUserId = user.userId;
   if (requestData.userId && requestData.userId !== resolvedUserId) return { ok: false, userId: resolvedUserId };
 
@@ -67,7 +67,7 @@ async function hasMealPlanningEntitlement(
 
 export async function GET(request: Request) {
   try {
-    const user = requireUser(request);
+    const user = await requireUser(request);
     const url = new URL(request.url);
     const familyId = url.searchParams.get("familyId");
     const targetDate = url.searchParams.get("targetDate") || url.searchParams.get("targetWeekStart") || new Date().toISOString().slice(0, 10);
@@ -162,3 +162,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
+

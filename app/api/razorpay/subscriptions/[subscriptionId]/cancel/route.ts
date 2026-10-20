@@ -23,7 +23,7 @@ export async function POST(request: Request, context: RouteContext) {
       );
     }
 
-    const user = requireUser(request, parsed.data.userId);
+    const user = await requireUser(request);
     const owned = await new SubscriptionRepository().getSubscriptionForUserByRazorpaySubscriptionId(user.userId, subscriptionId);
     if (!owned) {
       return NextResponse.json({ error: { code: "FORBIDDEN", message: "This subscription does not belong to the signed-in customer." } }, { status: 403 });
@@ -65,3 +65,5 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 }
+
+

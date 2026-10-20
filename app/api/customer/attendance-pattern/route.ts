@@ -22,7 +22,7 @@ const dayAttendancePlanSchema = z.object({
 
 export async function GET(request: Request) {
   try {
-    const user = requireUser(request);
+    const user = await requireUser(request);
     const customer = await new CustomerProfileRepository().getCustomer(user.userId);
     return NextResponse.json({ regularAttendancePattern: customer?.regularAttendancePattern ?? null });
   } catch (error) {
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const user = requireUser(request);
+    const user = await requireUser(request);
     const body = await request.json();
     const parsed = dayAttendancePlanSchema.safeParse(body?.regularAttendancePattern ?? body);
     if (!parsed.success) {
@@ -93,3 +93,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
+

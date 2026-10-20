@@ -380,6 +380,8 @@ export class WeeklyMealPlanningService {
         if (!safety.ok) throw new Error(`Weekly meal plan failed safety validation: ${safety.errors.join(" ")}`);
 
         const localized = this.aiService.localizeFamilyMealPlan(generated, request.preferredLanguage || request.mealTimeContext?.locale);
+        const localizedSafety = this.safetyValidationService.validateMealPlan(localized, familyContext.members);
+        if (!localizedSafety.ok) throw new Error(`Localized weekly meal plan failed safety validation: ${[...localizedSafety.errors, ...localizedSafety.warnings].join(" ")}`);
         recentMeals.push(localized.commonMeal.name);
         meals.push({
           slotId: createId("weekly-slot"),
@@ -431,6 +433,10 @@ export class WeeklyMealPlanningService {
   async selectSlot(input: { familyId: string; weekStartDate: string; slotId: string; selectedMealPlan: FamilyMealPlan; reason?: string }) {
     const existing = await this.repository.getWeeklyMealPlan(input.familyId, input.weekStartDate);
     if (!existing) throw new Error("Weekly meal plan not found.");
+    const familyContext = await this.getFamilyContextForPlanning({ familyId: input.familyId, userId: existing.userId, planType: "weekly" } as CreateMealPlanRequest);
+    if (!familyContext) throw new Error("Family not found.");
+    const substitutionSafety = this.safetyValidationService.validateMealPlan(input.selectedMealPlan, familyContext.members);
+    if (!substitutionSafety.ok) throw new Error(`Weekly meal substitution failed safety validation: ${[...substitutionSafety.errors, ...substitutionSafety.warnings].join(" ")}`);
     const updatedAt = nowIso();
     const nextDays = existing.days.map((day) => ({
       ...day,
@@ -476,4 +482,5 @@ export class WeeklyMealPlanningService {
     return { weeklyPlan: nextPlan };
   }
 }
+
 

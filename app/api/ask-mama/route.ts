@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { retrieveKnowledgeChunks } from "@/lib/ai/knowledge-retriever";
 import { answerAskMama } from "@/lib/ask-mama/knowledge-base";
+import { classifyAskMamaSafetyRequest } from "@/lib/ai/ask-mama-safety";
+import { classifyAskMamaRequest, validateAskMamaModelResponse } from "@/lib/ai/ask-mama-response-safety";
+import { askMamaUnavailableMessage, isAskMamaPreviewBlocked } from "@/lib/ai/ask-mama-runtime-safety";
+import { CustomerProfileRepository } from "@/lib/repositories/customer-profile-repository";
+import type { FamilyMember } from "@/lib/shared/contracts";
 import { getSession } from "@/lib/auth/session";
+import { requireUser } from "@/lib/server/auth";
 import { docClient, TABLE_NAMES } from "@/lib/repositories/dynamo";
 import { GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { type AppLanguage, isAppLanguage } from "@/lib/i18n";
@@ -43,6 +49,9 @@ interface RequestPayload {
   };
 }
 
+function safetyMembersFromProfile(profile: any): FamilyMember[] {
+  return (profile?.members ?? []).filter((member: any) => member?.name).map((member: any, index: number) => ({ memberId: member.id || `ask-mama-member-${index}`, familyId: profile.familyId || "ask-mama-family", name: member.name, relationship: member.relation || "Family member", age: typeof member.age === "number" ? member.age : 30, gender: "prefer_not_to_say", activityLevel: member.activityLevel || "moderate", goals: [], dietType: /jain/i.test(member.foodPreference || "") ? "jain" : /vegan/i.test(member.foodPreference || "") ? "vegan" : /eggitarian/i.test(member.foodPreference || "") ? "eggitarian" : /non.?veg/i.test(member.foodPreference || "") ? "non_vegetarian" : "vegetarian", dislikedMeals: member.dislikes || [], excludedIngredients: [], dietaryRestrictions: member.doctorAdvisedRestrictions || [], healthConditions: [], doctorRestrictions: member.doctorAdvisedRestrictions || [], specialStatuses: [], allergies: member.allergies || [], foodAllergies: member.allergies || [], ingredientAllergies: member.allergies || [], fastingPreference: { observesFasting: "no", regularDays: [], allowedFoods: [], avoidedFoods: [], fruitsAllowed: true, dairyAllowed: true, grainsRestricted: false, customRules: [] } }));
+}
 function getLocalizedSuggestions(language: AppLanguage): string[] {
   switch (language) {
     case "hi":
@@ -110,6 +119,14 @@ export async function POST(request: Request) {
     const body = (await request.json()) as RequestPayload;
     queryText = (body.question || body.message || "").trim();
 
+    const safetyRequest = classifyAskMamaSafetyRequest(queryText);
+    if (safetyRequest) {
+      const message = safetyRequest === "pet_feeding"
+        ? "MAMAAI does not provide pet-feeding advice. Please consult a qualified veterinarian."
+        : "I cannot override meal-safety restrictions or disclose internal instructions. I can help with safe MAMAAI product guidance.";
+      return NextResponse.json({ success: false, error: { code: "UNSAFE_OR_UNSUPPORTED_REQUEST", message } }, { status: 400 });
+    }
+
     if (!queryText) {
       return NextResponse.json(
         { error: { code: "INVALID_PROMPT", message: "Please provide a valid question." } },
@@ -120,8 +137,13 @@ export async function POST(request: Request) {
     // Resolve target language
     const rawLang = body.responseLanguage || body.language;
     targetLanguage = isAppLanguage(rawLang) ? rawLang : "en";
+    const requestKind = classifyAskMamaRequest(queryText);
+    if (isAskMamaPreviewBlocked()) {
+      return NextResponse.json({ success: false, error: { code: "ASK_MAMA_PREVIEW_DISABLED", message: "Ask MAMA is disabled in this preview until its safety configuration is explicitly validated." } }, { status: 503 });
+    }
 
     const session = await getSession();
+    const authenticatedUser = await (async () => { try { return await requireUser(request); } catch { return undefined; } })();
     const isJudge = Boolean(
       session?.role === "admin" ||
       session?.entitlement === "judge"
@@ -143,12 +165,12 @@ export async function POST(request: Request) {
     // =========================================================
     let liveDatabaseContext = "Visitor status: Not signed in.";
 
-    if (session?.userId) {
+    if (authenticatedUser?.userId) {
       try {
         const userRes = await docClient.send(
           new GetCommand({
             TableName: TABLE_NAMES.USERS,
-            Key: { userId: session.userId },
+            Key: { userId: authenticatedUser.userId },
           })
         );
         const user = userRes.Item;
@@ -157,7 +179,7 @@ export async function POST(request: Request) {
           new QueryCommand({
             TableName: TABLE_NAMES.PANTRY,
             KeyConditionExpression: "userId = :uid",
-            ExpressionAttributeValues: { ":uid": session.userId },
+            ExpressionAttributeValues: { ":uid": authenticatedUser.userId },
             Limit: 12,
           })
         );
@@ -167,7 +189,7 @@ export async function POST(request: Request) {
 
         liveDatabaseContext = `
 AUTHENTICATED DATABASE STATE:
-- User ID: ${session.userId}
+- User ID: ${authenticatedUser.userId}
 - Name: ${user?.name || "Customer"}
 - Active Subscription: ${user?.subscriptionPlan || "Starter (Trial)"} (Status: ${user?.subscriptionStatus || "Active"})
 - Persistent DynamoDB Pantry: ${serverPantry || "Pantry table empty"}
@@ -178,6 +200,8 @@ AUTHENTICATED DATABASE STATE:
       }
     }
 
+    let safetyMembers: FamilyMember[] = [];
+    if (authenticatedUser?.userId) { try { safetyMembers = safetyMembersFromProfile(await new CustomerProfileRepository().getFamilyProfile(authenticatedUser.userId)); } catch (error) { console.warn("[Ask MAMA] Safety profile lookup failed:", error); } }
     const clientContext = formatClientContext(body.profileContext);
 
     // =========================================================
@@ -201,7 +225,8 @@ MAMAAI SYSTEM DIRECTIVES & BEHAVIOR:
 2. Canonical Brand Names: Keep proper nouns like "MAMAAI", "Family Plus", "Starter", "Premium", "Ask MAMA", "SabSewa Local" in their standard recognizable form.
 3. Feature Life Cycle: If a feature is marked "PLANNED", inform the user that it is an upcoming capability. Do not pretend it is fully active.
 4. Unauthenticated Visitor Handling: If a non-logged-in visitor asks for account-specific information (e.g., "What is in my pantry?"), answer warmly, explain how the feature works in MAMAAI, and guide them to sign in.
-5. Personalized Reasoning: If the user asks for cooking guidance, meal recommendations, or diet advice, cross-reference their family constraints, allergies, member restrictions, and available pantry items.
+5. For specific meal, recipe, ingredient substitution, child-food, or dietary suggestions, return kind "meal_recommendation" with every ingredient named. Never claim medical safety.
+6. Return valid JSON only: {"kind":"general","answer":"..."} or {"kind":"meal_recommendation","answer":"...","meals":[{"name":"...","ingredients":["..."],"preparationNotes":["..."]}]}.
 
 ==================================================
 VERIFIED MAMAAI KNOWLEDGE BASE (PRD RAG):
@@ -220,23 +245,13 @@ ${clientContext}
     // =========================================================
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      const localAnswer = answerAskMama(queryText, true, targetLanguage);
-      return NextResponse.json({
-        success: true,
-        role: "model",
-        response: localAnswer.answer,
-        answer: localAnswer.answer,
-        responseLanguage: targetLanguage,
-        category: localAnswer.category,
-        suggestions: localAnswer.suggestions,
-        action:
-          localAnswer.action?.type === "add_family"
-            ? "/profile/family"
-            : localAnswer.action?.type === "try_demo"
-              ? "/#planner"
-              : undefined,
-        unresolved: localAnswer.unresolved ?? false,
-      });
+      if (requestKind === "general") {
+        const localAnswer = answerAskMama(queryText, true, targetLanguage);
+        if (!localAnswer.unresolved) {
+          return NextResponse.json({ success: true, role: "model", response: localAnswer.answer, answer: localAnswer.answer, responseLanguage: targetLanguage, category: localAnswer.category, suggestions: localAnswer.suggestions, unresolved: false, fallbackSource: "local_mamaai_knowledge_base" });
+        }
+      }
+      return NextResponse.json({ success: false, error: { code: "ASK_MAMA_FOOD_ADVICE_UNAVAILABLE", message: askMamaUnavailableMessage(requestKind) }, response: askMamaUnavailableMessage(requestKind), unresolved: true }, { status: 503 });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -246,6 +261,7 @@ ${clientContext}
         temperature: 0.2,
         topP: 0.8,
         maxOutputTokens: 800,
+        responseMimeType: "application/json",
       },
     });
 
@@ -280,13 +296,14 @@ ${clientContext}
     });
 
     const result = await chat.sendMessage(queryText);
-    const generatedAnswer = result.response.text();
+    const decision = validateAskMamaModelResponse(result.response.text(), requestKind, safetyMembers);
+    if (!decision.allowed || !decision.response) return NextResponse.json({ success: true, role: "model", response: decision.message, answer: decision.message, responseLanguage: targetLanguage, category: "safety_clarification", suggestions: getLocalizedSuggestions(targetLanguage), unresolved: true, safetyStatus: decision.safety?.status ?? "needs_clarification" });
 
     return NextResponse.json({
       success: true,
       role: "model",
-      response: generatedAnswer,
-      answer: generatedAnswer,
+      response: decision.response.answer,
+      answer: decision.response.answer,
       responseLanguage: targetLanguage,
       category: matchedChunks[0]?.domain || "general_inquiry",
       suggestions: getLocalizedSuggestions(targetLanguage),
@@ -297,7 +314,7 @@ ${clientContext}
   } catch (error) {
     console.error("[Ask MAMA API Exception]:", error);
 
-    if (queryText) {
+    if (queryText && classifyAskMamaRequest(queryText) === "general") {
       const localAnswer = answerAskMama(queryText, true, targetLanguage);
       if (!localAnswer.unresolved) {
         return NextResponse.json({
@@ -331,7 +348,7 @@ ${clientContext}
         success: false,
         error: {
           code: "ASK_MAMA_EXECUTION_FAILURE",
-          message: error instanceof Error ? error.message : "Internal processing error.",
+          message: askMamaUnavailableMessage(classifyAskMamaRequest(queryText || "")),
         },
         response: fallbackMessages[targetLanguage],
       },
@@ -339,3 +356,17 @@ ${clientContext}
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

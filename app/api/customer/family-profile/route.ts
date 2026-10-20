@@ -3,6 +3,7 @@ import { z } from "zod";
 import { CustomerProfileRepository } from "@/lib/repositories/customer-profile-repository";
 import {
   customerUserIdFromIdentity,
+  createCustomerSession,
   setCustomerSessionCookie,
 } from "@/lib/server/customer-session";
 import { authErrorResponse, requireUser } from "@/lib/server/auth";
@@ -189,7 +190,7 @@ function identityFor(customer: z.infer<typeof familyProfileSchema>["customer"]) 
 
 export async function GET(request: Request) {
   try {
-    const user = requireUser(request);
+    const user = await requireUser(request);
     const repository = new CustomerProfileRepository();
     const familyProfile = await repository.getFamilyProfile(user.userId);
     return NextResponse.json({ familyProfile });
@@ -237,9 +238,8 @@ export async function POST(request: Request) {
       dislikes: member.dislikes ?? [],
       mealStrategyPreference: member.mealStrategyPreference ?? "common",
     }));
-    const authenticated = (() => {
-      try { return requireUser(request).userId; } catch { return undefined; }
-    })();
+    let authenticated: string | undefined;
+    try { authenticated = (await requireUser(request)).userId; } catch { authenticated = undefined; }
     if (!authenticated && !customer.mobile && !customer.email) {
       return NextResponse.json({ error: { code: "IDENTITY_REQUIRED", message: "Please provide a mobile number or email before saving your family profile." } }, { status: 401 });
     }
@@ -291,7 +291,8 @@ export async function POST(request: Request) {
       familyProfile,
       message: "Family profile saved. Continue to subscription.",
     });
-    setCustomerSessionCookie(response, userId);
+    const session = await createCustomerSession(userId);
+    setCustomerSessionCookie(response, session.token, session.expiresAt);
     return response;
   } catch (error) {
     const authResponse = authErrorResponse(error);
@@ -307,3 +308,9 @@ export async function POST(request: Request) {
     );
   }
 }
+
+
+
+
+
+

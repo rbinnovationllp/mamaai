@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   });
 
   try {
-    const user = requireUser(request, parsed.data.userId);
+    const user = await requireUser(request);
     await new FamilyLearningRepository().saveFeedbackEvent({
       feedbackId,
       userId: user.userId,
@@ -67,3 +67,5 @@ export async function POST(request: Request) {
     });
   }
 }
+
+

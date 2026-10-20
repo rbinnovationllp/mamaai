@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
     // Convert legacy aliases to canonical plan types
     const normalizedPlan = normalizePlanTier(parsed.data.plan) as SubscriptionPlan;
-    const user = requireUser(request, parsed.data.userId);
+    const user = await requireUser(request);
 
     const result = await new RazorpayService().createSubscription({
       userId: user.userId,
@@ -74,3 +74,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
+

@@ -18,7 +18,7 @@ export async function POST(request: Request, context: { params: Promise<{ mealPl
       );
     }
 
-    const user = requireUser(request);
+    const user = await requireUser(request);
     const repository = new FamilyMealRepository();
     const existing = await repository.getMealPlan(params.mealPlanId);
     if (!existing) return NextResponse.json({ error: { code: "NOT_FOUND", message: "Meal plan not found." } }, { status: 404 });
@@ -35,3 +35,4 @@ export async function POST(request: Request, context: { params: Promise<{ mealPl
     );
   }
 }
+

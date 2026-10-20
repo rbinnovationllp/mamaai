@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     let resolvedUserId = session?.userId;
 
     try {
-      const user = requireUser(request);
+      const user = await requireUser(request);
       if (resolvedUserId && resolvedUserId !== user.userId) {
         return NextResponse.json({ error: { code: "FORBIDDEN", message: "The requested user does not match the signed-in customer." } }, { status: 403 });
       }
@@ -140,3 +140,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
+

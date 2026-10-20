@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
-    const user = requireUser(request);
+    const user = await requireUser(request);
     const profiles = new CustomerProfileRepository();
     const [customer, familyProfile, subscription] = await Promise.all([
       profiles.getCustomer(user.userId),
@@ -30,3 +30,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ authenticated: false, nextRoute: "/profile/family" });
   }
 }
+
+

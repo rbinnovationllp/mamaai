@@ -54,7 +54,7 @@ function toRepositoryInput(item: z.infer<typeof pantryItemSchema>) {
 
 export async function GET(request: Request) {
   try {
-    const user = requireUser(request);
+    const user = await requireUser(request);
     const repository = new PantryRepository();
     const items = await repository.listForUser(user.userId);
 
@@ -78,7 +78,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const user = requireUser(request);
+    const user = await requireUser(request);
     const body = await request.json();
     const parsed = pantrySaveSchema.safeParse(body);
     if (!parsed.success || (!parsed.data.item && !parsed.data.items?.length)) {
@@ -107,3 +107,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
+

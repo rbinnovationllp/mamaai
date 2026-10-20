@@ -13,7 +13,7 @@ export async function POST(req: Request) {
       planTier: _clientPlanTier,
     } = body;
 
-    const user = requireUser(req);
+    const user = await requireUser(req);
     if (userId && userId !== user.userId) {
       return NextResponse.json({ error: { code: 'FORBIDDEN', message: 'The payment customer does not match the signed-in customer.' } }, { status: 403 });
     }
@@ -55,3 +55,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
+

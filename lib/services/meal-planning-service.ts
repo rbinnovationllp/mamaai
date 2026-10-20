@@ -234,6 +234,8 @@ export class MealPlanningService {
     try {
       const existingPlan = await this.repository.getMealPlan(`${request.familyId}-${targetDate}`);
       if (existingPlan && existingPlan.commonMeal.mealTime === targetSlot) {
+        const existingSafety = this.safetyValidationService.validateMealPlan(existingPlan, familyContext.members);
+        if (!existingSafety.ok) throw new Error(`Existing meal plan failed safety validation: ${[...existingSafety.errors, ...existingSafety.warnings].join(" ")}`);
         return {
           mealPlan: uniqueCustomizationsByMember(this.aiService.localizeFamilyMealPlan(existingPlan, request.preferredLanguage || request.mealTimeContext?.locale)),
           nutritionContexts: this.nutritionContextService.analyze(familyContext.members),
@@ -288,7 +290,7 @@ export class MealPlanningService {
 
       const safety = this.safetyValidationService.validateMealPlan(generatedMealPlan, familyContext.members);
       if (!safety.ok) {
-        console.warn("[MAMAAI Safety Warning]: Plan adjusted for safety rules:", safety.errors);
+        throw new Error(`Meal plan failed safety validation: ${[...safety.errors, ...safety.warnings].join(" ")}`);
       }
     } catch (genErr) {
       console.warn("[MAMAAI Generation Fallback Activated]:", genErr);
@@ -311,12 +313,20 @@ export class MealPlanningService {
       });
     }
 
+    const finalSafety = this.safetyValidationService.validateMealPlan(generatedMealPlan, familyContext.members);
+    if (!finalSafety.ok) {
+      throw new Error(`Meal plan failed safety validation: ${[...finalSafety.errors, ...finalSafety.warnings].join(" ")}`);
+    }
+
     const finalizedMealPlan = uniqueCustomizationsByMember(
       this.aiService.localizeFamilyMealPlan(
         generatedMealPlan,
         request.preferredLanguage || request.mealTimeContext?.locale || "hi"
       )
     );
+
+    const localizedSafety = this.safetyValidationService.validateMealPlan(finalizedMealPlan, familyContext.members);
+    if (!localizedSafety.ok) throw new Error(`Localized meal plan failed safety validation: ${[...localizedSafety.errors, ...localizedSafety.warnings].join(" ")}`);
 
     await this.repository.saveMealPlan(finalizedMealPlan);
     store.mealPlans = store.mealPlans.filter((plan) => plan.mealPlanId !== finalizedMealPlan.mealPlanId);
@@ -363,7 +373,11 @@ export class MealPlanningService {
         .join(" "),
     });
 
+    const replacementSafety = this.safetyValidationService.validateMealPlan(generatedMealPlan, familyContext.members);
+    if (!replacementSafety.ok) throw new Error(`Replacement meal plan failed safety validation: ${[...replacementSafety.errors, ...replacementSafety.warnings].join(" ")}`);
     const localizedPlan = uniqueCustomizationsByMember(this.aiService.localizeFamilyMealPlan(generatedMealPlan, request.preferredLanguage));
+    const localizedReplacementSafety = this.safetyValidationService.validateMealPlan(localizedPlan, familyContext.members);
+    if (!localizedReplacementSafety.ok) throw new Error(`Localized replacement meal plan failed safety validation: ${[...localizedReplacementSafety.errors, ...localizedReplacementSafety.warnings].join(" ")}`);
     const replacementPlan: FamilyMealPlan = {
       ...localizedPlan,
       familyId: existingPlan.familyId,
@@ -378,3 +392,6 @@ export class MealPlanningService {
     return { mealPlan: replacementPlan };
   }
 }
+
+
+

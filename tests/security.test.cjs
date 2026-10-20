@@ -13,7 +13,7 @@ test('authentication has no hard-coded secret fallback', () => {
 });
 test('weekly planning is fail-closed and authenticated', () => {
   const source = read('app/api/weekly-meal-plans/route.ts');
-  assert.match(source, /const user = requireUser\(request\)/);
+  assert.match(source, /const user = await requireUser\(request\)/);
   assert.match(source, /return \{ ok: false, userId: resolvedUserId \}/);
 });
 test('subscription status does not trust query-string identity', () => {
@@ -38,3 +38,5 @@ test('meal persistence is awaited before success', () => {
   assert.match(source, /await this\.repository\.saveMealPlan\(finalizedMealPlan\)/);
   assert.doesNotMatch(source, /saveMealPlan\(finalizedMealPlan\)\.catch/);
 });
+
+
