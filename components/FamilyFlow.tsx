@@ -776,7 +776,7 @@ export function FamilyFlow() {
     setStatus("Meal replaced. Grocery list and estimated cost have been updated.");
   }
 
-  async function saveFeedback(rating: "loved" | "good" | "average" | "dont_suggest_again") {
+  async function saveFeedback(rating: "loved" | "good" | "average" | "dont_suggest_again", problemCategory?: "allergy_or_restriction" | "unsafe_or_inaccurate" | "ingredient_or_recipe" | "other") {
     if (!mealPlan) return;
 
     setError("");
@@ -1712,6 +1712,8 @@ export function FamilyFlow() {
                       Do Not Suggest
                     </button>
                   </div>
+                  <button className="button warn" type="button" onClick={() => saveFeedback("dont_suggest_again", "unsafe_or_inaccurate")}>Report a problem</button>
+                  <p className="notice">Reports are stored for review when you are signed in. Do not include medical records or emergency information.</p>
                   {feedbackSaved ? <p className="notice">Feedback saved for personalization.</p> : null}
                 </section>
 
@@ -1730,3 +1732,4 @@ export function FamilyFlow() {
     </div>
   );
 }
+

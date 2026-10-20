@@ -1,5 +1,4 @@
 // components/Footer.tsx
-import Link from 'next/link';
 
 export function Footer() {
   return (
@@ -31,16 +30,19 @@ export function Footer() {
                 +91 84500 92846
               </a>
             </li>
-            <li><Link href="/help" className="hover:underline">Help & Support Center</Link></li>
+            <li><a href="/help" className="hover:underline">Help & Support Center</a></li>
           </ul>
         </div>
 
         <div>
           <h4 className="font-semibold text-white mb-3">Legal</h4>
           <ul className="space-y-2 text-xs">
-            <li><Link href="/terms" className="hover:underline">Terms & Conditions</Link></li>
-            <li><Link href="/privacy" className="hover:underline">Privacy Policy</Link></li>
-            <li><Link href="/disclaimer" className="hover:underline">Health & Food Disclaimer</Link></li>
+            <li><a href="/terms" className="hover:underline">Terms & Conditions</a></li>
+            <li><a href="/privacy" className="hover:underline">Privacy Policy</a></li>
+            <li><a href="/disclaimer" className="hover:underline">Food and Health Disclaimer</a></li>
+            <li><a href="/refund-policy" className="hover:underline">Refund and Cancellation</a></li>
+            <li><a href="/account/export" className="hover:underline">Data Export Request</a></li>
+            <li><a href="/account/delete" className="hover:underline">Account Deletion Request</a></li>
           </ul>
         </div>
 
@@ -54,3 +56,5 @@ export function Footer() {
     </footer>
   );
 }
+
+

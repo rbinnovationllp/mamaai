@@ -25,8 +25,7 @@ export default function HomePage() {
       <header className="sticky top-0 z-40 border-b border-amber-100/80 bg-[#fff8ee]/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <Link href="/" className="text-2xl font-black tracking-tight">
-            <span className="text-orange-600">Mama</span>
-            <span className="text-emerald-800">AI</span>
+            <span className="text-emerald-800">MAMAAI</span>
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-bold text-stone-600 md:flex">
             <a href="#how">{t.navHow}</a>
@@ -34,7 +33,7 @@ export default function HomePage() {
             <Link href="/pantry">{t.navPantry}</Link>
             <Link href="/more">{t.navSubscription}</Link>
           </nav>
-          <LanguageSelector />
+          <LanguageSelector compact />
           <button
             type="button"
             onClick={handlePlanMyFamilyMeals}
@@ -158,6 +157,7 @@ export default function HomePage() {
                 <p className="mt-3 text-2xl font-black text-emerald-800">{price}</p>
                 <p className="mt-2 text-sm font-bold text-stone-700">{limit}</p>
                 <p className="mt-4 text-sm leading-6 text-stone-600">{body}</p>
+                <a href={`/subscription?plan=${["starter", "premium", "family_plus"][index]}`} className="mt-5 inline-flex rounded-full bg-emerald-800 px-4 py-2 text-sm font-black text-white focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2">Choose {name}</a>
               </article>
             ))}
           </div>
@@ -169,14 +169,6 @@ export default function HomePage() {
           <div>
             <p className="text-sm font-black uppercase tracking-[0.18em] text-amber-200">{t.footerEyebrow}</p>
             <h2 className="mt-2 text-3xl font-black">{t.footerTitle}</h2>
-            <a
-              href="https://www.sabsewa.in"
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 inline-flex text-sm font-bold text-emerald-100 underline decoration-emerald-300/60 underline-offset-4"
-            >
-              {t.footerPartner}
-            </a>
           </div>
           <button
             type="button"
@@ -187,21 +179,10 @@ export default function HomePage() {
           </button>
         </div>
       </section>
-
-      <button
-        type="button"
-        onClick={() => setAskOpen((current) => !current)}
-        className="fixed bottom-5 right-5 z-50 rounded-full bg-emerald-800 px-5 py-3 text-sm font-black text-white shadow-2xl shadow-emerald-950/30 transition hover:bg-emerald-900"
-        aria-expanded={askOpen}
-      >
-        {t.ask}
-      </button>
-
-      {askOpen ? (
-        <div className="fixed bottom-20 right-4 z-50 max-h-[calc(100vh-6rem)] w-[calc(100vw-2rem)] max-w-md overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-2xl">
-          <AskMamaWidget compact />
-        </div>
-      ) : null}
     </main>
   );
 }
+
+
+
+

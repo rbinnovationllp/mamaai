@@ -656,7 +656,8 @@ export const feedbackRequestSchema = z.object({
   mealTime: z.string().optional(),
   outcome: z.enum(["cooked", "liked", "rejected"]).optional(),
   rating: z.enum(["loved", "good", "average", "dont_suggest_again"]),
-  notes: z.string().optional(),
+  problemCategory: z.enum(["allergy_or_restriction", "unsafe_or_inaccurate", "ingredient_or_recipe", "other"]).optional(),
+  notes: z.string().trim().max(1000).optional(),
 });
 
 // ==========================================
@@ -725,3 +726,4 @@ export type CreateRazorpaySubscription = z.infer<typeof createRazorpaySubscripti
 export type VerifyRazorpayPayment = z.infer<typeof verifyRazorpayPaymentSchema>;
 export type RecipeVideoSearchRequest = z.infer<typeof recipeVideoSearchRequestSchema>;
 export type RevenueCatWebhook = z.infer<typeof revenueCatWebhookSchema>;
+

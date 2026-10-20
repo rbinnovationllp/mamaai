@@ -13,6 +13,8 @@ export interface FamilyLearningEventInput {
   rating: "loved" | "good" | "average" | "dont_suggest_again";
   outcome?: FamilyLearningOutcome;
   notes?: string;
+  problemCategory?: "allergy_or_restriction" | "unsafe_or_inaccurate" | "ingredient_or_recipe" | "other";
+  reviewStatus?: "new";
   createdAt: string;
 }
 
@@ -34,3 +36,4 @@ export class FamilyLearningRepository {
     );
   }
 }
+

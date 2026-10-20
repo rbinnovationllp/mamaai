@@ -9,6 +9,7 @@ import { CustomerProfileRepository } from "@/lib/repositories/customer-profile-r
 import type { FamilyMember } from "@/lib/shared/contracts";
 import { getSession } from "@/lib/auth/session";
 import { requireUser } from "@/lib/server/auth";
+import { configuredPositiveInt, enforceDurableRateLimit, RateLimitExceededError, RateLimitStorageError, requestIpAddress } from "@/lib/server/durable-rate-limit";
 import { docClient, TABLE_NAMES } from "@/lib/repositories/dynamo";
 import { GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { type AppLanguage, isAppLanguage } from "@/lib/i18n";
@@ -127,6 +128,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: { code: "UNSAFE_OR_UNSUPPORTED_REQUEST", message } }, { status: 400 });
     }
 
+    try {
+      await enforceDurableRateLimit({ scope: "ask_mama_ip", key: requestIpAddress(request), limit: configuredPositiveInt(process.env.MAMA_AI_ASK_MAMA_IP_LIMIT, 20), windowSeconds: 60 });
+    } catch (error) {
+      if (error instanceof RateLimitExceededError) return NextResponse.json({ error: { code: "RATE_LIMITED", message: "Please wait before sending another Ask MAMA request." } }, { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } });
+      if (error instanceof RateLimitStorageError) return NextResponse.json({ error: { code: "REQUEST_LIMIT_UNAVAILABLE", message: "Ask MAMA is temporarily unavailable. Please try again later." } }, { status: 503 });
+      throw error;
+    }
     if (!queryText) {
       return NextResponse.json(
         { error: { code: "INVALID_PROMPT", message: "Please provide a valid question." } },
@@ -144,6 +152,15 @@ export async function POST(request: Request) {
 
     const session = await getSession();
     const authenticatedUser = await (async () => { try { return await requireUser(request); } catch { return undefined; } })();
+    if (authenticatedUser?.userId) {
+      try {
+        await enforceDurableRateLimit({ scope: "ask_mama_user", key: authenticatedUser.userId, limit: configuredPositiveInt(process.env.MAMA_AI_ASK_MAMA_USER_LIMIT, 10), windowSeconds: 60 });
+      } catch (error) {
+        if (error instanceof RateLimitExceededError) return NextResponse.json({ error: { code: "RATE_LIMITED", message: "Your Ask MAMA request limit has been reached. Please try again shortly." } }, { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } });
+        if (error instanceof RateLimitStorageError) return NextResponse.json({ error: { code: "REQUEST_LIMIT_UNAVAILABLE", message: "Ask MAMA is temporarily unavailable. Please try again later." } }, { status: 503 });
+        throw error;
+      }
+    }
     const isJudge = Boolean(
       session?.role === "admin" ||
       session?.entitlement === "judge"
@@ -356,6 +373,7 @@ ${clientContext}
     );
   }
 }
+
 
 
 

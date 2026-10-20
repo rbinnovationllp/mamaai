@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLanguage } from './LanguageProvider';
 
@@ -27,13 +26,14 @@ export function MobilePrimaryNav() {
         {items.map((item) => {
           const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
           return (
-            <Link key={item.key} href={item.href} aria-current={active ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-center text-[10px] font-bold leading-tight ${active ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600'}`}>
+            <a key={item.key} href={item.href} aria-current={active ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-center text-[10px] font-bold leading-tight ${active ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600'}`}>
               <span aria-hidden="true" className="text-base leading-none">{item.icon}</span>
               <span>{labels[item.key]}</span>
-            </Link>
+            </a>
           );
         })}
       </div>
     </nav>
   );
 }
+

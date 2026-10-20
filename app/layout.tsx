@@ -3,10 +3,11 @@ import { Analytics } from "@vercel/analytics/next";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { MobilePrimaryNav } from "@/components/MobilePrimaryNav";
 import { AskMamaLauncher } from "@/components/ask-mama/AskMamaLauncher";
+import { Footer } from "@/components/Footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MAMA AI",
+  title: "MAMAAI",
   description: "One Family. Different Needs. One Intelligent Meal Plan.",
   manifest: "/manifest.webmanifest",
   applicationName: "MAMAAI",
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="pb-20 md:pb-0">
         <LanguageProvider>
           {children}
+          <Footer />
           <AskMamaLauncher />
           <MobilePrimaryNav />
         </LanguageProvider>
@@ -42,3 +44,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     </html>
   );
 }
+
+
+

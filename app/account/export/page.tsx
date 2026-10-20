@@ -1,0 +1,2 @@
+import { LegalDocument } from "@/components/LegalDocument";
+export default function AccountExportPage(){return <LegalDocument title="Account Data Export Request" updated="20 October 2026"><p>Self-service export is not enabled because the complete production data inventory and secure delivery procedure are still awaiting approval. This page does not export data.</p><p>To request an export, contact support from the email or phone associated with the account. The operator must verify identity and agree a secure delivery method before any data is disclosed.</p></LegalDocument>}

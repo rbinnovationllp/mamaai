@@ -1,0 +1,4 @@
+import { NextResponse } from "next/server";
+import { SafetyReportRepository, type SafetyReportStatus } from "@/lib/repositories/safety-report-repository";
+import { adminErrorResponse, requireSafetyReviewer } from "@/lib/server/admin";
+export async function GET(request: Request) { try { requireSafetyReviewer(request); const status = new URL(request.url).searchParams.get("status"); if (!["pending", "in_review", "resolved"].includes(status || "")) return NextResponse.json({ error: { code: "STATUS_REQUIRED", message: "A safety-report status is required." } }, { status: 400 }); const reports = await new SafetyReportRepository().list(status as SafetyReportStatus); return NextResponse.json({ reports: reports.map(({ userId: _userId, ...report }) => report) }); } catch (error) { return adminErrorResponse(error) ?? NextResponse.json({ error: { code: "SAFETY_REPORT_LIST_FAILED", message: "Safety reports could not be loaded." } }, { status: 503 }); } }

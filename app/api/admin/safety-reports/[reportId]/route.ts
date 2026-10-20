@@ -1,0 +1,6 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { SafetyReportRepository, type SafetyReportStatus } from "@/lib/repositories/safety-report-repository";
+import { adminErrorResponse, requireSafetyReviewer } from "@/lib/server/admin";
+const schema = z.object({ status: z.enum(["pending", "in_review", "resolved"]) });
+export async function PATCH(request: Request, { params }: { params: Promise<{ reportId: string }> }) { try { const actor = requireSafetyReviewer(request); const parsed = schema.safeParse(await request.json()); if (!parsed.success) return NextResponse.json({ error: { code: "VALIDATION_ERROR", message: "A valid review status is required." } }, { status: 400 }); const { reportId } = await params; const report = await new SafetyReportRepository().transition(reportId, parsed.data.status as SafetyReportStatus, actor.actorId); if (!report) return NextResponse.json({ error: { code: "NOT_FOUND", message: "Safety report not found." } }, { status: 404 }); const { userId: _userId, ...safeReport } = report; return NextResponse.json({ report: safeReport }); } catch (error) { return adminErrorResponse(error) ?? NextResponse.json({ error: { code: "SAFETY_REPORT_UPDATE_FAILED", message: "Safety report could not be updated." } }, { status: 503 }); } }

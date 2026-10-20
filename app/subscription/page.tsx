@@ -15,6 +15,9 @@ type HouseholdMember = {
   relation: string;
 };
 
+type PlanTier = 'starter' | 'premium' | 'family_plus';
+
+
 const subscriptionCopy = {
   en: {
     trial: 'Free Trial Active - 3 Days Remaining',
@@ -232,6 +235,14 @@ export default function SubscriptionPage() {
   const [customerEmail, setCustomerEmail] = useState('');
   const [checkoutStatus, setCheckoutStatus] = useState('');
   const [checkingEntitlement, setCheckingEntitlement] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<PlanTier | null>(null);
+
+  useEffect(() => {
+    const requestedPlan = new URLSearchParams(window.location.search).get('plan');
+    if (requestedPlan === 'starter' || requestedPlan === 'premium' || requestedPlan === 'family_plus') {
+      setSelectedPlan(requestedPlan);
+    }
+  }, []);
 
   useEffect(() => {
     try {
@@ -666,6 +677,7 @@ export default function SubscriptionPage() {
             buttonText={checkingEntitlement || loadingPlan === 'starter' ? t.processing : t.starterButton}
             disabled={checkingEntitlement || loadingPlan === 'starter'}
             onClick={() => handleSubscribe('starter')}
+            selected={selectedPlan === 'starter'}
           />
 
           <PlanCard
@@ -679,6 +691,7 @@ export default function SubscriptionPage() {
             onClick={() => handleSubscribe('premium')}
             highlighted
             badge={t.popular}
+            selected={selectedPlan === 'premium'}
           />
 
           <PlanCard
@@ -690,6 +703,7 @@ export default function SubscriptionPage() {
             buttonText={checkingEntitlement || loadingPlan === 'family_plus' ? t.processing : t.plusButton}
             disabled={checkingEntitlement || loadingPlan === 'family_plus'}
             onClick={() => handleSubscribe('family_plus')}
+            selected={selectedPlan === 'family_plus'}
           />
         </div>
       </div>
@@ -762,6 +776,7 @@ function PlanCard({
   onClick,
   highlighted = false,
   badge,
+  selected = false,
 }: {
   title: string;
   price: string;
@@ -773,12 +788,19 @@ function PlanCard({
   onClick: () => void;
   highlighted?: boolean;
   badge?: string;
+  selected?: boolean;
 }) {
   return (
     <div
       className={`relative flex flex-col justify-between rounded-2xl bg-white p-6 shadow-sm transition hover:shadow ${highlighted ? 'border-2 border-emerald-500 shadow-md' : 'border'
         }`}
     >
+      {selected ? (
+        <p className="mb-3 inline-flex w-fit rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-900" role="status">
+          Selected plan: {title}
+        </p>
+      ) : null}
+
       {badge ? (
         <span className="absolute -top-3 right-4 rounded-full bg-emerald-600 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
           {badge}

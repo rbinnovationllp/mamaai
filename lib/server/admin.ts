@@ -49,3 +49,12 @@ export function adminErrorResponse(error: unknown) {
   }
   return undefined;
 }
+
+export function requireSafetyReviewer(request: Request): AdminActor {
+  const actor = requireAdmin(request);
+  const configuredReviewers = process.env.MAMA_AI_SAFETY_REVIEWER_IDS?.split(",").map((value) => value.trim()).filter(Boolean) ?? [];
+  if (configuredReviewers.length === 0 || !configuredReviewers.includes(actor.actorId)) {
+    throw new AdminAuthError("Safety-review access is not configured for this actor.");
+  }
+  return actor;
+}
