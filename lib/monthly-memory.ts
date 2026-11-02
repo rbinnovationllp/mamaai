@@ -1,12 +1,10 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-
-const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.AWS_REGION || 'ap-south-1' }));
+import { QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { getMamaAiTableName, mamaAiDynamoDb as docClient } from '@/lib/repositories/dynamodb-client';
 
 export async function consolidateMonthlyMemory(userId: string, yearMonth: string) {
   // 1. Query short-term meal records for the calendar month
   const logsRes = await docClient.send(new QueryCommand({
-    TableName: process.env.MAMA_AI_TABLE_NAME || 'MAMA_AI_APP',
+    TableName: getMamaAiTableName(),
     KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
     ExpressionAttributeValues: {
       ':pk': `USER#${userId}`,
@@ -28,7 +26,7 @@ export async function consolidateMonthlyMemory(userId: string, yearMonth: string
 
   // 2. Compress insights into long-term memory record (MAMA_AI_USERS)
   await docClient.send(new UpdateCommand({
-    TableName: process.env.MAMA_AI_TABLE_NAME || 'MAMA_AI_APP',
+    TableName: getMamaAiTableName(),
     Key: { PK: `USER#${userId}`, SK: 'MEMORY' },
     UpdateExpression: 'ADD favoriteMeals :favs, dislikes :dislikes SET lastConsolidated = :now',
     ExpressionAttributeValues: {

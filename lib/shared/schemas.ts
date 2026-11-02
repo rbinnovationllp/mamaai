@@ -667,7 +667,6 @@ export const feedbackRequestSchema = z.object({
 export const subscriptionPlanRequestSchema = z.object({
   planTier: planTierSchema,
   billingMarket: z.enum(["IN", "INT"]).default("IN"),
-  judgeBypassKey: z.string().optional(),
 });
 
 export const createRazorpaySubscriptionSchema = z.object({
@@ -726,4 +725,3 @@ export type CreateRazorpaySubscription = z.infer<typeof createRazorpaySubscripti
 export type VerifyRazorpayPayment = z.infer<typeof verifyRazorpayPaymentSchema>;
 export type RecipeVideoSearchRequest = z.infer<typeof recipeVideoSearchRequestSchema>;
 export type RevenueCatWebhook = z.infer<typeof revenueCatWebhookSchema>;
-

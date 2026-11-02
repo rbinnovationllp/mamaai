@@ -4,6 +4,7 @@ import { CustomerProfileRepository } from "@/lib/repositories/customer-profile-r
 import type { Family, FamilyMember } from "@/lib/shared/contracts";
 import type { CreateFamilyRequest } from "@/lib/shared/schemas";
 import { SubscriptionService } from "./subscription-service";
+import { isIsolatedDynamoRuntime } from "@/lib/server/dynamodb-configuration";
 
 export class FamilyService {
   private readonly subscriptionService = new SubscriptionService();
@@ -56,7 +57,7 @@ export class FamilyService {
     try {
       await this.repository.saveFamilyContext({ family, members });
     } catch (error) {
-      if (process.env.NODE_ENV === "production") throw error;
+      if (process.env.NODE_ENV === "production" || isIsolatedDynamoRuntime()) throw error;
       console.warn("Family DynamoDB save failed; using in-memory fallback:", error);
     }
 
@@ -68,7 +69,7 @@ export class FamilyService {
       const persisted = await this.repository.getFamilyContext(familyId);
       if (persisted) return persisted;
     } catch (error) {
-      if (process.env.NODE_ENV === "production") throw error;
+      if (process.env.NODE_ENV === "production" || isIsolatedDynamoRuntime()) throw error;
       console.warn("Family DynamoDB read failed; using in-memory fallback:", error);
     }
 

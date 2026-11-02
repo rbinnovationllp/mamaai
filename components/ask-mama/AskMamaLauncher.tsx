@@ -14,10 +14,11 @@ export function AskMamaLauncher() {
   const label = language === 'hi' ? 'MAMA से पूछें' : language === 'kn' ? 'MAMA ಬಳಿ ಕೇಳಿ' : 'Ask MAMA';
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-expanded={open} className="fixed bottom-24 right-4 z-40 min-h-12 rounded-full bg-emerald-800 px-5 text-sm font-black text-white shadow-lg ring-2 ring-white transition hover:bg-emerald-900 md:bottom-6 md:right-6">
+      <button type="button" onClick={() => setOpen(true)} aria-label="Open Ask MAMA assistant" aria-haspopup="dialog" aria-expanded={open} className="fixed bottom-28 right-4 z-[60] min-h-12 rounded-full bg-emerald-800 px-5 text-sm font-black text-white shadow-lg ring-2 ring-white transition hover:bg-emerald-900 md:bottom-6 md:right-6">
         {label}
       </button>
       <AskMamaModal isOpen={open} onClose={() => setOpen(false)} />
     </>
   );
 }
+

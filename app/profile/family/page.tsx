@@ -787,7 +787,7 @@ export default function FamilyProfilePage() {
   }[language];
 
   useEffect(() => {
-    try {
+    const frame = window.requestAnimationFrame(() => { try {
       const saved = window.localStorage.getItem(HOUSEHOLD_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -848,7 +848,8 @@ export default function FamilyProfilePage() {
       }
     } catch {
       setMembers([]);
-    }
+    } });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {

@@ -58,7 +58,7 @@ export default function CultureProfilePage() {
   const [cuisinesInput, setCuisinesInput] = useState('Indian, British');
 
   useEffect(() => {
-    try {
+    const frame = window.requestAnimationFrame(() => { try {
       const saved = window.localStorage.getItem('mamaai_culture_profile_v1');
       if (!saved) return;
       const profile = JSON.parse(saved);
@@ -69,7 +69,8 @@ export default function CultureProfilePage() {
       setCuisinesInput(Array.isArray(profile.preferredCuisines) ? profile.preferredCuisines.join(', ') : 'Indian, British');
     } catch {
       // Keep defaults if saved culture profile is unavailable.
-    }
+    } });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   const handleSave = async () => {

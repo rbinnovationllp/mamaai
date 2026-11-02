@@ -32,17 +32,15 @@ export function DailySchedulePrompt({ savedTimings, familyMembers, onGeneratePla
     const [attendance, setAttendance] = useState<Record<string, "home" | "tiffin" | "eating_out" | "fasting">>({});
 
     useEffect(() => {
-        // Resolve using browser local clock
-        const resolved = resolveNextMealSlot(savedTimings, new Date());
-        setNextSlot(resolved);
-        setActiveTiming(resolved.scheduledTime);
-
-        // Default: all members eating at home
-        const initialAttendance: Record<string, "home" | "tiffin" | "eating_out" | "fasting"> = {};
-        familyMembers.forEach((m) => {
-            initialAttendance[m.memberId] = "home";
+        const frame = window.requestAnimationFrame(() => {
+            const resolved = resolveNextMealSlot(savedTimings, new Date());
+            setNextSlot(resolved);
+            setActiveTiming(resolved.scheduledTime);
+            const initialAttendance: Record<string, "home" | "tiffin" | "eating_out" | "fasting"> = {};
+            familyMembers.forEach((m) => { initialAttendance[m.memberId] = "home"; });
+            setAttendance(initialAttendance);
         });
-        setAttendance(initialAttendance);
+        return () => window.cancelAnimationFrame(frame);
     }, [savedTimings, familyMembers]);
 
     const handleQuickPlan = () => {

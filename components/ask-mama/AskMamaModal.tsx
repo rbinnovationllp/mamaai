@@ -53,12 +53,15 @@ export function AskMamaModal({ isOpen, onClose }: Props) {
 
     useEffect(() => {
         if (!isOpen) return;
-        try {
-            const members = JSON.parse(window.localStorage.getItem('mamaai_household_members_v1') || '[]');
-            const customer = JSON.parse(window.localStorage.getItem('mamaai_customer_account_v1') || '{}');
-            const pantryItems = JSON.parse(window.localStorage.getItem('mamaai_pantry_items_v1') || '[]');
-            setProfileContext({ ...customer, members: Array.isArray(members) ? members : [], pantryItems: Array.isArray(pantryItems) ? pantryItems.slice(0, 20) : [] });
-        } catch { setProfileContext(null); }
+        const frame = window.requestAnimationFrame(() => {
+            try {
+                const members = JSON.parse(window.localStorage.getItem('mamaai_household_members_v1') || '[]');
+                const customer = JSON.parse(window.localStorage.getItem('mamaai_customer_account_v1') || '{}');
+                const pantryItems = JSON.parse(window.localStorage.getItem('mamaai_pantry_items_v1') || '[]');
+                setProfileContext({ ...customer, members: Array.isArray(members) ? members : [], pantryItems: Array.isArray(pantryItems) ? pantryItems.slice(0, 20) : [] });
+            } catch { setProfileContext(null); }
+        });
+        return () => window.cancelAnimationFrame(frame);
     }, [isOpen]);
 
     useEffect(() => {

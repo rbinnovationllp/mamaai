@@ -14,11 +14,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<AppLanguage>(defaultLanguage);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("mamaai_language");
-    if (isAppLanguage(saved)) {
-      setLanguageState(saved);
-      document.documentElement.lang = supportedLanguages[saved].htmlLang;
-    }
+    const frame = window.requestAnimationFrame(() => {
+      const saved = window.localStorage.getItem("mamaai_language");
+      if (isAppLanguage(saved)) {
+        setLanguageState(saved);
+        document.documentElement.lang = supportedLanguages[saved].htmlLang;
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   const value = useMemo<LanguageContextValue>(

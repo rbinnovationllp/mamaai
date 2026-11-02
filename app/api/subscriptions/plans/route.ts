@@ -10,19 +10,9 @@ function normalizeRazorpayPlanId(value?: string) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { planTier, billingMarket, judgeBypassKey } = body;
+    const { planTier, billingMarket } = body;
 
-    // 1. Check for Judge Test Bypass Key
-    if (judgeBypassKey && judgeBypassKey === process.env.JUDGE_TEST_KEY) {
-      return NextResponse.json({
-        success: true,
-        isJudgeBypass: true,
-        planTier: planTier || "family_plus",
-        message: "Judge Test Mode active. Subscription features unlocked.",
-      });
-    }
-
-    // 2. Validate input plan tiers
+    // Validate input plan tiers
     if (!planTier || !["starter", "premium", "family_plus"].includes(planTier)) {
       return NextResponse.json(
         { error: { code: "INVALID_PLAN", message: "Invalid subscription plan tier requested." } },
@@ -88,5 +78,3 @@ export async function POST(request: Request) {
     );
   }
 }
-
-

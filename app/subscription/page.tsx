@@ -20,7 +20,7 @@ type PlanTier = 'starter' | 'premium' | 'family_plus';
 
 const subscriptionCopy = {
   en: {
-    trial: 'Free Trial Active - 3 Days Remaining',
+    trial: 'Trial eligibility is confirmed after sign-in',
     india: 'India (INR)',
     international: 'International (USD)',
     judgeAccess: 'Judge / Evaluator Access',
@@ -47,7 +47,7 @@ const subscriptionCopy = {
     suggested: 'Suggested plan',
     starterSupport: 'Supports up to 4 human family members.',
     premiumSupport: 'Supports up to 6 human family members.',
-    plusSupport: 'Family Plus adds extended four-paw member meal planning.',
+    plusSupport: 'Family Plus pet-planning availability is pending a separately validated module.',
     starterButton: 'Subscribe to Family Starter',
     premiumButton: 'Subscribe to Family Premium',
     plusButton: 'Upgrade to Family Plus',
@@ -69,9 +69,8 @@ const subscriptionCopy = {
     ],
     plusFeatures: [
       'Everything in Premium Subscription',
-      'Extended four-paw member profiles',
-      'Separate pet-appropriate meal planning',
-      'Pet food shopping and feeding reminders',
+      'Pet-planning module: not currently available',
+      'Pet food shopping and feeding reminders are not currently available',
       'Combined household food budget',
     ],
     judgeTitle: 'Hackathon Evaluator / Judge Access',
@@ -84,7 +83,7 @@ const subscriptionCopy = {
     activeRedirecting: 'Active subscription found. Opening Meal Planner...',
   },
   hi: {
-    trial: 'Free Trial Active - 3 दिन बाकी',
+    trial: 'Trial eligibility sign-in के बाद confirm होती है',
     india: 'India (INR)',
     international: 'International (USD)',
     judgeAccess: 'Judge / Evaluator Access',
@@ -111,7 +110,7 @@ const subscriptionCopy = {
     suggested: 'Suggested plan',
     starterSupport: '4 human family members तक support.',
     premiumSupport: '6 human family members तक support.',
-    plusSupport: 'Family Plus में extended four-paw member meal planning शामिल है.',
+    plusSupport: 'Family Plus pet-planning सुविधा अलग validated module आने तक उपलब्ध नहीं है.',
     starterButton: 'Family Starter Subscribe करें',
     premiumButton: 'Family Premium Subscribe करें',
     plusButton: 'Family Plus Upgrade करें',
@@ -133,9 +132,8 @@ const subscriptionCopy = {
     ],
     plusFeatures: [
       'Premium की सारी सुविधाएं',
-      'Extended four-paw member profiles',
-      'Separate pet-appropriate meal planning',
-      'Pet food shopping और feeding reminders',
+      'Pet-planning module अभी उपलब्ध नहीं है',
+      'Pet food shopping और feeding reminders अभी उपलब्ध नहीं हैं',
       'Combined household food budget',
     ],
     judgeTitle: 'Hackathon Evaluator / Judge Access',
@@ -148,7 +146,7 @@ const subscriptionCopy = {
     activeRedirecting: 'Active subscription मिल गया है। Meal Planner खोला जा रहा है...',
   },
   kn: {
-    trial: 'Free Trial Active - 3 ದಿನ ಬಾಕಿ',
+    trial: 'Trial eligibility sign-in ನಂತರ confirm ಆಗುತ್ತದೆ',
     india: 'India (INR)',
     international: 'International (USD)',
     judgeAccess: 'Judge / Evaluator Access',
@@ -175,7 +173,7 @@ const subscriptionCopy = {
     suggested: 'Suggested plan',
     starterSupport: '4 human family members ವರೆಗೆ support.',
     premiumSupport: '6 human family members ವರೆಗೆ support.',
-    plusSupport: 'Family Plus ನಲ್ಲಿ extended four-paw member meal planning ಸೇರಿದೆ.',
+    plusSupport: 'Family Plus pet-planning सुविधा ಪ್ರತ್ಯೇಕ validated module ಬರುವವರೆಗೆ ಲಭ್ಯವಿಲ್ಲ.',
     starterButton: 'Family Starter Subscribe ಮಾಡಿ',
     premiumButton: 'Family Premium Subscribe ಮಾಡಿ',
     plusButton: 'Family Plus Upgrade ಮಾಡಿ',
@@ -197,9 +195,8 @@ const subscriptionCopy = {
     ],
     plusFeatures: [
       'Premium ನಲ್ಲಿರುವ ಎಲ್ಲವೂ',
-      'Extended four-paw member profiles',
-      'Separate pet-appropriate meal planning',
-      'Pet food shopping ಮತ್ತು feeding reminders',
+      'Pet-planning module ಈಗ ಲಭ್ಯವಿಲ್ಲ',
+      'Pet food shopping ಮತ್ತು feeding reminders ಈಗ ಲಭ್ಯವಿಲ್ಲ',
       'Combined household food budget',
     ],
     judgeTitle: 'Hackathon Evaluator / Judge Access',
@@ -224,10 +221,6 @@ export default function SubscriptionPage() {
   const t = subscriptionCopy[language] ?? subscriptionCopy.en;
   const [billingMarket, setBillingMarket] = useState<'IN' | 'INT'>('IN');
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [showJudgeModal, setShowJudgeModal] = useState(false);
-  const [judgeKeyInput, setJudgeKeyInput] = useState('');
-  const [judgePlanSelection, setJudgePlanSelection] = useState('family_plus');
-  const [judgeStatusMsg, setJudgeStatusMsg] = useState('');
   const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([]);
   const [customerUserId, setCustomerUserId] = useState('');
   const [customerName, setCustomerName] = useState('');
@@ -238,14 +231,15 @@ export default function SubscriptionPage() {
   const [selectedPlan, setSelectedPlan] = useState<PlanTier | null>(null);
 
   useEffect(() => {
-    const requestedPlan = new URLSearchParams(window.location.search).get('plan');
-    if (requestedPlan === 'starter' || requestedPlan === 'premium' || requestedPlan === 'family_plus') {
-      setSelectedPlan(requestedPlan);
-    }
+    const frame = window.requestAnimationFrame(() => {
+      const requestedPlan = new URLSearchParams(window.location.search).get('plan');
+      if (requestedPlan === 'starter' || requestedPlan === 'premium' || requestedPlan === 'family_plus') setSelectedPlan(requestedPlan);
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
-    try {
+    const frame = window.requestAnimationFrame(() => { try {
       const saved = window.localStorage.getItem(HOUSEHOLD_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -272,7 +266,8 @@ export default function SubscriptionPage() {
       }
     } catch {
       setHouseholdMembers([]);
-    }
+    } });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
@@ -489,35 +484,6 @@ export default function SubscriptionPage() {
     }
   };
 
-  const handleJudgeBypass = async () => {
-    try {
-      setJudgeStatusMsg('Verifying bypass key...');
-      const res = await fetch('/api/subscriptions/plans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          planTier: judgePlanSelection,
-          judgeBypassKey: judgeKeyInput,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.isJudgeBypass) {
-        setJudgeStatusMsg('Key verified. Activating test subscription...');
-        setTimeout(() => {
-          alert(`Judge Test Mode Activated! Features unlocked for [${judgePlanSelection.toUpperCase()}].`);
-          setShowJudgeModal(false);
-          window.location.href = '/planner?judge=success';
-        }, 1000);
-      } else {
-        setJudgeStatusMsg('Invalid Judge Access Key.');
-      }
-    } catch {
-      setJudgeStatusMsg('Server error verifying key.');
-    }
-  };
-
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-10 font-sans sm:px-6 lg:px-8">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
@@ -558,13 +524,6 @@ export default function SubscriptionPage() {
               </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowJudgeModal(true)}
-              className="px-2 py-1 text-xs font-medium text-slate-500 underline hover:text-emerald-600"
-            >
-              {t.judgeAccess}
-            </button>
           </div>
         </div>
 
@@ -708,59 +667,6 @@ export default function SubscriptionPage() {
         </div>
       </div>
 
-      {showJudgeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-2xl">
-            <h3 className="mb-2 text-lg font-bold text-gray-900">{t.judgeTitle}</h3>
-            <p className="mb-4 text-xs text-gray-600">{t.judgeText}</p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-gray-700">{t.passkey}</label>
-                <input
-                  type="password"
-                  placeholder="Enter JUDGE_TEST_KEY"
-                  value={judgeKeyInput}
-                  onChange={(event) => setJudgeKeyInput(event.target.value)}
-                  className="w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-gray-700">{t.targetTier}</label>
-                <select
-                  value={judgePlanSelection}
-                  onChange={(event) => setJudgePlanSelection(event.target.value)}
-                  className="w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="starter">Family Starter (Rs. 399 / $4.99)</option>
-                  <option value="premium">Family Premium (Rs. 599 / $7.99)</option>
-                  <option value="family_plus">Family Plus (Rs. 999 / $12.99)</option>
-                </select>
-              </div>
-
-              {judgeStatusMsg && <p className="text-xs font-medium">{judgeStatusMsg}</p>}
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={handleJudgeBypass}
-                  className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-700"
-                >
-                  {t.unlock}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowJudgeModal(false)}
-                  className="rounded-xl bg-gray-100 px-4 py-2.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-200"
-                >
-                  {t.close}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
@@ -835,3 +741,4 @@ function PlanCard({
     </div>
   );
 }
+

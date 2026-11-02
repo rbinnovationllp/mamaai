@@ -97,3 +97,17 @@ test('Safety review routes redact customer identity from reviewer list responses
   assert.match(read('app/api/admin/safety-reports/[reportId]/route.ts'), /requireSafetyReviewer\(request\)/);
 });
 
+
+test('public judge bypass is removed from subscription surfaces and server plan resolution', () => {
+  const page = read('app/subscription/page.tsx');
+  const plans = read('app/api/subscriptions/plans/route.ts');
+  const schema = read('lib/shared/schemas.ts');
+  assert.doesNotMatch(page, /handleJudgeBypass|judgeBypassKey|JUDGE_TEST_KEY|showJudgeModal/);
+  assert.doesNotMatch(plans, /judgeBypassKey|isJudgeBypass|JUDGE_TEST_KEY/);
+  assert.doesNotMatch(schema, /judgeBypassKey/);
+});
+
+test('footer Help link has a local support route', () => {
+  assert.ok(fs.existsSync(path.join(root, 'app/help/page.tsx')));
+  assert.match(read('app/help/page.tsx'), /Help & Support/);
+});

@@ -18,10 +18,10 @@ export function UpcomingMealReminder({ schedule, attendance, language, onViewPla
 
     useEffect(() => {
         // Restore dismissed/snooze timestamps from session
-        try {
+        const frame = window.requestAnimationFrame(() => { try {
             const raw = sessionStorage.getItem("mamaai_reminder_snooze");
             if (raw) setDismissedSlots(JSON.parse(raw));
-        } catch { }
+        } catch { } });
 
         const interval = setInterval(() => {
             const confirmed: string[] = JSON.parse(localStorage.getItem("mamaai_confirmed_slots") || "[]");
@@ -39,7 +39,7 @@ export function UpcomingMealReminder({ schedule, attendance, language, onViewPla
             }
         }, 15000); // Check every 15s
 
-        return () => clearInterval(interval);
+        return () => { window.cancelAnimationFrame(frame); clearInterval(interval); };
     }, [schedule, attendance, dismissedSlots]);
 
     if (!reminder) return null;

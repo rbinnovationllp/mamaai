@@ -1,16 +1,7 @@
 // app/api/analytics/track/route.ts
 import { NextResponse } from 'next/server';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
-
-const client = new DynamoDBClient({
-  region: process.env.AWS_REGION || 'ap-south-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-  },
-});
-const docClient = DynamoDBDocumentClient.from(client);
+import { PutCommand } from '@aws-sdk/lib-dynamodb';
+import { getMamaAiAnalyticsTableName, mamaAiDynamoDb as docClient } from '@/lib/repositories/dynamodb-client';
 
 export async function POST(req: Request) {
   try {
@@ -38,7 +29,7 @@ export async function POST(req: Request) {
 
     await docClient.send(
       new PutCommand({
-        TableName: process.env.MAMA_AI_ANALYTICS_TABLE || 'MAMA_AI_ANALYTICS_EVENTS',
+        TableName: getMamaAiAnalyticsTableName(),
         Item: {
           PK: `EVENT#${today}`,
           SK: `${timestamp}#${visitorId}#${eventType}`,
@@ -57,4 +48,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Failed to record event' }, { status: 500 });
   }
 }
-

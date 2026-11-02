@@ -64,15 +64,16 @@ export function AskMamaWidget({ onStartFamily, onTryDemo, compact = false }: Ask
   }, [messages, isLoading]);
 
   useEffect(() => {
-    setMessages((current) =>
+    const frame = window.requestAnimationFrame(() => setMessages((current) =>
       current[0]?.id === "welcome"
         ? [{ ...current[0], text: t.welcome }, ...current.slice(1)]
         : current
-    );
+    ));
+    return () => window.cancelAnimationFrame(frame);
   }, [t.welcome]);
 
   useEffect(() => {
-    try {
+    const frame = window.requestAnimationFrame(() => { try {
       const members = JSON.parse(window.localStorage.getItem(HOUSEHOLD_STORAGE_KEY) || '[]');
       const customer = JSON.parse(window.localStorage.getItem(CUSTOMER_STORAGE_KEY) || '{}');
       const pantry = JSON.parse(window.localStorage.getItem(PANTRY_STORAGE_KEY) || '[]');
@@ -107,7 +108,8 @@ export function AskMamaWidget({ onStartFamily, onTryDemo, compact = false }: Ask
       });
     } catch {
       setProfileContext(null);
-    }
+    } });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   const handleSendMessage = async (textToSend?: string): Promise<void> => {
@@ -115,7 +117,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo, compact = false }: Ask
     if (!query || isLoading) return;
 
     const userMsg: ChatMessage = {
-      id: `u_${Date.now()}`,
+      id: `u_${crypto.randomUUID()}`,
       sender: 'user',
       text: query,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -148,7 +150,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo, compact = false }: Ask
       const data = await readAskMamaResponse(res);
 
       const mamaMsg: ChatMessage = {
-        id: `m_${Date.now()}`,
+        id: `m_${crypto.randomUUID()}`,
         sender: 'mama',
         text: data.response,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -158,7 +160,7 @@ export function AskMamaWidget({ onStartFamily, onTryDemo, compact = false }: Ask
     } catch (err: unknown) {
       setInputMessage(query);
       const errorMsg: ChatMessage = {
-        id: `err_${Date.now()}`,
+        id: `err_${crypto.randomUUID()}`,
         sender: 'mama',
         text: `⚠️ ${askMamaFailureMessage(language)}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

@@ -1108,23 +1108,24 @@ export default function PlannerPage() {
 
   // 1. Resolve Local Time on Mount
   useEffect(() => {
-    const nextSlot = nextMealInfoForCurrentTime(customer.mealTimings).mealTime;
-    if (plannerMode === 'next_meal') {
-      setSelectedMealTime(nextSlot);
-    }
+    const frame = window.requestAnimationFrame(() => {
+      const nextSlot = nextMealInfoForCurrentTime(customer.mealTimings).mealTime;
+      if (plannerMode === 'next_meal') setSelectedMealTime(nextSlot);
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [customer.mealTimings, plannerMode]);
 
   // 2. Hydrate Client Storage & Backend Profile
   useEffect(() => {
     let cancelled = false;
 
-    const query = new URLSearchParams(window.location.search);
-    setSimpleStart(query.get('start') === 'simple');
-    if (query.get('view') === 'week' || query.get('view') === 'next_week') {
-      setPlannerView('week');
-    }
+    const queryFrame = window.requestAnimationFrame(() => {
+      const query = new URLSearchParams(window.location.search);
+      setSimpleStart(query.get('start') === 'simple');
+      if (query.get('view') === 'week' || query.get('view') === 'next_week') setPlannerView('week');
+    });
 
-    try {
+    const storageFrame = window.requestAnimationFrame(() => { try {
       const savedMembers = window.localStorage.getItem(HOUSEHOLD_STORAGE_KEY);
       if (savedMembers) {
         const parsed = JSON.parse(savedMembers);
@@ -1168,7 +1169,7 @@ export default function PlannerPage() {
       }
     } catch {
       setMembers([]);
-    }
+    } });
 
     async function loadServerProfile() {
       try {
@@ -1215,6 +1216,8 @@ export default function PlannerPage() {
 
     loadServerProfile();
     return () => {
+      window.cancelAnimationFrame(queryFrame);
+      window.cancelAnimationFrame(storageFrame);
       cancelled = true;
     };
   }, []);
@@ -1253,7 +1256,7 @@ export default function PlannerPage() {
 
   // 4. Attendance Initialization
   useEffect(() => {
-    setMealAttendance((current) => {
+    const frame = window.requestAnimationFrame(() => setMealAttendance((current) => {
       const next = emptyAttendanceDraft();
       const memberIds = members.map((member) => member.id);
       dailyScheduleMealTimes.forEach((mealTime) => {
@@ -1265,13 +1268,14 @@ export default function PlannerPage() {
         };
       });
       return next;
-    });
+    }));
+    return () => window.cancelAnimationFrame(frame);
   }, [members]);
 
   // 5. Restore Attendance from Storage
   useEffect(() => {
     if (!members.length) return;
-    try {
+    const frame = window.requestAnimationFrame(() => { try {
       const today = todayLocalDate();
       const raw = window.localStorage.getItem(TODAY_ATTENDANCE_KEY);
       if (!raw) return;
@@ -1296,7 +1300,8 @@ export default function PlannerPage() {
       }
     } catch {
       // Ignore cache restore errors
-    }
+    } });
+    return () => window.cancelAnimationFrame(frame);
   }, [members]);
 
   // 6. Persist Attendance Changes
@@ -1335,12 +1340,13 @@ export default function PlannerPage() {
   );
 
   useEffect(() => {
-    if (!mealPlan) return;
-    if (mealPlan.commonMeal.mealTime !== activeMealSlot || mealPlan.targetDate !== activeTargetDate) {
-      setMealPlan(null);
-      setIsStalePlan(false);
-      setStatus('');
-    }
+    const frame = window.requestAnimationFrame(() => {
+      if (!mealPlan) return;
+      if (mealPlan.commonMeal.mealTime !== activeMealSlot || mealPlan.targetDate !== activeTargetDate) {
+        setMealPlan(null); setIsStalePlan(false); setStatus('');
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [activeMealSlot, activeTargetDate, mealPlan]);
 
   const selectMealToPlan = (mealTime: MealTime) => {

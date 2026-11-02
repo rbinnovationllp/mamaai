@@ -104,12 +104,15 @@ export function VoiceTextInput({
   const speechLang = useMemo(() => speechLanguageByAppLanguage[language] ?? 'en-IN', [language]);
 
   useEffect(() => {
-    const SpeechRecognition =
-      (window as WindowWithSpeechRecognition).SpeechRecognition ??
-      (window as WindowWithSpeechRecognition).webkitSpeechRecognition;
-    setSupported(Boolean(SpeechRecognition));
+    const frame = window.requestAnimationFrame(() => {
+      const SpeechRecognition =
+        (window as WindowWithSpeechRecognition).SpeechRecognition ??
+        (window as WindowWithSpeechRecognition).webkitSpeechRecognition;
+      setSupported(Boolean(SpeechRecognition));
+    });
 
     return () => {
+      window.cancelAnimationFrame(frame);
       recognitionRef.current?.abort();
       recognitionRef.current = null;
     };

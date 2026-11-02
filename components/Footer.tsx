@@ -30,19 +30,19 @@ export function Footer() {
                 +91 84500 92846
               </a>
             </li>
-            <li><a href="/help" className="hover:underline">Help & Support Center</a></li>
+            <li><a href="/help" className="inline-flex min-h-11 items-center hover:underline">Help & Support Center</a></li>
           </ul>
         </div>
 
         <div>
           <h4 className="font-semibold text-white mb-3">Legal</h4>
           <ul className="space-y-2 text-xs">
-            <li><a href="/terms" className="hover:underline">Terms & Conditions</a></li>
-            <li><a href="/privacy" className="hover:underline">Privacy Policy</a></li>
-            <li><a href="/disclaimer" className="hover:underline">Food and Health Disclaimer</a></li>
-            <li><a href="/refund-policy" className="hover:underline">Refund and Cancellation</a></li>
-            <li><a href="/account/export" className="hover:underline">Data Export Request</a></li>
-            <li><a href="/account/delete" className="hover:underline">Account Deletion Request</a></li>
+            <li><a href="/terms" className="inline-flex min-h-11 items-center hover:underline">Terms & Conditions</a></li>
+            <li><a href="/privacy" className="inline-flex min-h-11 items-center hover:underline">Privacy Policy</a></li>
+            <li><a href="/disclaimer" className="inline-flex min-h-11 items-center hover:underline">Food and Health Disclaimer</a></li>
+            <li><a href="/refund-policy" className="inline-flex min-h-11 items-center hover:underline">Refund and Cancellation</a></li>
+            <li><a href="/account/export" className="inline-flex min-h-11 items-center hover:underline">Data Export Request</a></li>
+            <li><a href="/account/delete" className="inline-flex min-h-11 items-center hover:underline">Account Deletion Request</a></li>
           </ul>
         </div>
 
@@ -56,5 +56,4 @@ export function Footer() {
     </footer>
   );
 }
-
 

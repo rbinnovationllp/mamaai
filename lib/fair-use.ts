@@ -1,7 +1,5 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-
-const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.AWS_REGION || 'ap-south-1' }));
+import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { getMamaAiTableName, mamaAiDynamoDb as docClient } from '@/lib/repositories/dynamodb-client';
 
 export const PLAN_LIMITS = {
   starter: { planGenerationsMonth: 35, dishSwapsDay: 5, askMamaQueriesDay: 10 },
@@ -27,7 +25,7 @@ export async function checkAndIncrementUsage(
 
   try {
     const res = await docClient.send(new UpdateCommand({
-      TableName: process.env.MAMA_AI_TABLE_NAME || 'MAMA_AI_APP',
+      TableName: getMamaAiTableName(),
       Key: { PK: `USER#${userId}`, SK: `USAGE#${currentMonth}` },
       UpdateExpression: 'ADD #attr :val',
       ExpressionAttributeNames: { '#attr': attrName },

@@ -1,10 +1,9 @@
 // app/api/admin/analytics/route.ts
 import { NextResponse } from 'next/server';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { getMamaAiAnalyticsTableName, mamaAiDynamoDb as docClient } from '@/lib/repositories/dynamodb-client';
 import { adminErrorResponse, requireAdmin } from '@/lib/server/admin';
 
-const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.AWS_REGION || 'ap-south-1' }));
 
 function eventName(item: Record<string, unknown>) {
   return String(item.eventName ?? item.eventType ?? '');
@@ -23,7 +22,7 @@ export async function GET(request: Request) {
 
   // Fetch telemetry events for current date
   const eventsRes = await docClient.send(new QueryCommand({
-    TableName: process.env.MAMA_AI_ANALYTICS_TABLE || 'MAMA_AI_ANALYTICS_EVENTS',
+    TableName: getMamaAiAnalyticsTableName(),
     KeyConditionExpression: 'PK = :pk',
     ExpressionAttributeValues: { ':pk': `EVENT#${today}` }
   }));
@@ -87,5 +86,3 @@ export async function GET(request: Request) {
     return adminErrorResponse(error);
   }
 }
-
-

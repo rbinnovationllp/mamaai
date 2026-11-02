@@ -60,13 +60,14 @@ export default function HomePage() {
   }, [messages, isLoading]);
 
   useEffect(() => {
-    setMessages((currentMessages) =>
+    const frame = window.requestAnimationFrame(() => setMessages((currentMessages) =>
       currentMessages.map((message) => (message.id === 'welcome' ? { ...message, text: t.welcome } : message)),
-    );
+    ));
+    return () => window.cancelAnimationFrame(frame);
   }, [t.welcome]);
 
   useEffect(() => {
-    try {
+    const frame = window.requestAnimationFrame(() => { try {
       const members = JSON.parse(window.localStorage.getItem(HOUSEHOLD_STORAGE_KEY) || '[]');
       const customer = JSON.parse(window.localStorage.getItem(CUSTOMER_STORAGE_KEY) || '{}');
       const pantry = JSON.parse(window.localStorage.getItem(PANTRY_STORAGE_KEY) || '[]');
@@ -101,7 +102,8 @@ export default function HomePage() {
       });
     } catch {
       setProfileContext(null);
-    }
+    } });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   const handleSendMessage = async (textToSend?: string) => {
@@ -109,7 +111,7 @@ export default function HomePage() {
     if (!query || isLoading) return;
 
     const userMsg: ChatMessage = {
-      id: `u_${Date.now()}`,
+      id: `u_${crypto.randomUUID()}`,
       sender: 'user',
       text: query,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -143,7 +145,7 @@ export default function HomePage() {
       const data = await readAskMamaResponse(res);
 
       const mamaMsg: ChatMessage = {
-        id: `m_${Date.now()}`,
+        id: `m_${crypto.randomUUID()}`,
         sender: 'mama',
         text: data.response,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -153,7 +155,7 @@ export default function HomePage() {
     } catch (err) {
       setInputMessage(query);
       const errorMsg: ChatMessage = {
-        id: `err_${Date.now()}`,
+        id: `err_${crypto.randomUUID()}`,
         sender: 'mama',
         text: `⚠️ ${askMamaFailureMessage(language)}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

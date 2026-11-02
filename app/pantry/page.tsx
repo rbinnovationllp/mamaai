@@ -224,6 +224,7 @@ export default function PantryPage() {
     }
   };
 
+  const [filterClock] = useState(() => new Date().getTime());
   const filteredItems = items.filter((item) => {
     const minStock = Number(item.minStock ?? item.minimumQuantity ?? 0);
     if (filter === 'out') return item.quantity <= 0 || item.status === 'OUT_OF_STOCK';
@@ -231,7 +232,7 @@ export default function PantryPage() {
     if (filter === 'expiry') {
       if (item.status === 'USE_SOON') return true;
       if (!item.expiryDate) return false;
-      const days = (new Date(item.expiryDate).getTime() - Date.now()) / (1000 * 3600 * 24);
+      const days = (new Date(item.expiryDate).getTime() - filterClock) / (1000 * 3600 * 24);
       return days <= 14 && days >= 0;
     }
     return item.quantity > 0 && item.status !== 'OUT_OF_STOCK';
