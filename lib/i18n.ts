@@ -46,12 +46,12 @@ export const homeCopy = {
       ["Today’s family meal", "One practical meal plan with member-specific portions and adjustments.", "🍽️"],
       ["Change this dish", "Ask for another option without starting the whole plan again.", "👨‍👩‍👧"],
       ["What’s in my kitchen", "Plan around ingredients already available and items that should be used soon.", "🧺"],
-      ["Family+ household support", "Pet-food planning is currently unavailable.", "🐾"],
+      ["Family+ household support", "Manage cat and dog profiles, food reminders, pantry items, and schedules with Family Plus.", "🐾"],
     ],
     plans: [
       ["Family Starter", "Rs. 399/month · US$4.99/month", "Up to 4 family members", "Daily meal planning and basic grocery support."],
       ["Family Premium", "Rs. 599/month · US$7.99/month", "Up to 6 family members", "More family profiles, recipe support, and richer planning."],
-      ["Family Plus", "Rs. 999/month · US$12.99/month", "Up to 10 family members", "Expanded household planning; pet-food planning is currently unavailable."],
+      ["Family Plus", "Rs. 999/month · US$12.99/month", "Up to 10 family members", "Expanded household planning with separate cat and dog food reminders."],
     ],
   },
   hi: {
@@ -91,12 +91,12 @@ export const homeCopy = {
       ["आज का पारिवारिक भोजन", "हर सदस्य के हिस्से और बदलाव के साथ एक व्यावहारिक भोजन योजना.", "🍽️"],
       ["यह डिश बदलें", "पूरा प्लान दोबारा शुरू किए बिना दूसरा विकल्प मांगें.", "👨‍👩‍👧"],
       ["मेरी रसोई में क्या है", "घर में मौजूद और जल्दी इस्तेमाल होने वाली चीजों के अनुसार योजना बनाएं.", "🧺"],
-      ["Family+ household support", "Pet-food planning वर्तमान में उपलब्ध नहीं है।", "🐾"],
+      ["Family+ household support", "Family Plus में cat और dog profiles, food reminders, pantry और schedules manage करें।", "🐾"],
     ],
     plans: [
       ["Family Starter", "Rs. 399/month · US$4.99/month", "4 family members तक", "Daily meal planning और basic grocery support."],
       ["Family Premium", "Rs. 599/month · US$7.99/month", "6 family members तक", "More family profiles, recipe support और richer planning."],
-      ["Family Plus", "Rs. 999/month · US$12.99/month", "10 family members तक", "Expanded household planning; pet-food planning currently unavailable."],
+      ["Family Plus", "Rs. 999/month · US$12.99/month", "10 family members तक", "Expanded household planning with separate cat and dog food reminders."],
     ],
   },
   kn: {
@@ -136,12 +136,12 @@ export const homeCopy = {
       ["ಇಂದಿನ ಕುಟುಂಬ ಊಟ", "ಪ್ರತಿ ಸದಸ್ಯರ portions ಮತ್ತು ಬದಲಾವಣೆಗಳೊಂದಿಗೆ ಒಂದು ಪ್ರಾಯೋಗಿಕ ಊಟ ಪ್ಲ್ಯಾನ್.", "🍽️"],
       ["ಈ dish ಬದಲಿಸಿ", "ಪೂರ್ತಿ ಪ್ಲ್ಯಾನ್ ಮರುಪ್ರಾರಂಭಿಸದೆ ಮತ್ತೊಂದು ಆಯ್ಕೆ ಕೇಳಿ.", "👨‍👩‍👧"],
       ["ನನ್ನ ಅಡುಗೆಮನೆಯಲ್ಲಿ ಏನಿದೆ", "ಲಭ್ಯವಿರುವ ಮತ್ತು ಬೇಗ ಬಳಸಬೇಕಾದ ಸಾಮಗ್ರಿಗಳ ಪ್ರಕಾರ ಪ್ಲ್ಯಾನ್ ಮಾಡಿ.", "🧺"],
-      ["Family+ household support", "Pet-food planning ಈಗ ಲಭ್ಯವಿಲ್ಲ.", "🐾"],
+      ["Family+ household support", "Family Plus ನಲ್ಲಿ cat ಮತ್ತು dog profiles, food reminders, pantry ಮತ್ತು schedules ನಿರ್ವಹಿಸಿ.", "🐾"],
     ],
     plans: [
       ["Family Starter", "Rs. 399/month · US$4.99/month", "4 family members ವರೆಗೆ", "Daily meal planning ಮತ್ತು basic grocery support."],
       ["Family Premium", "Rs. 599/month · US$7.99/month", "6 family members ವರೆಗೆ", "More family profiles, recipe support ಮತ್ತು richer planning."],
-      ["Family Plus", "Rs. 999/month · US$12.99/month", "10 family members ವರೆಗೆ", "Expanded household planning; pet-food planning currently unavailable."],
+      ["Family Plus", "Rs. 999/month · US$12.99/month", "10 family members ವರೆಗೆ", "Expanded household planning with separate cat and dog food reminders."],
     ],
   },
 } satisfies Record<AppLanguage, typeof homeCopy.en>;

@@ -11,7 +11,6 @@ export default function HomePage() {
   const router = useRouter();
   const [askOpen, setAskOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [petSupportOpen, setPetSupportOpen] = useState(false);
   const { language } = useLanguage();
   const t = homeCopy[language];
 
@@ -123,25 +122,16 @@ export default function HomePage() {
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {t.features.map(([title, body, icon], index) => {
               const cardClass = "group block min-h-full rounded-3xl border border-amber-100 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2";
-              const cardContent = <><div className="mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-emerald-100 text-sm font-black text-emerald-900">{icon}</div><h3 className="text-lg font-black text-stone-950">{title}</h3><p className="mt-2 text-sm font-medium leading-6 text-stone-600">{body}</p><span className="mt-4 inline-flex text-sm font-black text-emerald-800 group-hover:text-emerald-900">{index === 3 ? "Learn more" : "Open"}</span></>;
+              const cardContent = <><div className="mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-emerald-100 text-sm font-black text-emerald-900">{icon}</div><h3 className="text-lg font-black text-stone-950">{title}</h3><p className="mt-2 text-sm font-medium leading-6 text-stone-600">{body}</p><span className="mt-4 inline-flex text-sm font-black text-emerald-800 group-hover:text-emerald-900">{"Open"}</span></>;
               if (index === 0) return <Link key={title} href="/planner?start=simple" aria-label={`${title}: open meal planning`} className={cardClass}>{cardContent}</Link>;
               if (index === 1) return <Link key={title} href="/planner" aria-label={`${title}: open the planner to replace a planned dish`} className={cardClass}>{cardContent}</Link>;
               if (index === 2) return <Link key={title} href="/pantry" aria-label={`${title}: open kitchen inventory`} className={cardClass}>{cardContent}</Link>;
-              return <button key={title} type="button" aria-haspopup="dialog" aria-label={`${title}: learn about unavailable pet-food planning`} onClick={() => setPetSupportOpen(true)} className={cardClass}>{cardContent}</button>;
+              return <Link key={title} href="/family-plus/pets" aria-label={`${title}: manage pet profiles and food reminders`} className={cardClass}>{cardContent}</Link>;
             })}
           </div>
         </div>
       </section>
 
-      {petSupportOpen ? (
-        <div role="dialog" aria-modal="true" aria-labelledby="pet-support-title" className="fixed inset-0 z-50 grid place-items-center bg-stone-950/45 p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-            <h2 id="pet-support-title" className="text-xl font-black text-stone-950">Family+ household support</h2>
-            <p className="mt-3 text-sm leading-6 text-stone-700">Pet-food planning is currently unavailable. MAMAAI does not provide pet-feeding recommendations or veterinary advice.</p>
-            <button type="button" onClick={() => setPetSupportOpen(false)} className="mt-6 rounded-full bg-emerald-800 px-5 py-2.5 text-sm font-black text-white focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-2">Close</button>
-          </div>
-        </div>
-      ) : null}
       <section id="plans" className="py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
