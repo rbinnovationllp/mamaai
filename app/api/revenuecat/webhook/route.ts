@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { revenueCatWebhookSchema } from "@/lib/shared/schemas";
+import { isIsolatedRuntime } from "@/lib/server/isolated-runtime-safety";
 
 export async function POST(request: Request) {
+  if (isIsolatedRuntime()) return NextResponse.json({ error: { code: "ISOLATED_FEATURE_DISABLED", message: "Webhooks are disabled in this isolated environment." } }, { status: 503 });
   const configuredSecret = process.env.REVENUECAT_WEBHOOK_SECRET;
   const providedSecret = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 
@@ -28,5 +30,7 @@ export async function POST(request: Request) {
     message: "RevenueCat webhook contract is ready. Persist entitlement changes after DynamoDB subscription repository is connected."
   });
 }
+
+
 
 

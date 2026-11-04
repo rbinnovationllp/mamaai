@@ -30,6 +30,7 @@ export function AskMamaModal({ isOpen, onClose }: Props) {
             thinking: 'MAMA is thinking...',
             error: 'Could not retrieve an answer right now. Please try again.',
             initialGreeting: 'Hello! I am MAMA. How can I help you with your family meal planning today?',
+            suggestions: ['How does MAMAAI work?', 'How do I sign in?', 'How is my data protected?', 'How does Pet Meal Plan work?'],
         },
         hi: {
             title: 'Ask MAMA (मामा से पूछें)',
@@ -39,6 +40,7 @@ export function AskMamaModal({ isOpen, onClose }: Props) {
             thinking: 'MAMA उत्तर तैयार कर रही हैं...',
             error: 'अभी उत्तर प्राप्त नहीं हो सका। कृपया पुनः प्रयास करें।',
             initialGreeting: 'नमस्ते! मैं MAMA हूँ। आज मैं आपके परिवार के भोजन नियोजन में कैसे मदद कर सकती हूँ?',
+            suggestions: ['MAMAAI कैसे काम करता है?', 'मैं sign in कैसे करूं?', 'मेरा data कैसे सुरक्षित है?', 'Pet Meal Plan कैसे काम करता है?'],
         },
         kn: {
             title: 'Ask MAMA (ಮಾಮಾ ಬಳಿ ಕೇಳಿ)',
@@ -48,6 +50,7 @@ export function AskMamaModal({ isOpen, onClose }: Props) {
             thinking: 'MAMA ಉತ್ತರಿಸುತ್ತಿದ್ದಾರೆ...',
             error: 'ಈಗ ಉತ್ತರ ಪಡೆಯಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
             initialGreeting: 'ನಮಸ್ಕಾರ! ನಾನು MAMA. ಇಂದು ನಿಮ್ಮ ಕುಟುಂಬದ ಊಟದ ಯೋಜನೆಗೆ ನಾನು ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?',
+            suggestions: ['MAMAAI ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ?', 'ನಾನು sign in ಹೇಗೆ ಮಾಡಲಿ?', 'ನನ್ನ data ಹೇಗೆ ಸುರಕ್ಷಿತವಾಗಿದೆ?', 'Pet Meal Plan ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ?'],
         },
     }[language];
 
@@ -127,6 +130,19 @@ export function AskMamaModal({ isOpen, onClose }: Props) {
                 <div className="flex-1 space-y-3 overflow-y-auto p-4 text-sm">
                     <div className="max-w-[85%] rounded-2xl bg-emerald-50 p-3 text-emerald-950">
                         {labels.initialGreeting}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2" aria-label="Suggested Ask MAMA questions">
+                        {labels.suggestions.map((suggestion) => (
+                            <button
+                                key={suggestion}
+                                type="button"
+                                onClick={() => setInput(suggestion)}
+                                className="rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-left text-xs text-emerald-900 hover:bg-emerald-50"
+                            >
+                                {suggestion}
+                            </button>
+                        ))}
                     </div>
 
                     {messages.map((m, idx) => (

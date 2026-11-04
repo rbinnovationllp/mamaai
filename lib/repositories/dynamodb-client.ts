@@ -35,14 +35,15 @@ export function getMamaAiGsi1Name() {
 
 export function getMamaAiDynamoDb() {
   const configuration = getDynamoDbConfiguration();
-  const key = `${configuration.runtime}:${configuration.region}:${configuration.roleArn ?? "default"}`;
+  const key = `${configuration.runtime}:${configuration.region}:${configuration.roleArn ?? "default"}:${configuration.endpoint ?? "aws"}`;
   if (!cachedClient || cachedClient.key !== key) {
     cachedClient = {
       key,
       client: DynamoDBDocumentClient.from(
         new DynamoDBClient({
           region: configuration.region,
-          credentials: getDynamoCredentials(configuration),
+          endpoint: configuration.endpoint,
+          credentials: configuration.runtime === "local" ? { accessKeyId: "LOCAL_TEST_ONLY", secretAccessKey: "LOCAL_TEST_ONLY" } : getDynamoCredentials(configuration),
         }),
         { marshallOptions: { removeUndefinedValues: true, convertClassInstanceToMap: true } }
       ),

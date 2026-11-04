@@ -35,6 +35,7 @@ function trafficSource() {
 
 export function trackAnalyticsEvent(eventName: AnalyticsEventName, details?: { category?: string; label?: string }) {
   if (typeof window === "undefined") return;
+  if (window.localStorage.getItem("mamaai_analytics_consent") !== "granted") return;
 
   const visitorId = getOrCreateStorageId(window.localStorage, "mamaai_visitor_id", "visitor");
   const sessionId = getOrCreateStorageId(window.sessionStorage, "mamaai_session_id", "session");

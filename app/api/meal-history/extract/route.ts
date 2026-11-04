@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from "zod";
+import { requireUser, authErrorResponse } from "@/lib/server/auth";
+import { CustomerProfileRepository } from "@/lib/repositories/customer-profile-repository";
 
 const mealHistoryExtractionSchema = z.object({
   imageDataUrl: z.string().min(100),
@@ -35,6 +37,12 @@ function extractJson(text: string) {
 
 export async function POST(request: Request) {
   try {
+    if (process.env.MAMAAI_SMART_HISTORY_UPLOAD_ENABLED !== "true") {
+      return NextResponse.json({ error: { code: "FEATURE_DISABLED", message: "Smart meal-history upload is not enabled." } }, { status: 404 });
+    }
+    const user = await requireUser(request);
+    const profile = await new CustomerProfileRepository().getFamilyProfile(user.userId);
+    if (!profile) return NextResponse.json({ error: { code: "FAMILY_PROFILE_NOT_FOUND", message: "Save your family profile before uploading meal history." } }, { status: 409 });
     const body = await request.json();
     const parsed = mealHistoryExtractionSchema.safeParse(body);
     if (!parsed.success) {
@@ -99,6 +107,8 @@ Rules:
       note: "Please review and correct the extracted meal history before saving.",
     });
   } catch (error) {
+    const auth = authErrorResponse(error);
+    if (auth) return auth;
     return NextResponse.json(
       {
         error: {

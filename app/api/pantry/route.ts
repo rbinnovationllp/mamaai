@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { PantryRepository } from "@/lib/repositories/pantry-repository";
 import { authErrorResponse, requireUser } from "@/lib/server/auth";
+import { requireSameOrigin } from "@/lib/server/request-security";
 
 const pantryItemSchema = z.object({
   id: z.string().optional(),
@@ -78,6 +79,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    requireSameOrigin(request);
     const user = await requireUser(request);
     const body = await request.json();
     const parsed = pantrySaveSchema.safeParse(body);

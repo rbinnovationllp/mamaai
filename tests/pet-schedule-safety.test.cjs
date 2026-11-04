@@ -1,0 +1,18 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const Module = require('node:module');
+const ts = require('typescript');
+const root = path.resolve(__dirname, '..');
+const original = Module._resolveFilename;
+Module._resolveFilename = function (request, parent, isMain, options) { if (request.startsWith('@/')) return path.join(root, request.slice(2)) + '.ts'; return original.call(this, request, parent, isMain, options); };
+Module._extensions['.ts'] = (mod, filename) => mod._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, filename);
+const { revalidatePetSchedule, PET_SAFETY_RULE_VERSION } = require('../lib/pet-nutrition/schedule-safety.ts');
+const profile = { petId: 'pet-a', userId: 'owner-a', name: 'Milo', species: 'dog', approximateAgeMonths: 24, weightKg: 10, activityLevel: 'moderate', indoorOutdoor: 'indoor', currentDiet: 'commercial', allergies: [], healthConditions: [], feedingSchedule: [], ownerFeedingPreferences: [], sex: 'unknown', neuterStatus: 'unknown', isMixedBreed: false, createdAt: 'x', updatedAt: 'profile-v2' };
+const evidence = { id: 'label', source: 'manufacturer', publicationVersion: '1', url: 'https://example.test', licenseStatus: 'manufacturer_label', lastReviewed: '2026-10-25', status: 'verified' };
+const pantry = { petId: 'pet-a', name: 'Complete food', classification: 'complete', quantity: 10, unit: 'g', minimumQuantity: 1, storageStatus: 'appropriate', product: { manufacturer: 'Acme', productName: 'Dog adult', species: 'dog', lifeStage: 'adult', foodClassification: 'complete', ingredientList: ['rice'], allergens: [], feedingGuideReference: 'label', evidence, verificationStatus: 'verified' }, itemId: 'food-a', userId: 'owner-a', safety: { classification: 'verified_complete_food', reasons: [], evidence: [evidence] }, createdAt: 'x', updatedAt: 'pantry-v2' };
+const schedule = { petId: 'pet-a', pantryItemId: 'food-a', time: '08:00', frequency: 'daily', quantitySource: 'manufacturer_guided', status: 'active', scheduleId: 'schedule-a', userId: 'owner-a', safety: pantry.safety, createdAt: 'x', updatedAt: 'x', safetyRuleVersion: PET_SAFETY_RULE_VERSION, petDependencyVersion: 'profile-v2', pantryDependencyVersion: 'pantry-v2' };
+test('a current verified dependency remains eligible while stale dependency metadata is review-required', () => { assert.equal(revalidatePetSchedule(profile, pantry, schedule).status, 'active'); assert.equal(revalidatePetSchedule(profile, pantry, { ...schedule, pantryDependencyVersion: 'old' }).status, 'requires_review'); });
+test('missing or unsafe dependencies cannot remain approved', () => { assert.equal(revalidatePetSchedule(profile, undefined, schedule).status, 'requires_review'); const unsafe = { ...pantry, safety: { classification: 'unsafe', reasons: ['Conflict'], evidence: [] }, product: { ...pantry.product, ingredientList: ['onion'] } }; assert.equal(revalidatePetSchedule(profile, unsafe, schedule).status, 'requires_review'); });
+test('schedule routes include owner-scoped detail CRUD and dependency validation', () => { const collection = fs.readFileSync(path.join(root, 'app/api/family-plus/pet-schedules/route.ts'), 'utf8'); const detail = fs.readFileSync(path.join(root, 'app/api/family-plus/pet-schedules/[scheduleId]/route.ts'), 'utf8'); assert.match(collection, /revalidatePetSchedule/); assert.match(detail, /requireFamilyPlusEntitlement/); assert.match(detail, /schedules\.delete\(x\.user\.userId, x\.petId/); });

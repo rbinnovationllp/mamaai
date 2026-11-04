@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { CustomerProfileRepository } from "@/lib/repositories/customer-profile-repository";
-import {
-  customerUserIdFromIdentity,
-  createCustomerSession,
-  setCustomerSessionCookie,
-} from "@/lib/server/customer-session";
 import { authErrorResponse, requireUser } from "@/lib/server/auth";
+import { requireSameOrigin } from "@/lib/server/request-security";
+import { AccountSecurityRepository } from "@/lib/repositories/account-security-repository";
+import { SubscriptionRepository } from "@/lib/repositories/subscription-repository";
+import { familyMemberSchema } from "@/lib/shared/family-member-schema";
 
-const memberSchema = z.object({
+/* const familyMemberSchema = z.object({
   id: z.string().min(1),
   name: z.string().trim().min(1),
   relation: z.string().trim().min(1),
@@ -28,7 +27,13 @@ const memberSchema = z.object({
   doctorAdvisedRestrictions: z.array(z.string()).default([]),
   dislikes: z.array(z.string()).default([]),
   mealStrategyPreference: z.enum(["common", "allow_separate"]).default("common"),
-});
+  scheduleRole: z.enum(["school_going", "working", "other"]).optional(),
+  attendanceDays: z.array(z.enum(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"])).default([]),
+  holidayOrLeaveDates: z.array(z.string().date()).max(365).default([]),
+  tiffinPreferences: z.array(z.string().trim().min(1).max(120)).max(30).default([]),
+  packingStorageLimitations: z.array(z.string().trim().min(1).max(160)).max(20).default([]),
+  preferredPreparationTime: z.string().trim().max(80).optional().or(z.literal("")),
+}); */
 
 const familyProfileSchema = z.object({
   customer: z.object({
@@ -162,10 +167,10 @@ const familyProfileSchema = z.object({
       .default([]),
     nonVegPreferredFoods: z.array(z.string()).default([]),
   }),
-  members: z.array(memberSchema).min(1),
+  members: z.array(familyMemberSchema).min(1),
 });
 
-type PostedMember = z.infer<typeof memberSchema>;
+type PostedMember = z.infer<typeof familyMemberSchema>;
 
 function uniqueProfileMembers(members: PostedMember[]) {
   const seenIds = new Set<string>();
@@ -182,10 +187,6 @@ function uniqueProfileMembers(members: PostedMember[]) {
     seenProfiles.add(profileKey);
     return true;
   });
-}
-
-function identityFor(customer: z.infer<typeof familyProfileSchema>["customer"]) {
-  return customer.mobile || customer.email || customer.name;
 }
 
 export async function GET(request: Request) {
@@ -206,6 +207,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    requireSameOrigin(request);
     const body = await request.json();
     const parsed = familyProfileSchema.safeParse(body);
 
@@ -230,6 +232,9 @@ export async function POST(request: Request) {
       age: member.age,
       activityLevel: member.activityLevel ?? "moderate",
       foodPreference: member.foodPreference ?? "vegetarian",
+      dietaryPermissions: member.dietaryPermissions,
+      weekdayDietRules: member.weekdayDietRules ?? [],
+      festivalDietRules: member.festivalDietRules ?? [],
       nonVegFrequency: member.nonVegFrequency,
       nonVegAvoidDays: member.nonVegAvoidDays ?? [],
       nonVegCustomRule: member.nonVegCustomRule || undefined,
@@ -237,14 +242,31 @@ export async function POST(request: Request) {
       doctorAdvisedRestrictions: member.doctorAdvisedRestrictions ?? [],
       dislikes: member.dislikes ?? [],
       mealStrategyPreference: member.mealStrategyPreference ?? "common",
+      scheduleRole: member.scheduleRole,
+      attendanceDays: member.attendanceDays ?? [],
+      holidayOrLeaveDates: member.holidayOrLeaveDates ?? [],
+      tiffinPreferences: member.tiffinPreferences ?? [],
+      packingStorageLimitations: member.packingStorageLimitations ?? [],
+      preferredPreparationTime: member.preferredPreparationTime || undefined,
     }));
-    let authenticated: string | undefined;
-    try { authenticated = (await requireUser(request)).userId; } catch { authenticated = undefined; }
-    if (!authenticated && !customer.mobile && !customer.email) {
-      return NextResponse.json({ error: { code: "IDENTITY_REQUIRED", message: "Please provide a mobile number or email before saving your family profile." } }, { status: 401 });
+    const userId = (await requireUser(request)).userId;
+    const subscription = await new SubscriptionRepository().getLatestSubscriptionForUser(userId);
+    if (subscription && (subscription.status === "active" || subscription.status === "trialing") && members.length > subscription.memberLimit) {
+      return NextResponse.json({ error: { code: "HOUSEHOLD_MEMBER_LIMIT", message: `Your ${subscription.plan} plan allows up to ${subscription.memberLimit} family members.` } }, { status: 409 });
     }
-    const userId = authenticated ?? customerUserIdFromIdentity(identityFor(customer));
     const repository = new CustomerProfileRepository();
+
+    // Ordinary profile editing is deliberately membership-preserving.  The
+    // original onboarding request may establish a household, but subsequent
+    // adds/removals/replacements must use the protected replacement workflow.
+    const existingFamilyProfile = await repository.getFamilyProfile(userId);
+    if (existingFamilyProfile) {
+      const existingIds = existingFamilyProfile.members.map((member) => member.id).sort();
+      const requestedIds = members.map((member) => member.id).sort();
+      if (existingIds.length !== requestedIds.length || existingIds.some((id, index) => id !== requestedIds[index])) {
+        return NextResponse.json({ error: { code: "HOUSEHOLD_MEMBERSHIP_CHANGE_REQUIRES_REPLACEMENT", message: "Use the protected household replacement request for adding, removing, or replacing family members. परिवार के सदस्यों को बदलने के लिए सुरक्षित बदलाव अनुरोध का उपयोग करें।" } }, { status: 409 });
+      }
+    }
 
     const customerRecord = await repository.upsertCustomer({
       userId,
@@ -283,17 +305,16 @@ export async function POST(request: Request) {
       nonVegPreferredFoods: customer.nonVegPreferredFoods,
     });
     const familyProfile = await repository.saveFamilyProfile({ userId, members });
+    const securityAccount = await new AccountSecurityRepository().getAccount(userId);
+    if (securityAccount) await new AccountSecurityRepository().bindHousehold(userId, familyProfile.familyId, securityAccount.deviceActivationVersion);
 
-    const response = NextResponse.json({
+    return NextResponse.json({
       saved: true,
       userId,
       customer: customerRecord,
       familyProfile,
       message: "Family profile saved. Continue to subscription.",
     });
-    const session = await createCustomerSession(userId);
-    setCustomerSessionCookie(response, session.token, session.expiresAt);
-    return response;
   } catch (error) {
     const authResponse = authErrorResponse(error);
     if (authResponse) return authResponse;

@@ -1,3 +1,4 @@
-export { POST, dynamic } from "../meal-plans/route";
+export { POST } from "../meal-plans/route";
+export const dynamic = "force-dynamic";
 
 

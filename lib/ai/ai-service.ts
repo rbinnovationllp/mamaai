@@ -483,6 +483,17 @@ function componentGuidanceForMember(commonMeal: CommonMeal, member: FamilyMember
 }
 
 function shouldUseMixedComponentStrategy(input: GeneratePlanInput, mealTime: MealTime) {
+  // A shared mixed-diet base must never be selected for a Jain household
+  // member. Route those meals through the reviewed catalogue, whose candidate
+  // filter evaluates every ingredient against the member restrictions.
+  const hasJainIngredientRestriction = input.members.some(
+    (member) =>
+      member.dietType === "jain" ||
+      member.dietaryPermissions?.onion === false ||
+      member.dietaryPermissions?.garlic === false ||
+      member.dietaryPermissions?.rootVegetables === false
+  );
+  if (hasJainIngredientRestriction) return false;
   const hasVegetarianSide = input.members.some(
     (member) => isVegetarianCompatibleDiet(member) || member.dietType === "vegan"
   );
@@ -1131,6 +1142,7 @@ function regionalIndianCandidates(
 ): CommonMealDraft[] {
   return indianFoodCandidatesFor({
     family: input.family,
+    members: input.members,
     mealTime,
     recentMeals: recentMealsFor(input, mealTime),
     targetDate: input.targetDate,
@@ -1318,9 +1330,12 @@ function requestedCandidate(candidates: CommonMealDraft[], input: GeneratePlanIn
 
 function selectCandidate(candidates: CommonMealDraft[], input: GeneratePlanInput, mealTime: MealTime) {
   const requested = requestedCandidate(candidates, input);
-  if (requested) return requested;
-  let validCandidates = candidates.filter((candidate) => !isMealRecentlyUsed(input, mealTime, candidate.name));
-  if (!validCandidates.length) validCandidates = candidates;
+  if (requested && !isMealRecentlyUsed(input, mealTime, requested.name)) return requested;
+  const explicitlyExcluded = new Set((input.excludeDishes ?? []).map((dish) => normalize(dish)));
+  const permittedCandidates = candidates.filter((candidate) => !explicitlyExcluded.has(normalize(candidate.name)));
+  if (!permittedCandidates.length) throw new Error("No compatible replacement candidate is available after exclusions.");
+  let validCandidates = permittedCandidates.filter((candidate) => !isMealRecentlyUsed(input, mealTime, candidate.name));
+  if (!validCandidates.length) validCandidates = permittedCandidates;
   const index = Math.abs(dinnerRotationIndex(input)) % validCandidates.length;
   return validCandidates[index];
 }

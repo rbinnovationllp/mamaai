@@ -4,12 +4,10 @@ import { usePathname } from 'next/navigation';
 import { useLanguage } from './LanguageProvider';
 
 const items = [
-  { href: '/', key: 'home', icon: '\u2302' },
-  { href: '/planner', key: 'meal', icon: '\u25cb' },
-  { href: '/profile/family', key: 'family', icon: '\u25c7' },
-  { href: '/pantry', key: 'kitchen', icon: '\u25a1' },
-  { href: '/more', key: 'more', icon: '\u2022\u2022\u2022' },
+  { href: '/', key: 'home', icon: 'home' }, { href: '/planner', key: 'meal', icon: 'meal' }, { href: '/profile/family', key: 'family', icon: 'family' }, { href: '/pantry', key: 'kitchen', icon: 'kitchen' }, { href: '/more', key: 'more', icon: 'more' },
 ] as const;
+
+function NavIcon({ name }: { name: typeof items[number]['icon'] }) { const paths = { home: <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z" />, meal: <><path d="M12 3v18M5 5c3 2 3 12 0 14M19 5c-3 2-3 12 0 14" /></>, family: <><circle cx="9" cy="8" r="3" /><path d="M3 21c0-4 2-6 6-6s6 2 6 6M17 11a3 3 0 1 0-1-5.8M16 15c3 0 5 2 5 6" /></>, kitchen: <><path d="M4 3h16v6H4zM6 9v12M18 9v12M9 14h6" /></>, more: <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></> } as const; return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">{paths[name]}</svg>; }
 
 export function MobilePrimaryNav() {
   const pathname = usePathname();
@@ -22,12 +20,18 @@ export function MobilePrimaryNav() {
 
   return (
     <nav aria-label="Primary mobile navigation" className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
-      <div className="mx-auto grid max-w-lg grid-cols-5 gap-1">
+      <div
+        className="mx-auto grid max-w-lg gap-1"
+        // The legacy global stylesheet collapses generic `.grid` elements to one
+        // column below 860px. Keep this navigation explicitly five-column so it
+        // remains a compact, reachable mobile control bar.
+        style={{ gridTemplateColumns: "repeat(5, minmax(0, 1fr))" }}
+      >
         {items.map((item) => {
           const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
           return (
             <a key={item.key} href={item.href} aria-current={active ? 'page' : undefined} className={`flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-center text-[10px] font-bold leading-tight ${active ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600'}`}>
-              <span aria-hidden="true" className="text-base leading-none">{item.icon}</span>
+              <NavIcon name={item.icon} />
               <span>{labels[item.key]}</span>
             </a>
           );

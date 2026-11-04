@@ -6,6 +6,15 @@ export type SafetyStatus = "allowed" | "blocked" | "needs_clarification";
 export type SafetyResult = { status: SafetyStatus; errors: string[]; warnings: string[]; ok: boolean };
 type MemberSafetyFields = FamilyMember & { allergies?: string[]; foodAllergies?: string[]; ingredientAllergies?: string[] };
 
+function deniedPermissionCanonicals(member: MemberSafetyFields) {
+  const permissions = member.dietaryPermissions ?? {};
+  const names: Record<string, string[]> = {
+    eggs: ["egg"], fish: ["fish"], shellfish: ["seafood"], poultry: ["chicken"],
+    redMeat: ["meat"], otherMeat: ["meat"], onion: ["onion"], garlic: ["garlic"], rootVegetables: ["potato", "carrot"],
+  };
+  return Object.entries(permissions).flatMap(([key, allowed]) => allowed === false ? names[key] ?? [] : []);
+}
+
 function unique(values: string[]): string[] { return [...new Set(values)]; }
 function ingredientNames(plan: FamilyMealPlan): string[] {
   return [...plan.commonMeal.ingredients, ...plan.commonMeal.recipe.ingredients].map((ingredient) => ingredient.name).filter(Boolean);
@@ -19,7 +28,7 @@ export function evaluateIngredientSafety(names: string[], members: FamilyMember[
   if (names.length === 0 || names.some(ingredientIsAmbiguous)) warnings.push("Ingredient composition is incomplete or ambiguous; verify ingredients and cross-contact before serving.");
 
   for (const member of members as MemberSafetyFields[]) {
-    const declared = [...(member.allergies ?? []), ...(member.foodAllergies ?? []), ...(member.ingredientAllergies ?? []), ...member.excludedIngredients, ...member.dietaryRestrictions, ...member.doctorRestrictions];
+    const declared = [...(member.allergies ?? []), ...(member.foodAllergies ?? []), ...(member.ingredientAllergies ?? []), ...member.excludedIngredients, ...member.dietaryRestrictions, ...member.doctorRestrictions, ...deniedPermissionCanonicals(member)];
     for (const restriction of unique(declared.map(normalizeIngredient).filter(Boolean))) {
       const canonicals = restrictionCanonicals(restriction);
       if (names.some((name) => normalizeIngredient(name) === restriction) || matches.some((match) => canonicals.includes(match.canonical))) errors.push(`${member.name} has a declared restriction conflict: ${restriction}.`);
@@ -49,7 +58,21 @@ export class SafetyValidationService {
   validateMealPlan(plan: FamilyMealPlan, members: FamilyMember[]): SafetyResult {
     const parsed = familyMealPlanSchema.safeParse(plan);
     if (!parsed.success) return { status: "blocked", ok: false, errors: parsed.error.issues.map((issue) => issue.message), warnings: [] };
-    return evaluateIngredientSafety(ingredientNames(plan), members);
+    const components = plan.commonMeal.components;
+    if (!components?.length) return evaluateIngredientSafety(ingredientNames(plan), members);
+
+    // Components are intentional per-member variations. Evaluate a common base
+    // against every recipient and an optional component only against members
+    // explicitly assigned to it; never let a separate protein invalidate the
+    // vegetarian member who is not served it.
+    const results = components.map((component) => {
+      const assigned = members.filter((member) => component.memberIds.includes(member.memberId));
+      if (!assigned.length) return { status: "blocked" as const, ok: false, errors: [`${component.label} has no assigned household member.`], warnings: [] };
+      return evaluateIngredientSafety(component.ingredients.map((ingredient) => ingredient.name), assigned);
+    });
+    const errors = results.flatMap((result) => result.errors);
+    const warnings = results.flatMap((result) => result.warnings);
+    return { status: errors.length ? "blocked" : warnings.length ? "needs_clarification" : "allowed", ok: errors.length === 0 && warnings.length === 0, errors: unique(errors), warnings: unique(warnings) };
   }
 }
 

@@ -1,4 +1,5 @@
-import type { Family, FamilyDietPreference, Ingredient, MealTime } from "@/lib/shared/contracts";
+import type { Family, FamilyDietPreference, FamilyMember, Ingredient, MealTime } from "@/lib/shared/contracts";
+import { classifyIngredient, ingredientIsAmbiguous, normalizeIngredient } from "@/lib/ai/food-safety-taxonomy";
 
 export type IndianFoodPreferenceCode = "VEG" | "EGG" | "NV-CH" | "NV-MT" | "NV-FI" | "NV-SF" | "NV-MIX";
 export type MealStyle = "everyday" | "occasional" | "festive";
@@ -22,6 +23,34 @@ export interface IndianFoodRecord {
   prepTimeMinutes: number;
   difficulty: "easy" | "medium" | "hard";
   ingredients: Ingredient[];
+}
+
+export type RecipeAudit = { reviewed: boolean; ambiguousIngredients: string[]; matches: string[] };
+
+/** A conservative derived audit. Unknown aggregate composition is never treated as safe. */
+export function auditIndianFoodRecord(record: IndianFoodRecord): RecipeAudit {
+  const ambiguousIngredients = record.ingredients.filter((item) => ingredientIsAmbiguous(item.name) || /\b(mixed|seasonal|vegetable side|sabzi|palya|poriyal|chutney|masala|spice base|seasoning|selected protein|salad)\b/i.test(item.name)).map((item) => item.name);
+  return { reviewed: ambiguousIngredients.length === 0, ambiguousIngredients, matches: record.ingredients.flatMap((item) => classifyIngredient(item.name).map((match) => match.canonical)) };
+}
+
+function memberHasStrictIngredientRule(member: FamilyMember) {
+  return member.dietType === "jain" || Object.values(member.dietaryPermissions ?? {}).some((allowed) => allowed === false) || [...member.allergies, ...member.foodAllergies, ...member.ingredientAllergies, ...member.excludedIngredients, ...member.dietaryRestrictions, ...member.doctorRestrictions].length > 0;
+}
+
+function recordEligibleForMembers(record: IndianFoodRecord, members: FamilyMember[] = []) {
+  const audit = auditIndianFoodRecord(record);
+  const names = record.ingredients.map((item) => item.name);
+  return members.every((member) => {
+    if (memberHasStrictIngredientRule(member) && !audit.reviewed) return false;
+    const matches = names.flatMap((name) => classifyIngredient(name));
+    const denied = member.dietaryPermissions ?? {};
+    if ((member.dietType === "vegetarian" || member.dietType === "vegan" || member.dietType === "jain") && matches.some((match) => match.category === "animal" || match.category === "egg")) return false;
+    if (member.dietType === "eggitarian" && matches.some((match) => match.category === "animal")) return false;
+    if (member.dietType === "jain" && matches.some((match) => match.category === "jain_root")) return false;
+    if ((denied.eggs === false && matches.some((match) => match.canonical === "egg")) || (denied.fish === false && matches.some((match) => match.canonical === "fish")) || (denied.poultry === false && matches.some((match) => match.canonical === "chicken")) || ((denied.redMeat === false || denied.otherMeat === false) && matches.some((match) => match.canonical === "meat")) || (denied.onion === false && matches.some((match) => match.canonical === "onion")) || (denied.garlic === false && matches.some((match) => match.canonical === "garlic")) || (denied.rootVegetables === false && matches.some((match) => match.category === "jain_root"))) return false;
+    const restrictions = [...member.allergies, ...member.foodAllergies, ...member.ingredientAllergies, ...member.excludedIngredients, ...member.dietaryRestrictions, ...member.doctorRestrictions].map(normalizeIngredient);
+    return !names.some((name) => restrictions.includes(normalizeIngredient(name))) && !matches.some((match) => restrictions.includes(match.canonical));
+  });
 }
 
 const money = (amount: number) => ({ amount, currency: "INR" as const });
@@ -164,6 +193,7 @@ function recentPenalty(record: IndianFoodRecord, recentMeals: string[]) {
 
 export function indianFoodCandidatesFor(input: {
   family: Family;
+  members?: FamilyMember[];
   mealTime: MealTime;
   recentMeals: string[];
   targetDate: string;
@@ -176,6 +206,7 @@ export function indianFoodCandidatesFor(input: {
     .filter((record) => record.mealTypes.includes(mealTime))
     .filter((record) => record.foodPreferences.some((code) => allowedCodes.includes(code)))
     .filter((record) => allowedByNonVegChoices(record, input.family))
+    .filter((record) => recordEligibleForMembers(record, input.members))
     .filter((record) => !strictRegional || matchesFamilyRegion(record, input.family));
 
   const regional = pool.filter((record) => matchesFamilyRegion(record, input.family));

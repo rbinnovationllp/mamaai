@@ -4,6 +4,8 @@ import { SafetyValidationService } from "@/lib/ai/safety-validation-service";
 import { FamilyService } from "@/lib/services/family-service";
 import { FamilyMealRepository } from "@/lib/repositories/family-meal-repository";
 import { CustomerProfileRepository } from "@/lib/repositories/customer-profile-repository";
+import { PantryRepository } from "@/lib/repositories/pantry-repository";
+import { aggregateWeeklyGroceries } from "@/lib/grocery/weekly-aggregation";
 import type {
   CreateMealPlanRequest,
   Family,
@@ -30,7 +32,8 @@ const weekDays: WeeklyMealPlanSlot["day"][] = [
   "sunday",
 ];
 
-const mealTimes: MealTime[] = ["breakfast", "lunch", "high_tea", "dinner"];
+// Tiffins are independently generated requirements; legacy generic tiffin attendance is retained.
+const mealTimes: MealTime[] = ["breakfast", "school_tiffin", "office_tiffin", "lunch", "high_tea", "dinner"];
 
 function parseDateOnly(date: string) {
   const [year, month, day] = date.split("-").map(Number);
@@ -61,6 +64,7 @@ function slotAttendance(request: CreateMealPlanRequest, mealTime: MealTime): Mea
   }
 
   if (!request.dayAttendancePlan) return undefined;
+  if (mealTime === "school_tiffin" || mealTime === "office_tiffin") return undefined;
   const key = mealTime === "high_tea" || mealTime === "evening_snack" || mealTime === "snack" ? "snacks" : mealTime;
   const slot = request.dayAttendancePlan[key as "breakfast" | "lunch" | "snacks" | "dinner"] ?? {};
   const memberIds = Object.keys(slot);
@@ -115,11 +119,13 @@ function freshnessNoteFor(characteristic: WeeklyGroceryRequirement["storageChara
   return "Use practical storage judgement; climate, ripeness and refrigeration can affect freshness.";
 }
 
-function weeklyGroceries(days: WeeklyFamilyMealPlan["days"], weekStartDate: string): WeeklyGroceryRequirement[] {
+async function weeklyGroceries(days: WeeklyFamilyMealPlan["days"], weekStartDate: string, userId?: string): Promise<WeeklyGroceryRequirement[]> {
   const grouped = new Map<string, WeeklyGroceryRequirement>();
+  const sourceLines: Array<{ name: string; category: string; quantity: string; quantityToPurchase: string }> = [];
 
   days.flatMap((day) => day.meals).forEach((slot) => {
     slot.selectedOption.groceryItems.forEach((item) => {
+      sourceLines.push({ name: item.name, category: item.category, quantity: item.quantity, quantityToPurchase: item.quantityToPurchase });
       const key = `${item.name.toLowerCase()}#${item.category}`;
       const existing = grouped.get(key);
       const reference = { date: slot.date, mealTime: slot.mealTime, mealName: slot.selectedMealName };
@@ -154,7 +160,12 @@ function weeklyGroceries(days: WeeklyFamilyMealPlan["days"], weekStartDate: stri
     });
   });
 
-  return Array.from(grouped.values()).sort((a, b) => a.name.localeCompare(b.name));
+  const pantry = userId ? await new PantryRepository().listForUser(userId).catch(() => []) : [];
+  const precise = aggregateWeeklyGroceries(sourceLines, pantry);
+  return Array.from(grouped.values()).map((item) => {
+    const result = precise.find((line) => line.name === item.name && line.category === item.category);
+    return result ? { ...item, totalQuantity: result.totalQuantity, pantryQuantity: result.pantryQuantity, quantityToPurchase: result.quantityToPurchase, remainingQuantity: result.quantityToPurchase, freshnessNote: result.quantityNeedsConfirmation ? "Quantity needs confirmation; incompatible or unverified measurements were not combined." : item.freshnessNote } : item;
+  }).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function procurementTitle(window: ProcurementPurchaseWindow) {
@@ -202,6 +213,10 @@ function buildTomorrowReminder(days: WeeklyFamilyMealPlan["days"], items: Weekly
 
 function dietPreferenceForMember(preference?: string): FamilyMember["dietType"] {
   if (preference === "eggetarian") return "eggitarian";
+  if (preference === "jain") return "jain";
+  // The shared contract has no pescatarian value. Preserve the narrower
+  // permission set below instead of widening the member to unrestricted meat.
+  if (preference === "pescatarian") return "non_vegetarian";
   if (preference === "semi_vegetarian") return "non_vegetarian";
   if (preference === "vegetarian" || preference === "non_vegetarian" || preference === "vegan") return preference;
   return "other";
@@ -253,7 +268,10 @@ export class WeeklyMealPlanningService {
     if (!profile?.members?.length || profile.familyId !== request.familyId) return null;
 
     const generatedAt = nowIso();
-    const country = request.mealTimeContext?.country || "Not specified";
+    // MAMAAI's verified regional catalogue is Indian. A missing optional
+    // request context must use that catalogue rather than fall through to
+    // generic drafts with composite, unverifiable ingredients.
+    const country = request.mealTimeContext?.country || "India";
     const state = request.mealTimeContext?.region || "Home region";
     const city = request.mealTimeContext?.city || state;
     const family: Family = {
@@ -297,6 +315,9 @@ export class WeeklyMealPlanningService {
       activityLevel: member.activityLevel ?? "moderate",
       goals: ["Balanced home meal"],
       dietType: dietPreferenceForMember(member.foodPreference),
+      dietaryPermissions: member.dietaryPermissions,
+      weekdayDietRules: member.weekdayDietRules ?? [],
+      festivalDietRules: member.festivalDietRules ?? [],
       nonVegFrequency: member.nonVegFrequency,
       nonVegAvoidDays: member.nonVegAvoidDays ?? [],
       nonVegCustomRule: member.nonVegCustomRule,
@@ -322,6 +343,12 @@ export class WeeklyMealPlanningService {
         grainsRestricted: false,
         customRules: [],
       },
+      scheduleRole: member.scheduleRole,
+      attendanceDays: member.attendanceDays ?? [],
+      holidayOrLeaveDates: member.holidayOrLeaveDates ?? [],
+      tiffinPreferences: member.tiffinPreferences ?? [],
+      packingStorageLimitations: member.packingStorageLimitations ?? [],
+      preferredPreparationTime: member.preferredPreparationTime,
     }));
 
     await this.repository.saveFamilyContext({ family, members });
@@ -358,6 +385,10 @@ export class WeeklyMealPlanningService {
       const meals: WeeklyMealPlanSlot[] = [];
 
       for (const mealTime of mealTimes) {
+        const tiffinRole = mealTime === "school_tiffin" ? "school_going" : mealTime === "office_tiffin" ? "working" : undefined;
+        const tiffinMemberIds = tiffinRole ? familyContext.members.filter((member) => member.scheduleRole === tiffinRole && !(member.holidayOrLeaveDates ?? []).includes(date) && (!(member.attendanceDays?.length) || member.attendanceDays.includes(day))).map((member) => member.memberId) : [];
+        if (tiffinRole && tiffinMemberIds.length === 0) continue;
+        const attendance = tiffinRole ? [{ mealTime, participatingMemberIds: tiffinMemberIds, absentMemberIds: [], fastingMemberIds: [], guestCount: 0, enabled: tiffinMemberIds.length > 0 }] : slotAttendance(request, mealTime);
         const generated = this.aiService.generateFamilyMealPlan({
           family: {
             ...familyContext.family,
@@ -367,7 +398,7 @@ export class WeeklyMealPlanningService {
           planType: "weekly",
           mealTime,
           mealTimeContext: request.mealTimeContext,
-          mealAttendance: slotAttendance(request, mealTime),
+          mealAttendance: attendance,
           highTeaPreference: request.highTeaPreference,
           userPlanningMode: "returning_user_weekly_editable",
           userPromptOverride: request.userPromptOverride,
@@ -377,7 +408,7 @@ export class WeeklyMealPlanningService {
         });
 
         const safety = this.safetyValidationService.validateMealPlan(generated, familyContext.members);
-        if (!safety.ok) throw new Error(`Weekly meal plan failed safety validation: ${safety.errors.join(" ")}`);
+        if (!safety.ok) throw new Error(`Weekly meal plan failed safety validation for ${date} ${mealTime} (${generated.commonMeal.mealId}: ${generated.commonMeal.name}) [${generated.commonMeal.ingredients.map((ingredient) => ingredient.name).join(", ")}]: ${[...safety.errors, ...safety.warnings].join(" ")}`);
 
         const localized = this.aiService.localizeFamilyMealPlan(generated, request.preferredLanguage || request.mealTimeContext?.locale);
         const localizedSafety = this.safetyValidationService.validateMealPlan(localized, familyContext.members);
@@ -401,7 +432,7 @@ export class WeeklyMealPlanningService {
       days.push({ date, day, meals });
     }
 
-    const weeklyGroceryRequirements = weeklyGroceries(days, weekStartDate);
+    const weeklyGroceryRequirements = await weeklyGroceries(days, weekStartDate, request.userId);
     const weeklyPlan: WeeklyFamilyMealPlan = {
       weekPlanId: createId("weekly-plan"),
       familyId: request.familyId,
@@ -430,7 +461,7 @@ export class WeeklyMealPlanningService {
     }
   }
 
-  async selectSlot(input: { familyId: string; weekStartDate: string; slotId: string; selectedMealPlan: FamilyMealPlan; reason?: string }) {
+  async selectSlot(input: { familyId: string; weekStartDate: string; slotId: string; selectedMealPlan: FamilyMealPlan; reason?: string; expectedPlanVersion: number }) {
     const existing = await this.repository.getWeeklyMealPlan(input.familyId, input.weekStartDate);
     if (!existing) throw new Error("Weekly meal plan not found.");
     const familyContext = await this.getFamilyContextForPlanning({ familyId: input.familyId, userId: existing.userId, planType: "weekly" } as CreateMealPlanRequest);
@@ -453,7 +484,7 @@ export class WeeklyMealPlanningService {
       }),
     }));
     const changedSlot = nextDays.flatMap((day) => day.meals).find((slot) => slot.slotId === input.slotId);
-    const weeklyGroceryRequirements = weeklyGroceries(nextDays, existing.weekStartDate);
+    const weeklyGroceryRequirements = await weeklyGroceries(nextDays, existing.weekStartDate, existing.userId);
     const nextPlan: WeeklyFamilyMealPlan = {
       ...existing,
       days: nextDays,
@@ -478,7 +509,8 @@ export class WeeklyMealPlanningService {
         ]
         : existing.changeLog,
     };
-    await this.repository.saveWeeklyMealPlan(nextPlan);
+    if (existing.planVersion !== input.expectedPlanVersion) throw new Error("WEEKLY_PLAN_VERSION_CONFLICT");
+    await this.repository.saveWeeklyMealPlan(nextPlan, input.expectedPlanVersion);
     return { weeklyPlan: nextPlan };
   }
 }

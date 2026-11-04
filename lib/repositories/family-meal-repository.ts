@@ -1,4 +1,4 @@
-import { DeleteCommand, GetCommand, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { DeleteCommand, GetCommand, PutCommand, QueryCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 import { createId } from "./in-memory-store";
 import { getMamaAiTableName, mamaAiDynamoDb } from "./dynamodb-client";
 import type { Family, FamilyMealPlan, FamilyMember, WeeklyFamilyMealPlan } from "@/lib/shared/contracts";
@@ -158,38 +158,49 @@ export class FamilyMealRepository {
     return response.Item?.record as FamilyMealPlan | undefined;
   }
 
-  async saveWeeklyMealPlan(plan: WeeklyFamilyMealPlan): Promise<WeeklyFamilyMealPlan> {
+  async saveWeeklyMealPlan(plan: WeeklyFamilyMealPlan, expectedVersion?: number): Promise<WeeklyFamilyMealPlan> {
     const updatedAt = nowIso();
-    await mamaAiDynamoDb.send(
-      new PutCommand({
-        TableName: getMamaAiTableName(),
-        Item: {
-          PK: familyPk(plan.familyId),
-          SK: `WEEKLY_PLAN#${plan.weekStartDate}`,
-          GSI1PK: `FAMILY_WEEKLY_PLANS#${plan.familyId}`,
-          GSI1SK: `${plan.weekStartDate}#${plan.planVersion}`,
-          GSI2PK: `WEEKLY_PLAN_DATE#${plan.weekStartDate}`,
-          GSI2SK: updatedAt,
-          entityType: "weekly_meal_plan",
-          record: plan,
-          updatedAt,
-        },
-      })
-    );
+    const PK = familyPk(plan.familyId);
+    const header = { ...plan, days: [] };
+    const records = plan.days.map((day) => ({
+      PK,
+      SK: `WEEKLY_PLAN_DAY#${plan.weekStartDate}#${day.date}`,
+      entityType: "weekly_meal_plan_day",
+      weekPlanId: plan.weekPlanId,
+      planVersion: plan.planVersion,
+      record: day,
+      updatedAt,
+    }));
+    const all = [header, ...records];
+    for (const item of all) {
+      if (Buffer.byteLength(JSON.stringify(item), "utf8") >= 400 * 1024) throw new Error("WEEKLY_PLAN_RECORD_TOO_LARGE");
+    }
+    // Header plus seven days fits comfortably under DynamoDB's 25-item transaction limit.
+    const headerPut = { TableName: getMamaAiTableName(), Item: { PK, SK: `WEEKLY_PLAN#${plan.weekStartDate}`, GSI1PK: `FAMILY_WEEKLY_PLANS#${plan.familyId}`, GSI1SK: `${plan.weekStartDate}#${plan.planVersion}`, GSI2PK: `WEEKLY_PLAN_DATE#${plan.weekStartDate}`, GSI2SK: updatedAt, entityType: "weekly_meal_plan_header", record: header, complete: true, updatedAt }, ...(expectedVersion === undefined ? { ConditionExpression: "attribute_not_exists(PK)" } : { ConditionExpression: "#record.#version = :expected", ExpressionAttributeNames: { "#record": "record", "#version": "planVersion" }, ExpressionAttributeValues: { ":expected": expectedVersion } }) };
+    try { await mamaAiDynamoDb.send(new TransactWriteCommand({
+      TransactItems: [
+        { Put: headerPut },
+        ...records.map((Item) => ({ Put: { TableName: getMamaAiTableName(), Item } })),
+      ],
+    })); } catch (error) { if ((error as { name?: string }).name === "TransactionCanceledException") throw new Error("WEEKLY_PLAN_VERSION_CONFLICT"); throw error; }
     return plan;
   }
 
   async getWeeklyMealPlan(familyId: string, weekStartDate: string): Promise<WeeklyFamilyMealPlan | undefined> {
-    const response = await mamaAiDynamoDb.send(
-      new GetCommand({
-        TableName: getMamaAiTableName(),
-        Key: {
-          PK: familyPk(familyId),
-          SK: `WEEKLY_PLAN#${weekStartDate}`,
-        },
-      })
-    );
-    return response.Item?.record as WeeklyFamilyMealPlan | undefined;
+    const PK = familyPk(familyId);
+    const response = await mamaAiDynamoDb.send(new GetCommand({ TableName: getMamaAiTableName(), Key: { PK, SK: `WEEKLY_PLAN#${weekStartDate}` } }));
+    const record = response.Item?.record as WeeklyFamilyMealPlan | undefined;
+    if (!record) return undefined;
+    // Legacy single-item records already contain days.
+    if (record.days.length) return record;
+    if (!response.Item?.complete) return undefined;
+    const daysResponse = await mamaAiDynamoDb.send(new QueryCommand({ TableName: getMamaAiTableName(), KeyConditionExpression: "PK = :pk AND begins_with(SK, :day)", ExpressionAttributeValues: { ":pk": PK, ":day": `WEEKLY_PLAN_DAY#${weekStartDate}#` } }));
+    const days = (daysResponse.Items ?? []).filter((item) => item.weekPlanId === record.weekPlanId && item.planVersion === record.planVersion).map((item) => item.record as WeeklyFamilyMealPlan["days"][number]).sort((a, b) => a.date.localeCompare(b.date));
+    if (days.length !== 7) return undefined;
+    return {
+      ...record,
+      days,
+    };
   }
 
   async tryBeginWeeklyMealPlanGeneration(familyId: string, weekStartDate: string): Promise<boolean> {

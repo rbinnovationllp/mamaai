@@ -15,6 +15,9 @@ export interface CustomerDataExport {
   feedback: unknown[];
   mealPlans: unknown[];
   weeklyPlans: unknown[];
+  petProfiles: unknown[];
+  petPantry: unknown[];
+  petSchedules: unknown[];
   exclusions: Array<{ data: string; reason: string }>;
 }
 
@@ -41,9 +44,10 @@ export class CustomerDataRepository {
   async exportForVerifiedUser(userId: string): Promise<CustomerDataExport> {
     const profiles = new CustomerProfileRepository();
     const subscriptions = new SubscriptionRepository();
-    const [account, familyProfile, pantry, subscriptionHistory, payments, feedback] = await Promise.all([
+    const [account, familyProfile, pantry, subscriptionHistory, payments, feedback, petProfiles, petPantry, petSchedules] = await Promise.all([
       profiles.getCustomer(userId), profiles.getFamilyProfile(userId), new PantryRepository().listForUser(userId),
       query("SUBSCRIPTION#", userId), subscriptions.listPaymentHistoryForUser(userId, 50), query("LEARNING_EVENT#", userId),
+      query("PET_PROFILE#", userId), query("PET_PANTRY#", userId), query("PET_SCHEDULE#", userId),
     ]);
     const familyId = familyProfile?.familyId;
     const [mealPlans, weeklyPlans] = familyId ? await Promise.all([
@@ -51,7 +55,7 @@ export class CustomerDataRepository {
     ]) : [[], []];
     return {
       generatedAt: new Date().toISOString(), userId, account, familyProfile, pantry, subscriptions: subscriptionHistory,
-      payments, feedback, mealPlans, weeklyPlans,
+      payments, feedback, mealPlans, weeklyPlans, petProfiles, petPantry, petSchedules,
       exclusions: [
         { data: "session tokens and token hashes", reason: "Security credentials are never exported." },
         { data: "provider-side payment records", reason: "Request these from the payment provider under its process." },

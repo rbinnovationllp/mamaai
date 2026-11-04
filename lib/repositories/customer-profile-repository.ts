@@ -1,6 +1,7 @@
-import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, PutCommand, QueryCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 import { getMamaAiTableName, mamaAiDynamoDb } from "./dynamodb-client";
 import { createId } from "./in-memory-store";
+export class HouseholdReplacementError extends Error { constructor(public code:"HOUSEHOLD_REPLACEMENT_COOLDOWN_ACTIVE"|"HOUSEHOLD_REPLACEMENT_CONFLICT", public allowedAfter?:string){super(code);} }
 import type {
   DayWiseFoodRoutinePreference,
   DayAttendancePlan,
@@ -38,7 +39,10 @@ export interface CustomerFamilyMemberProfile {
   relation: string;
   age?: number;
   activityLevel?: "sedentary" | "light" | "moderate" | "heavy" | "athlete";
-  foodPreference?: "vegetarian" | "eggetarian" | "non_vegetarian" | "semi_vegetarian" | "vegan" | "other";
+  foodPreference?: "vegetarian" | "eggetarian" | "non_vegetarian" | "semi_vegetarian" | "vegan" | "pescatarian" | "jain" | "other";
+  dietaryPermissions?: { eggs?: boolean; fish?: boolean; shellfish?: boolean; poultry?: boolean; redMeat?: boolean; otherMeat?: boolean; onion?: boolean; garlic?: boolean; rootVegetables?: boolean };
+  weekdayDietRules?: Array<{ day?: string; fasting?: boolean; vegetarianOnly?: boolean; exclude?: string[] }>;
+  festivalDietRules?: Array<{ name?: string; confirmedByCustomer?: true; from?: string; to?: string; exclude?: string[] }>;
   nonVegFrequency?: "occasionally" | "1_2_days_per_week" | "3_4_days_per_week" | "4_5_days_per_week" | "most_days" | "custom";
   nonVegAvoidDays?: string[];
   nonVegCustomRule?: string;
@@ -46,6 +50,12 @@ export interface CustomerFamilyMemberProfile {
   doctorAdvisedRestrictions: string[];
   dislikes: string[];
   mealStrategyPreference: "common" | "allow_separate";
+  scheduleRole?: "school_going" | "working" | "other";
+  attendanceDays?: string[];
+  holidayOrLeaveDates?: string[];
+  tiffinPreferences?: string[];
+  packingStorageLimitations?: string[];
+  preferredPreparationTime?: string;
 }
 
 export interface CustomerFamilyProfileRecord {
@@ -64,6 +74,18 @@ function nowIso() {
 }
 
 export class CustomerProfileRepository {
+  async getPendingHouseholdException(userId: string) { const result=await mamaAiDynamoDb.send(new QueryCommand({TableName:getMamaAiTableName(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :prefix)",ExpressionAttributeValues:{":pk":`USER#${userId}`,":prefix":"HOUSEHOLD_EXCEPTION#"}})); return (result.Items??[]).map(item=>item.record).find((record:any)=>record?.status==="PENDING"); }
+  async createHouseholdException(input:{userId:string;familyId:string;reason:string;requestId:string;createdAt:string}) { const record={requestId:input.requestId,userId:input.userId,familyId:input.familyId,reason:input.reason,status:"PENDING" as const,createdAt:input.createdAt}; await mamaAiDynamoDb.send(new TransactWriteCommand({TransactItems:[{Put:{TableName:getMamaAiTableName(),Item:{PK:`USER#${input.userId}`,SK:"HOUSEHOLD_EXCEPTION#PENDING",entityType:"household_exception_pending_lock",record},ConditionExpression:"attribute_not_exists(PK)"}},{Put:{TableName:getMamaAiTableName(),Item:{PK:`USER#${input.userId}`,SK:`HOUSEHOLD_EXCEPTION#${input.requestId}`,entityType:"household_exception",record},ConditionExpression:"attribute_not_exists(PK)"}},{Put:{TableName:getMamaAiTableName(),Item:{PK:`USER#${input.userId}`,SK:`HOUSEHOLD_EXCEPTION_AUDIT#${input.createdAt}#${input.requestId}`,entityType:"household_exception_audit",event:"submitted",createdAt:input.createdAt},ConditionExpression:"attribute_not_exists(PK)"}}]})); return record; }
+  async replaceFamilyProfile(input: { userId: string; expectedVersion: number; previous: CustomerFamilyProfileRecord; members: CustomerFamilyMemberProfile[]; reason: string; replacementId: string; now: string; cooldownUntil: string; }) {
+    const next: CustomerFamilyProfileRecord & { replacementVersion: number; replacedAt: string; replacementReason: string } = { ...input.previous, members: input.members, memberCount: input.members.length, suggestedPlan: input.members.length >= 7 ? "family_plus" : input.members.length >= 5 ? "premium" : "starter", updatedAt: input.now, replacementVersion: input.expectedVersion + 1, replacedAt: input.now, replacementReason: input.reason };
+    try { await mamaAiDynamoDb.send(new TransactWriteCommand({ TransactItems: [
+      { Put: { TableName: getMamaAiTableName(), Item: { PK: `USER#${input.userId}`, SK: "FAMILY_PROFILE#CURRENT", entityType: "customer_family_profile", record: next, updatedAt: input.now }, ConditionExpression: "attribute_not_exists(#record.#replacementVersion) OR #record.#replacementVersion = :version", ExpressionAttributeNames: { "#record": "record", "#replacementVersion": "replacementVersion" }, ExpressionAttributeValues: { ":version": input.expectedVersion } } },
+      { Put: { TableName: getMamaAiTableName(), Item: { PK: `USER#${input.userId}`, SK: `FAMILY_PROFILE#HISTORY#${input.replacementId}`, entityType: "customer_family_profile_history", record: input.previous, replacedAt: input.now, replacementReason: input.reason }, ConditionExpression: "attribute_not_exists(PK)" } },
+      { Put: { TableName: getMamaAiTableName(), Item: { PK: `USER#${input.userId}`, SK: `HOUSEHOLD_AUDIT#${input.now}#${input.replacementId}`, entityType: "household_replacement_audit", event: "household_replaced", reason: input.reason, createdAt: input.now }, ConditionExpression: "attribute_not_exists(PK)" } },
+      { Put: { TableName: getMamaAiTableName(), Item: { PK: `ACCOUNT#${input.userId}`, SK: "HOUSEHOLD_REPLACEMENT", entityType: "household_replacement_cooldown", replacementId: input.replacementId, allowedAfter: input.cooldownUntil, createdAt: input.now }, ConditionExpression: "attribute_not_exists(PK) OR allowedAfter <= :now", ExpressionAttributeValues: { ":now": input.now } } },
+    ] })); } catch(error) { const reasons=(error as {CancellationReasons?:Array<{Code?:string}>}).CancellationReasons; if((error as {name?:string}).name==="TransactionCanceledException"&&reasons){if(reasons[3]?.Code==="ConditionalCheckFailed") throw new HouseholdReplacementError("HOUSEHOLD_REPLACEMENT_COOLDOWN_ACTIVE");if(reasons[0]?.Code==="ConditionalCheckFailed") throw new HouseholdReplacementError("HOUSEHOLD_REPLACEMENT_CONFLICT");} throw error; }
+    return next;
+  }
   async upsertCustomer(input: {
     userId: string;
     name: string;

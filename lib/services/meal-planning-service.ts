@@ -233,7 +233,9 @@ export class MealPlanningService {
 
     try {
       const existingPlan = await this.repository.getMealPlan(`${request.familyId}-${targetDate}`);
-      if (existingPlan && existingPlan.commonMeal.mealTime === targetSlot) {
+      const excludedNames = new Set((request.excludeDishes ?? []).map((dish) => dish.trim().toLowerCase()));
+      const cachedMealIsExcluded = existingPlan && excludedNames.has(existingPlan.commonMeal.name.trim().toLowerCase());
+      if (existingPlan && !cachedMealIsExcluded && existingPlan.commonMeal.mealTime === targetSlot) {
         const existingSafety = this.safetyValidationService.validateMealPlan(existingPlan, familyContext.members);
         if (!existingSafety.ok) throw new Error(`Existing meal plan failed safety validation: ${[...existingSafety.errors, ...existingSafety.warnings].join(" ")}`);
         return {

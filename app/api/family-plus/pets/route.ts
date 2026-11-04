@@ -1,0 +1,10 @@
+import { NextResponse } from "next/server";
+import { ZodError } from "zod";
+import { authErrorResponse, requireUser } from "@/lib/server/auth";
+import { FamilyPlusEntitlementError, requireFamilyPlusEntitlement } from "@/lib/pets/family-plus-entitlement";
+import { getFamilyPlusPetLimit, petProfileInputSchema } from "@/lib/pets/contracts";
+import { PetCaregiverValidationError, validatePetCaregivers } from "@/lib/pets/caregiver-validation";
+import { PetProfileRepository } from "@/lib/repositories/pet-profile-repository";
+function errorResponse(error: unknown) { const auth = authErrorResponse(error); if (auth) return auth; if (error instanceof FamilyPlusEntitlementError) return NextResponse.json({ error: { code: "FAMILY_PLUS_REQUIRED", message: error.message } }, { status: 403 }); if (error instanceof PetCaregiverValidationError) return NextResponse.json({ error: { code: "INVALID_CAREGIVER", message: error.message } }, { status: 400 }); if (error instanceof ZodError) return NextResponse.json({ error: { code: "PET_PROFILE_INVALID", details: error.issues } }, { status: 400 }); return NextResponse.json({ error: { code: "PET_PROFILE_UNAVAILABLE" } }, { status: 503 }); }
+export async function GET(request: Request) { try { const user = await requireUser(request); await requireFamilyPlusEntitlement(user.userId); return NextResponse.json({ pets: await new PetProfileRepository().listForUser(user.userId) }); } catch (error) { return errorResponse(error); } }
+export async function POST(request: Request) { try { const user = await requireUser(request); await requireFamilyPlusEntitlement(user.userId); const input = petProfileInputSchema.parse(await request.json()); await validatePetCaregivers(user.userId, input); const repository = new PetProfileRepository(); if ((await repository.listForUser(user.userId)).length >= getFamilyPlusPetLimit()) return NextResponse.json({ error: { code: "PET_PROFILE_LIMIT_REACHED" } }, { status: 409 }); return NextResponse.json({ pet: await repository.createForUser(user.userId, input) }, { status: 201 }); } catch (error) { return errorResponse(error); } }

@@ -47,8 +47,14 @@ web_modules/
 
 # Next.js, Vercel & Build Caches
 .next/
+.next-dev/
+.next-qa-*/
 .next.locked-*
 .vercel/
+playwright-report/
+test-results/
+playwright/.auth/
+.qa/
 
 # Other framework/build output
 dist/
@@ -63,3 +69,5 @@ dist/
 # Package & Editor artifacts
 *.tgz
 .vscode-test/
+.vercel
+.env*

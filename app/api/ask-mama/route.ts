@@ -46,12 +46,38 @@ interface RequestPayload {
       allergies?: string[];
       doctorAdvisedRestrictions?: string[];
       dislikes?: string[];
+      fastingPreference?: {
+        observesFasting?: "no" | "yes" | "occasionally";
+        regularDays?: string[];
+        allowedFoods?: string[];
+        avoidedFoods?: string[];
+        fruitsAllowed?: boolean;
+        dairyAllowed?: boolean;
+        grainsRestricted?: boolean;
+        customRules?: string[];
+      };
+      scheduleRole?: "school_going" | "working" | "other";
+      tiffinPreferences?: string[];
     }>;
   };
 }
 
 function safetyMembersFromProfile(profile: any): FamilyMember[] {
-  return (profile?.members ?? []).filter((member: any) => member?.name).map((member: any, index: number) => ({ memberId: member.id || `ask-mama-member-${index}`, familyId: profile.familyId || "ask-mama-family", name: member.name, relationship: member.relation || "Family member", age: typeof member.age === "number" ? member.age : 30, gender: "prefer_not_to_say", activityLevel: member.activityLevel || "moderate", goals: [], dietType: /jain/i.test(member.foodPreference || "") ? "jain" : /vegan/i.test(member.foodPreference || "") ? "vegan" : /eggitarian/i.test(member.foodPreference || "") ? "eggitarian" : /non.?veg/i.test(member.foodPreference || "") ? "non_vegetarian" : "vegetarian", dislikedMeals: member.dislikes || [], excludedIngredients: [], dietaryRestrictions: member.doctorAdvisedRestrictions || [], healthConditions: [], doctorRestrictions: member.doctorAdvisedRestrictions || [], specialStatuses: [], allergies: member.allergies || [], foodAllergies: member.allergies || [], ingredientAllergies: member.allergies || [], fastingPreference: { observesFasting: "no", regularDays: [], allowedFoods: [], avoidedFoods: [], fruitsAllowed: true, dairyAllowed: true, grainsRestricted: false, customRules: [] } }));
+  return (profile?.members ?? []).filter((member: any) => member?.name).map((member: any, index: number) => {
+    const fasting = member.fastingPreference;
+    return {
+      memberId: member.id || `ask-mama-member-${index}`, familyId: profile.familyId || "ask-mama-family", name: member.name, relationship: member.relation || "Family member", age: typeof member.age === "number" ? member.age : 30, gender: "prefer_not_to_say", activityLevel: member.activityLevel || "moderate", goals: [], dietType: /jain/i.test(member.foodPreference || "") ? "jain" : /vegan/i.test(member.foodPreference || "") ? "vegan" : /eggitarian/i.test(member.foodPreference || "") ? "eggitarian" : /non.?veg/i.test(member.foodPreference || "") ? "non_vegetarian" : "vegetarian", dislikedMeals: member.dislikes || [], excludedIngredients: [], dietaryRestrictions: member.doctorAdvisedRestrictions || [], healthConditions: [], doctorRestrictions: member.doctorAdvisedRestrictions || [], specialStatuses: [], allergies: member.allergies || [], foodAllergies: member.allergies || [], ingredientAllergies: member.allergies || [], scheduleRole: member.scheduleRole, tiffinPreferences: member.tiffinPreferences || [], fastingPreference: {
+        observesFasting: fasting?.observesFasting === "yes" || fasting?.observesFasting === "occasionally" ? fasting.observesFasting : "no",
+        regularDays: Array.isArray(fasting?.regularDays) ? fasting.regularDays : [],
+        allowedFoods: Array.isArray(fasting?.allowedFoods) ? fasting.allowedFoods : [],
+        avoidedFoods: Array.isArray(fasting?.avoidedFoods) ? fasting.avoidedFoods : [],
+        fruitsAllowed: fasting?.fruitsAllowed !== false,
+        dairyAllowed: fasting?.dairyAllowed !== false,
+        grainsRestricted: fasting?.grainsRestricted === true,
+        customRules: Array.isArray(fasting?.customRules) ? fasting.customRules : [],
+      },
+    };
+  });
 }
 function getLocalizedSuggestions(language: AppLanguage): string[] {
   switch (language) {
@@ -161,6 +187,32 @@ export async function POST(request: Request) {
         throw error;
       }
     }
+
+    // Prefer a reviewed local answer for recognised product-help questions. This
+    // keeps visitor support useful when an AI provider is unavailable and avoids
+    // presenting model output as a source of truth for account or policy flows.
+    if (requestKind === "general") {
+      const localAnswer = answerAskMama(queryText, true, targetLanguage);
+      if (!localAnswer.unresolved) {
+        return NextResponse.json({
+          success: true,
+          role: "model",
+          response: localAnswer.answer,
+          answer: localAnswer.answer,
+          responseLanguage: targetLanguage,
+          category: localAnswer.category,
+          suggestions: localAnswer.suggestions,
+          action:
+            localAnswer.action?.type === "add_family"
+              ? "/profile/family"
+              : localAnswer.action?.type === "try_demo"
+                ? "/#planner"
+                : undefined,
+          unresolved: false,
+          fallbackSource: "reviewed_local_mamaai_knowledge_base",
+        });
+      }
+    }
     const isJudge = Boolean(
       session?.role === "admin" ||
       session?.entitlement === "judge"
@@ -218,8 +270,16 @@ AUTHENTICATED DATABASE STATE:
     }
 
     let safetyMembers: FamilyMember[] = [];
-    if (authenticatedUser?.userId) { try { safetyMembers = safetyMembersFromProfile(await new CustomerProfileRepository().getFamilyProfile(authenticatedUser.userId)); } catch (error) { console.warn("[Ask MAMA] Safety profile lookup failed:", error); } }
-    const clientContext = formatClientContext(body.profileContext);
+    let authorizedProfile: unknown;
+    if (authenticatedUser?.userId) {
+      try {
+        authorizedProfile = await new CustomerProfileRepository().getFamilyProfile(authenticatedUser.userId);
+        safetyMembers = safetyMembersFromProfile(authorizedProfile);
+      } catch (error) { console.warn("[Ask MAMA] Safety profile lookup failed:", error); }
+    }
+    // Personalised guidance for an authenticated user is grounded in the
+    // account profile fetched above. Browser context is only a visitor hint.
+    const clientContext = formatClientContext((authorizedProfile as RequestPayload["profileContext"] | undefined) ?? body.profileContext);
 
     // =========================================================
     // STRICT MULTILINGUAL GENERATIVE PROMPT ORCHESTRATION

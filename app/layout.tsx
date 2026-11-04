@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Analytics } from "@vercel/analytics/next";
+import { AnalyticsConsent } from "@/components/AnalyticsConsent";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { MobilePrimaryNav } from "@/components/MobilePrimaryNav";
 import { AskMamaLauncher } from "@/components/ask-mama/AskMamaLauncher";
@@ -7,7 +7,10 @@ import { Footer } from "@/components/Footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MAMAAI",
+  title: {
+    default: "MAMAAI | Family meal planning",
+    template: "%s | MAMAAI"
+  },
   description: "One Family. Different Needs. One Intelligent Meal Plan.",
   manifest: "/manifest.webmanifest",
   applicationName: "MAMAAI",
@@ -39,7 +42,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <AskMamaLauncher />
           <MobilePrimaryNav />
         </LanguageProvider>
-        <Analytics />
+        <AnalyticsConsent />
       </body>
     </html>
   );

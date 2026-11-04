@@ -267,6 +267,13 @@ binnovationllp@gmail.com.
 - Local build is production-valid after the current milestone.
 - Public Devpost-ready deployment should be verified at `https://mamaai.in` after pushing and Vercel redeploys.
 
+## Tiffin Integration Update — October 26, 2026
+
+- Added authenticated, human-pantry-only Smart Tiffin suggestions at `/tiffin` and `/api/tiffin-suggestions`. The deterministic fallback filters expired pantry items, saved member allergies/restrictions/dislikes, and requested active cooking time; it never deducts pantry stock.
+- Added persisted member school/work schedule, attendance days, leave/holiday dates, tiffin preferences, and packing/storage limits to the saved family-profile contract. Weekly planning now carries those fields into its planning context and omits school/office slots with no eligible member.
+- The supplied authoritative reference-plan path `docs/reference-meal-plans/healthy-vegetarian-family-weekly-plan.md` was not present in this checkout. The requested complete reference fixture therefore remains blocked rather than being fabricated.
+- Verification for this update: `npm test` passed 71 tests; `npx tsc --noEmit --incremental false --pretty false`, `npm run lint`, and `npm run build` completed successfully. Browser verification remains unavailable because local browser use is disabled in this Work environment.
+
 
 
 - Fixed Try Demo/Judge Access CTA behavior so it visibly loads demo data, shows loading/failure state, and scrolls users into the live planner.
@@ -312,3 +319,24 @@ Features demonstrated truthfully:
 Remaining screenshot caveat:
 
 - Several final images are truthful diagrams/feature graphics, not raw live screenshots, because the current app does not expose every concept as a clean standalone public UI screen and because some capabilities remain beta/prototype/test-mode. These are labelled accordingly in the image status chips and manifest.
+
+## Pet profiles and separate pet meal plans — October 30, 2026
+
+- Existing work already provided authenticated, owner-scoped DynamoDB pet profiles, pet pantry records, feeding schedules, species checks, allergy checks, unsafe-ingredient screening, and customer-data export coverage. Pet access remains intentionally restricted to the existing Family+ entitlement.
+- The family-profile view now identifies cats and dogs as optional, separate household records and links to pet profile management. Pet onboarding accepts a name and species while allowing age, weight, food preferences, allergies, current food, and veterinarian dietary instructions to be skipped when unknown.
+- The human planner now displays a separate **Pet Meal Plan** when the signed-in Family+ account has pet profiles. It is deterministic: it selects a species/life-stage appropriate complete-food reminder, preserves recorded allergies and veterinarian instructions, never suggests human leftovers or homemade recipes as a complete diet, and never invents feeding quantities.
+- Medical conditions, a veterinary/prescription diet, pregnancy, or any special dietary instruction are marked for veterinarian review. Portions must come from the selected product label or a veterinarian.
+- Verification: `npx tsc --noEmit --incremental false --pretty false`, `npm run lint`, `npm test` (114 passing, 0 failed), and `npm run build` completed locally. Browser testing still requires an authenticated Family+ test account and no production deployment is implied.
+
+## Approved preview integration — 4 November 2026
+
+### Completed
+- Integrated the owner-approved source from mamaai-preview-isolated into the main mamaai checkout: 140 added files and 48 updated files.
+- Verified source parity across app, components, lib, public, tests, e2e, scripts, and docs.
+- Installed locked dependencies including required development/build tools.
+- Automated tests passed: 121/121. Production build passed with exit code 0, including its TypeScript check and generation of all 70 static pages.
+- Preserved main environment files and deployment identity. Backups of replaced files and SHA-256 manifest are retained in the integration chat workspace.
+
+### Deployment Status
+- Local source integration complete. No commit, push, or production deployment performed.
+- Live payment/email/authenticated browser journeys and production database compatibility have not been reverified in this integration. Historical preview reports remain historical and are not a fresh launch-readiness certification.

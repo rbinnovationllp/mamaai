@@ -1,0 +1,8 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { requireSameOrigin } from "@/lib/server/request-security";
+import { authErrorResponse, requireUser } from "@/lib/server/auth";
+import { MobilePasswordAuthError, MobilePasswordAuthService } from "@/lib/services/mobile-password-auth-service";
+import { enforceDurableRateLimit, requestIpAddress, RateLimitExceededError } from "@/lib/server/durable-rate-limit";
+const schema=z.object({currentPassword:z.string().min(1).max(256),newPassword:z.string().min(12).max(256),confirmation:z.string().min(1).max(256)});
+export async function POST(request:Request){try{requireSameOrigin(request);const user=await requireUser(request);const body=schema.parse(await request.json());if(body.newPassword!==body.confirmation)return NextResponse.json({error:{code:"PASSWORD_CONFIRMATION_MISMATCH",message:"New passwords do not match."}},{status:400});await Promise.all([enforceDurableRateLimit({scope:"auth_login_ip",key:requestIpAddress(request),limit:5,windowSeconds:900}),enforceDurableRateLimit({scope:"auth_password_user",key:user.userId,limit:5,windowSeconds:900})]);await new MobilePasswordAuthService().changePassword(user.userId,body.currentPassword,body.newPassword);return NextResponse.json({changed:true,reauthenticationRequired:true});}catch(error){const auth=authErrorResponse(error);if(auth)return auth;const status=error instanceof RateLimitExceededError?429:error instanceof MobilePasswordAuthError?error.status:error instanceof z.ZodError?400:500;return NextResponse.json({error:{code:error instanceof MobilePasswordAuthError?error.code:"PASSWORD_CHANGE_FAILED",message:error instanceof Error?error.message:"Password change failed."}},{status});}}

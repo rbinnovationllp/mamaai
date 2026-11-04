@@ -116,7 +116,7 @@ export interface FamilyCuisineProfile {
 
 export type PlanType = "daily" | "weekly" | "monthly";
 
-export type MealTime = "breakfast" | "lunch" | "dinner" | "snack" | "evening_snack" | "high_tea";
+export type MealTime = "breakfast" | "school_tiffin" | "office_tiffin" | "lunch" | "dinner" | "snack" | "evening_snack" | "high_tea";
 
 export type UserPlanningMode = "new_user_next_meal" | "returning_user_weekly_editable";
 
@@ -337,6 +337,10 @@ export interface FamilyMember {
   activityLevel: ActivityLevel;
   goals: string[];
   dietType: DietType;
+  /** Customer-set permissions are safety constraints, not preference weights. */
+  dietaryPermissions?: { eggs?: boolean; fish?: boolean; shellfish?: boolean; poultry?: boolean; redMeat?: boolean; otherMeat?: boolean; onion?: boolean; garlic?: boolean; rootVegetables?: boolean };
+  weekdayDietRules?: Array<{ day: string; fasting?: boolean; vegetarianOnly?: boolean; exclude: string[] }>;
+  festivalDietRules?: Array<{ name: string; confirmedByCustomer: true; from?: string; to?: string; exclude: string[] }>;
   nonVegFrequency?: NonVegetarianFrequency;
   nonVegAvoidDays?: string[];
   nonVegCustomRule?: string;
@@ -353,6 +357,12 @@ export interface FamilyMember {
   doctorRestrictions: string[];
   specialStatuses: string[];
   fastingPreference?: FastingPreference;
+  scheduleRole?: "school_going" | "working" | "other";
+  attendanceDays?: string[];
+  holidayOrLeaveDates?: string[];
+  tiffinPreferences?: string[];
+  packingStorageLimitations?: string[];
+  preferredPreparationTime?: string;
 }
 
 export interface NutritionContext {

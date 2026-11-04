@@ -169,7 +169,7 @@ test('durable sessions isolate concurrent users and fail closed for unavailable 
   assert.equal((await verifyCustomerSession(b.token, repository)).userId, 'customer_b');
   assert.equal(await verifyCustomerSession('eyJ1c2VySWQiOiJjdXN0b21lcl9hIn0', repository), undefined);
   await assert.rejects(() => verifyCustomerSession(a.token, { ...repository, get: async () => { throw new Error('DynamoDB unavailable'); } }));
-  assert.equal(CUSTOMER_SESSION_MAX_AGE_SECONDS, 60 * 60 * 24 * 14);
+  assert.equal(CUSTOMER_SESSION_MAX_AGE_SECONDS, 60 * 60 * 24 * 30);
 });
 
 test('session routes require durable verification, revocation, and secure cookie handling', () => {

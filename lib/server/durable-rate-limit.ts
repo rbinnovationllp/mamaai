@@ -2,7 +2,7 @@ import { createHash, createHmac } from "crypto";
 import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { getMamaAiTableName, mamaAiDynamoDb } from "@/lib/repositories/dynamodb-client";
 
-export type RateLimitScope = "ask_mama_ip" | "ask_mama_user" | "profile_write_ip" | "feedback_user";
+export type RateLimitScope = "ask_mama_ip" | "ask_mama_user" | "profile_write_ip" | "feedback_user" | "auth_login_ip" | "auth_login_mobile" | "auth_register_ip" | "auth_recovery_ip" | "auth_recovery_mobile" | "auth_password_user" | "household_replace_user" | "household_replace_ip";
 
 export class RateLimitExceededError extends Error {
   constructor(public readonly retryAfterSeconds: number) {

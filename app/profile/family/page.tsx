@@ -29,6 +29,12 @@ export interface FamilyMemberProfile {
   doctorAdvisedRestrictions: string[];
   dislikes: string[];
   mealStrategyPreference: 'common' | 'allow_separate';
+  scheduleRole?: 'school_going' | 'working' | 'other';
+  attendanceDays?: string[];
+  holidayOrLeaveDates?: string[];
+  tiffinPreferences?: string[];
+  packingStorageLimitations?: string[];
+  preferredPreparationTime?: string;
 }
 
 type HouseholdFoodPreference = 'vegetarian' | 'eggetarian' | 'non_vegetarian' | 'semi_vegetarian' | 'vegan' | 'mixed' | 'other';
@@ -39,6 +45,7 @@ type MealPreferenceInputs = Record<MealSlot, string>;
 type MealTimingInputs = Required<Record<MealSlot, string>>;
 type NonVegFoodOption = 'chicken' | 'fish' | 'eggs' | 'mutton_goat' | 'seafood';
 type RecentMealHistoryStatus = 'manual' | 'photo' | 'skip';
+const smartHistoryUploadEnabled = process.env.NEXT_PUBLIC_MAMAAI_SMART_HISTORY_UPLOAD_ENABLED === 'true';
 
 const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
 const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
@@ -779,6 +786,11 @@ export default function FamilyProfilePage() {
   const [mealStrategy, setMealStrategy] =
     useState<FamilyMemberProfile['mealStrategyPreference']>('common');
   const [showOptionalMemberDetails, setShowOptionalMemberDetails] = useState(false);
+  const [scheduleRole, setScheduleRole] = useState<NonNullable<FamilyMemberProfile['scheduleRole']>>('other');
+  const [attendanceDays, setAttendanceDays] = useState<string[]>([]);
+  const [holidayOrLeaveDatesInput, setHolidayOrLeaveDatesInput] = useState('');
+  const [tiffinPreferencesInput, setTiffinPreferencesInput] = useState('');
+  const [packingStorageInput, setPackingStorageInput] = useState('');
 
   const uxCopy = {
     en: { optional: 'Optional', moreDetails: 'Add optional details', hideDetails: 'Hide optional details', draftSaved: 'Your progress is saved on this device.', accountOptional: 'Contact details are optional. Add them only if you want them connected to this profile.' },
@@ -960,6 +972,11 @@ export default function FamilyProfilePage() {
       doctorAdvisedRestrictions: splitCsv(doctorInput),
       dislikes: splitCsv(dislikeInput),
       mealStrategyPreference: mealStrategy,
+      scheduleRole,
+      attendanceDays,
+      holidayOrLeaveDates: splitCsv(holidayOrLeaveDatesInput),
+      tiffinPreferences: splitCsv(tiffinPreferencesInput),
+      packingStorageLimitations: splitCsv(packingStorageInput),
     };
 
     setMembers((current) => [...current, newMember]);
@@ -976,11 +993,20 @@ export default function FamilyProfilePage() {
     setNonVegAvoidDays([]);
     setNonVegCustomRule('');
     setMealStrategy('common');
+    setScheduleRole('other');
+    setAttendanceDays([]);
+    setHolidayOrLeaveDatesInput('');
+    setTiffinPreferencesInput('');
+    setPackingStorageInput('');
     setShowOptionalMemberDetails(false);
   };
 
   const handleRemoveMember = (memberId: string) => {
     setMembers((current) => current.filter((member) => member.id !== memberId));
+  };
+
+  const updateMemberTiffin = (memberId: string, patch: Partial<FamilyMemberProfile>) => {
+    setMembers((current) => current.map((member) => member.id === memberId ? { ...member, ...patch } : member));
   };
 
   const handleClearHousehold = () => {
@@ -1354,12 +1380,12 @@ export default function FamilyProfilePage() {
               className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
             >
               <option value="manual">{t.recentHistoryOptions.manual}</option>
-              <option value="photo">{t.recentHistoryOptions.photo}</option>
+              {smartHistoryUploadEnabled ? <option value="photo">{t.recentHistoryOptions.photo}</option> : null}
               <option value="skip">{t.recentHistoryOptions.skip}</option>
             </select>
           </label>
 
-          {recentMealHistoryStatus === 'photo' ? (
+          {smartHistoryUploadEnabled && recentMealHistoryStatus === 'photo' ? (
             <div className="mt-5 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100">
               <h3 className="text-base font-black text-emerald-950">{t.recentHistoryPhotoTitle}</h3>
               <p className="mt-2 text-sm leading-6 text-emerald-900">{t.recentHistoryPhotoHelp}</p>
@@ -1588,6 +1614,12 @@ export default function FamilyProfilePage() {
               </label> : null}
             </div>
 
+            <section className="grid gap-3 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100">
+              <div><h3 className="font-bold text-emerald-950">School or work tiffin schedule</h3><p className="text-xs text-emerald-800">Optional. A school-going or working member can receive a separate tiffin; set regular days and exceptions.</p></div>
+              <label className="grid gap-1 text-sm font-semibold">Status<select value={scheduleRole} onChange={(event) => setScheduleRole(event.target.value as NonNullable<FamilyMemberProfile['scheduleRole']>)} className="rounded-xl border border-emerald-200 bg-white p-3"><option value="other">No regular tiffin</option><option value="school_going">School-going</option><option value="working">Working</option></select></label>
+              {scheduleRole !== 'other' ? <><div className="flex flex-wrap gap-2">{weekdayOptions.map((day) => <button key={day} type="button" onClick={() => setAttendanceDays((current) => current.includes(day) ? current.filter((item) => item !== day) : [...current, day])} className={`rounded-full px-3 py-2 text-xs font-bold ${attendanceDays.includes(day) ? 'bg-emerald-700 text-white' : 'bg-white text-emerald-900 ring-1 ring-emerald-200'}`}>{t.weekdays[day]}</button>)}</div><label className="grid gap-1 text-sm font-semibold">Holiday / leave dates (YYYY-MM-DD, comma separated)<input value={holidayOrLeaveDatesInput} onChange={(event) => setHolidayOrLeaveDatesInput(event.target.value)} className="rounded-xl border border-emerald-200 bg-white p-3" placeholder="2026-10-28" /></label><label className="grid gap-1 text-sm font-semibold">Tiffin food preferences<input value={tiffinPreferencesInput} onChange={(event) => setTiffinPreferencesInput(event.target.value)} className="rounded-xl border border-emerald-200 bg-white p-3" placeholder="soft food, paneer, no onion" /></label><label className="grid gap-1 text-sm font-semibold">Packing / storage limits<input value={packingStorageInput} onChange={(event) => setPackingStorageInput(event.target.value)} className="rounded-xl border border-emerald-200 bg-white p-3" placeholder="insulated bag, no reheating" /></label></> : null}
+            </section>
+
             <label className="grid gap-2">
               <span className="text-sm font-semibold text-slate-700">{t.allergies}</span>
               <VoiceTextInput
@@ -1766,6 +1798,10 @@ export default function FamilyProfilePage() {
                             : ` | ${t.noFixedRestriction}`}
                         </p>
                       ) : null}
+                      <div className="mt-3 grid max-w-sm gap-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-950">
+                        <label className="font-bold">Tiffin schedule<select value={member.scheduleRole ?? 'other'} onChange={(event) => updateMemberTiffin(member.id, { scheduleRole: event.target.value as FamilyMemberProfile['scheduleRole'] })} className="mt-1 w-full rounded-lg border border-emerald-200 bg-white p-2 font-normal"><option value="other">No regular tiffin</option><option value="school_going">School-going</option><option value="working">Working</option></select></label>
+                        {(member.scheduleRole === 'school_going' || member.scheduleRole === 'working') ? <><div className="flex flex-wrap gap-1">{weekdayOptions.map((day) => <button key={day} type="button" onClick={() => updateMemberTiffin(member.id, { attendanceDays: member.attendanceDays?.includes(day) ? member.attendanceDays.filter((item) => item !== day) : [...(member.attendanceDays ?? []), day] })} className={`rounded-full px-2 py-1 text-xs font-bold ${member.attendanceDays?.includes(day) ? 'bg-emerald-700 text-white' : 'bg-white ring-1 ring-emerald-200'}`}>{t.weekdays[day]}</button>)}</div><label className="font-bold">Holiday / leave dates<input value={(member.holidayOrLeaveDates ?? []).join(', ')} onChange={(event) => updateMemberTiffin(member.id, { holidayOrLeaveDates: splitCsv(event.target.value) })} className="mt-1 w-full rounded-lg border border-emerald-200 bg-white p-2 font-normal" placeholder="YYYY-MM-DD" /></label><label className="font-bold">Packing limits<input value={(member.packingStorageLimitations ?? []).join(', ')} onChange={(event) => updateMemberTiffin(member.id, { packingStorageLimitations: splitCsv(event.target.value) })} className="mt-1 w-full rounded-lg border border-emerald-200 bg-white p-2 font-normal" placeholder="insulated bag, no reheating" /></label></> : null}
+                      </div>
                     </div>
 
                     <button
@@ -1798,6 +1834,13 @@ export default function FamilyProfilePage() {
               ))}
             </div>
           )}
+        </section>
+
+        <section className="mb-8 rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-wide text-amber-800">Optional family member</p>
+          <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-950">Cats and dogs</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-700">Add a pet separately from human household members. Their food plan stays separate from family meals and uses only species-appropriate complete food guidance. Unknown details can be skipped.</p>
+          <Link href="/family-plus/pets" className="mt-4 inline-flex rounded-2xl bg-amber-700 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-amber-800">Manage pet profiles</Link>
         </section>
 
         {members.length > 0 && (

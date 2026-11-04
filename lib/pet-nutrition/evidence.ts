@@ -1,0 +1,13 @@
+export type PetSpecies = "dog" | "cat";
+export type PetLifeStage = "growth" | "adult" | "senior" | "unknown";
+export type EvidenceStatus = "verified" | "requires_review" | "inactive";
+export type PetFoodClassification = "verified_complete_food" | "supplementary_or_treat" | "unsafe" | "insufficient_information" | "veterinary_review_required";
+export interface EvidenceReference { id: string; source: string; publicationVersion: string; url: string; licenseStatus: "public_guidance" | "manufacturer_label" | "license_required"; lastReviewed: string; status: EvidenceStatus; }
+export interface PetNutritionRule { id: string; species: PetSpecies[]; lifeStages: PetLifeStage[]; category: "toxicity" | "product_label" | "medical_escalation" | "household_food"; ingredients: string[]; classification: PetFoodClassification; explanation: string; evidence: EvidenceReference; }
+export const PET_NUTRITION_EVIDENCE_VERSION = "2026-10-25";
+const publicEvidence = (id: string, source: string, publicationVersion: string, url: string): EvidenceReference => ({ id, source, publicationVersion, url, licenseStatus: "public_guidance", lastReviewed: PET_NUTRITION_EVIDENCE_VERSION, status: "verified" });
+export const petNutritionRules: PetNutritionRule[] = [
+  { id: "dog-cat-allium", species: ["dog", "cat"], lifeStages: ["growth", "adult", "senior", "unknown"], category: "toxicity", ingredients: ["onion", "garlic", "chives", "leek"], classification: "unsafe", explanation: "Known allium exposure must not be recommended; contact a veterinarian or poison-control resource for an exposure concern.", evidence: publicEvidence("aspca-toxicology", "ASPCA Animal Poison Control", "current public guidance", "https://www.aspca.org/pet-care/aspca-poison-control") },
+  { id: "dog-cat-xylitol", species: ["dog", "cat"], lifeStages: ["growth", "adult", "senior", "unknown"], category: "toxicity", ingredients: ["xylitol", "birch sugar"], classification: "unsafe", explanation: "Do not recommend products containing xylitol/birch sugar.", evidence: publicEvidence("aspca-toxicology", "ASPCA Animal Poison Control", "current public guidance", "https://www.aspca.org/pet-care/aspca-poison-control") },
+  { id: "cat-lily", species: ["cat"], lifeStages: ["growth", "adult", "senior", "unknown"], category: "toxicity", ingredients: ["lily"], classification: "unsafe", explanation: "Lily exposure requires urgent veterinary/poison-control advice; it is never a food suggestion.", evidence: publicEvidence("aspca-toxicology", "ASPCA Animal Poison Control", "current public guidance", "https://www.aspca.org/pet-care/aspca-poison-control") },
+];

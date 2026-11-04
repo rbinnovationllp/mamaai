@@ -39,6 +39,29 @@ test('meal persistence is awaited before success', () => {
   assert.doesNotMatch(source, /saveMealPlan\(finalizedMealPlan\)\.catch/);
 });
 
+test('saved weekly plans refresh the owner-scoped shopping list only after success', () => {
+  const planner = read('app/planner/page.tsx');
+  assert.match(planner, /weekly-shopping-list/);
+  assert.match(planner, /action: 'refresh'/);
+  assert.match(planner, /Weekly shopping-list refresh failed after a saved plan/);
+});
+
+test('hybrid planning contract is provider-independent and validates candidate references', () => {
+  const contract = read('lib/ai/hybrid-planning-contract.ts');
+  assert.match(contract, /export interface HybridPlanningProvider/);
+  assert.match(contract, /validateHybridRecommendations/);
+  assert.doesNotMatch(contract, /GoogleGenerativeAI|GEMINI_API_KEY|fetch\(/);
+});
+
+test('family schema keeps legacy profiles valid while allowing explicit mixed-diet permissions', () => {
+  const schema = read('lib/shared/family-member-schema.ts');
+  assert.match(schema, /dietaryPermissions:permissionSchema/);
+  assert.match(schema, /weekdayDietRules/);
+  assert.match(schema, /festivalDietRules/);
+  assert.match(schema, /"pescatarian","jain"/);
+  assert.match(read('lib/food/dietary-permissions.ts'), /preference==='vegetarian'/);
+});
+
 
 
 test('Ask MAMA uses durable per-IP and per-user rate limits and fails closed on storage errors', () => {

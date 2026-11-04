@@ -9,6 +9,7 @@ import type {
 import { createId, nowIso } from "@/lib/repositories/in-memory-store";
 import { SubscriptionRepository } from "@/lib/repositories/subscription-repository";
 import { SubscriptionService, subscriptionLimits } from "./subscription-service";
+import { isIsolatedRuntime } from "@/lib/server/isolated-runtime-safety";
 
 type RazorpaySubscriptionEvent =
   | "subscription.activated"
@@ -98,12 +99,14 @@ export class RazorpayService {
   private subscriptionRepository = new SubscriptionRepository();
 
   isConfiguredForSubscriptions(plan: SubscriptionPlan) {
+    if (isIsolatedRuntime()) return false;
     const keys = configuredRazorpayKey();
     const planDefinition = new SubscriptionService().getPlan(plan);
     return Boolean(keys.keyId && keys.keySecret && planDefinition.razorpayPlanId);
   }
 
   async createSubscription(input: CreateRazorpaySubscriptionInput) {
+    if (isIsolatedRuntime()) return { configured: false, message: "Payments are disabled in this isolated environment.", requiredEnvironment: [] };
     const keys = configuredRazorpayKey();
     const planDefinition = new SubscriptionService().getPlan(input.plan);
     const isInternational = input.billingMarket === "INT";
@@ -188,6 +191,7 @@ export class RazorpayService {
     razorpaySubscriptionId: string;
     cancelAtCycleEnd: boolean;
   }) {
+    if (isIsolatedRuntime()) return { configured: false, message: "Payments are disabled in this isolated environment." };
     const keys = configuredRazorpayKey();
     if (!keys.keyId || !keys.keySecret) {
       return {
@@ -235,6 +239,7 @@ export class RazorpayService {
     razorpaySubscriptionId: string;
     razorpaySignature: string;
   }) {
+    if (isIsolatedRuntime()) return false;
     const secret = process.env.RAZORPAY_KEY_SECRET;
     if (!secret) return false;
 
@@ -252,6 +257,7 @@ export class RazorpayService {
   }
 
   verifyWebhookSignature(rawBody: string, signature: string | null) {
+    if (isIsolatedRuntime()) return false;
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
     if (!secret || !signature) return false;
     const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
@@ -264,6 +270,7 @@ export class RazorpayService {
   }
 
   async resolveProviderPlan(razorpaySubscriptionId: string) {
+    if (isIsolatedRuntime()) throw new Error("Payments are disabled in this isolated environment.");
     const keys = configuredRazorpayKey();
     if (!keys.keyId || !keys.keySecret) throw new Error("Razorpay credentials are not configured.");
     const response = await fetch(`https://api.razorpay.com/v1/subscriptions/${encodeURIComponent(razorpaySubscriptionId)}`, {
@@ -346,4 +353,7 @@ export class RazorpayService {
     });
   }
 }
+
+
+
 

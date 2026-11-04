@@ -127,6 +127,9 @@ export async function POST(request: Request) {
     const authResponse = authErrorResponse(error);
     if (authResponse) return authResponse;
 
+    if (process.env.MAMA_AI_LOCAL_QA === "true") {
+      console.error("LOCAL_QA_MEAL_PLAN_ERROR", error instanceof Error ? { name: error.name, message: error.message } : { name: "unknown" });
+    }
     console.error(`[MealPlan Route Uncaught Error] RequestID: ${requestId}:`, error);
 
     return NextResponse.json(

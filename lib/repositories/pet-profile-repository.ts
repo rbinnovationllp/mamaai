@@ -1,0 +1,14 @@
+import { DeleteCommand, GetCommand, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { createId } from "./in-memory-store";
+import { getMamaAiTableName, mamaAiDynamoDb } from "./dynamodb-client";
+import type { PetProfileInput, PetProfileRecord } from "@/lib/pets/contracts";
+
+function nowIso() { return new Date().toISOString(); }
+function keys(userId: string, petId: string) { return { PK: `USER#${userId}`, SK: `PET_PROFILE#${petId}` }; }
+export class PetProfileRepository {
+  async listForUser(userId: string): Promise<PetProfileRecord[]> { const result = await mamaAiDynamoDb.send(new QueryCommand({ TableName: getMamaAiTableName(), KeyConditionExpression: "PK = :pk AND begins_with(SK, :prefix)", ExpressionAttributeValues: { ":pk": `USER#${userId}`, ":prefix": "PET_PROFILE#" } })); return (result.Items ?? []).map((item) => item.record as PetProfileRecord | undefined).filter((item): item is PetProfileRecord => Boolean(item)).sort((a, b) => a.name.localeCompare(b.name)); }
+  async getForUser(userId: string, petId: string): Promise<PetProfileRecord | undefined> { const result = await mamaAiDynamoDb.send(new GetCommand({ TableName: getMamaAiTableName(), Key: keys(userId, petId) })); return result.Item?.record as PetProfileRecord | undefined; }
+  async createForUser(userId: string, input: PetProfileInput): Promise<PetProfileRecord> { const timestamp = nowIso(); const record: PetProfileRecord = { ...input, petId: createId("pet"), userId, createdAt: timestamp, updatedAt: timestamp }; await mamaAiDynamoDb.send(new PutCommand({ TableName: getMamaAiTableName(), Item: { ...keys(userId, record.petId), GSI1PK: `USER_PET_PROFILES#${userId}`, GSI1SK: `${record.name.toLowerCase()}#${record.petId}`, entityType: "pet_profile", record, updatedAt: timestamp }, ConditionExpression: "attribute_not_exists(PK)" })); return record; }
+  async updateForUser(userId: string, petId: string, input: PetProfileInput): Promise<PetProfileRecord | undefined> { const existing = await this.getForUser(userId, petId); if (!existing) return undefined; const record: PetProfileRecord = { ...input, petId, userId, createdAt: existing.createdAt, updatedAt: nowIso() }; await mamaAiDynamoDb.send(new PutCommand({ TableName: getMamaAiTableName(), Item: { ...keys(userId, petId), GSI1PK: `USER_PET_PROFILES#${userId}`, GSI1SK: `${record.name.toLowerCase()}#${petId}`, entityType: "pet_profile", record, updatedAt: record.updatedAt }, ConditionExpression: "attribute_exists(PK)" })); return record; }
+  async deleteForUser(userId: string, petId: string): Promise<boolean> { const existing = await this.getForUser(userId, petId); if (!existing) return false; await mamaAiDynamoDb.send(new DeleteCommand({ TableName: getMamaAiTableName(), Key: keys(userId, petId), ConditionExpression: "attribute_exists(PK)" })); return true; }
+}

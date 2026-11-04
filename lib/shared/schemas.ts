@@ -24,6 +24,8 @@ export const kitchenProfileSchema = z.object({
 
 export const mealTimeSchema = z.enum([
   "breakfast",
+  "school_tiffin",
+  "office_tiffin",
   "lunch",
   "dinner",
   "snack",

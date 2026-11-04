@@ -1,0 +1,16 @@
+/** Immutable, fictional demonstration derived only from the approved reference plan.
+ * It deliberately contains no ingredient weights and is never persisted. */
+export const publicSampleFamily = Object.freeze([
+  ["Father", "66", "Fictional sample; Tuesday fasting; senior-friendly meals"], ["Mother", "66", "Fictional sample; senior-friendly meals"], ["Son", "33", "Fictional sample; weekday office tiffin"], ["Daughter-in-law", "30", "Fictional sample; paneer-rich weekday office tiffin"], ["Granddaughter", "3.5", "Fictional sample; soft, mildly spiced meals; no school tiffin"],
+] as const);
+export type SampleDay = { day: string; breakfast: string; officeTiffin?: string; lunch: string; snacks: string; dinner: string; note?: string };
+export const publicSampleWeek: readonly SampleDay[] = Object.freeze([
+  { day: "Monday", breakfast: "Vegetable poha with curd", officeTiffin: "Multigrain roti, rice, arhar dal, aloo-paneer sabzi, cucumber salad", lunch: "Soft roti, rice, arhar dal, aloo-tamatar-matar, curd", snacks: "Tea, whole-wheat toast and papaya", dinner: "Roti, baingan-aloo, moong dal and cucumber raita" },
+  { day: "Tuesday", breakfast: "Whole-wheat namkeen seviyan with curd", officeTiffin: "Roti, mixed dal, paneer tikka with capsicum and onion", lunch: "Mother and granddaughter: roti, rice, mixed dal, aloo-chole and curd. Father: sabudana khichdi, boiled potato and permitted curd.", snacks: "Tea and fruit chaat", dinner: "Whole-wheat paratha, patta gobhi-aloo-tamatar and cucumber raita", note: "Father follows Tuesday fasting rules." },
+  { day: "Wednesday", breakfast: "Whole-wheat vegetable pasta with a little grated paneer", officeTiffin: "Roti, kadai paneer and cucumber sticks", lunch: "Roti, small rice portion, masoor dal, kadai paneer and steamed vegetables", snacks: "Tea, roasted makhana and soft apple pieces", dinner: "Roti, rice, soybean badi sabzi and plain curd" },
+  { day: "Thursday", breakfast: "Vegetable poha with curd", officeTiffin: "Roti, paneer tikka and aloo-baingan", lunch: "Roti, rice, moong dal, aloo-beans-carrot and curd", snacks: "Tea and pomegranate", dinner: "Roti, dry arbi, arhar dal and lightly cooked greens" },
+  { day: "Friday", breakfast: "Whole-wheat vegetable noodles with curd or milk", officeTiffin: "Whole-wheat paratha, aloo-gobhi-matar and plain curd", lunch: "Roti, aloo-gobhi-matar, moong dal and curd", snacks: "Tea and fruit chaat", dinner: "Roti, baingan sabzi, palak paneer and optional dal" },
+  { day: "Saturday", breakfast: "Masala dosa with vegetable-rich sambar and a little coconut chutney", lunch: "Roti, rice, mixed dal, aloo-palak and cucumber-carrot raita", snacks: "Tea, fruit chaat and a little roasted makhana", dinner: "Roti, aloo-butter paneer, vegetable pulao and cucumber raita", note: "No regular office tiffin scheduled." },
+  { day: "Sunday", breakfast: "Lightly sautéed vegetable idli with sambar or curd", lunch: "Roti, rice, dal, aloo-soybean badi with beans and carrots, and curd", snacks: "Tea and fruit chaat", dinner: "Roti, aloo-methi, moong or masoor dal and cucumber raita", note: "No regular office tiffin scheduled." },
+]);
+export const publicVegetarianAlternatives = Object.freeze(["Vegetable upma with curd", "Moong-dal chilla with chutney", "Vegetable dalia with curd"]);

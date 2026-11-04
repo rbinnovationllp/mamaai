@@ -6,6 +6,7 @@ import { AppPageNav } from '@/components/AppPageNav';
 import { LanguageSelector, useLanguage } from '@/components/LanguageProvider';
 import { MealCard, AlternativeOption } from '@/components/planner/MealCard';
 import { UpcomingMealReminder } from '@/components/planner/UpcomingMealReminder';
+import { PetMealPlan } from '@/components/planner/PetMealPlan';
 import type {
   DayFoodPreference,
   DayAttendancePlan,
@@ -145,6 +146,7 @@ function mealGenerationFailureMessage(language: 'en' | 'hi' | 'kn') {
 }
 
 const dailyScheduleMealTimes: MealTime[] = ['breakfast', 'lunch', 'high_tea', 'dinner'];
+const plannerMealTimes: MealTime[] = ['breakfast', 'school_tiffin', 'office_tiffin', 'lunch', 'high_tea', 'dinner'];
 
 const plannerCopy = {
   en: {
@@ -228,6 +230,8 @@ const plannerCopy = {
     tryAgain: 'Try Again',
     meals: {
       breakfast: 'Breakfast',
+      school_tiffin: 'School Tiffin',
+      office_tiffin: 'Office Tiffin',
       lunch: 'Lunch',
       dinner: 'Dinner',
       evening_snack: 'Evening Snack',
@@ -321,6 +325,8 @@ const plannerCopy = {
     tryAgain: 'फिर से प्रयास करें',
     meals: {
       breakfast: 'नाश्ता',
+      school_tiffin: 'स्कूल टिफिन',
+      office_tiffin: 'ऑफिस टिफिन',
       lunch: 'दोपहर का भोजन',
       dinner: 'रात का खाना',
       evening_snack: 'शाम का नाश्ता',
@@ -414,6 +420,8 @@ const plannerCopy = {
     tryAgain: 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
     meals: {
       breakfast: 'ಉಪಹಾರ',
+      school_tiffin: 'ಶಾಲಾ ಟಿಫಿನ್',
+      office_tiffin: 'ಕಚೇರಿ ಟಿಫಿನ್',
       lunch: 'ಮಧ್ಯಾಹ್ನದ ಊಟ',
       dinner: 'ರಾತ್ರಿ ಊಟ',
       evening_snack: 'ಸಂಜೆ ತಿಂಡಿ',
@@ -502,6 +510,8 @@ function nextMealTimeForHour(hour: number): MealTime {
 function emptyAttendanceDraft(): MealAttendanceDraft {
   return {
     breakfast: { participatingMemberIds: [], tiffinMemberIds: [] },
+    school_tiffin: { participatingMemberIds: [], tiffinMemberIds: [] },
+    office_tiffin: { participatingMemberIds: [], tiffinMemberIds: [] },
     lunch: { participatingMemberIds: [], tiffinMemberIds: [] },
     dinner: { participatingMemberIds: [], tiffinMemberIds: [] },
     evening_snack: { participatingMemberIds: [], tiffinMemberIds: [] },
@@ -600,6 +610,8 @@ function dayPlanToAttendanceDraft(plan: DayAttendancePlan, members: HouseholdMem
   };
   return {
     breakfast: fromSlot('breakfast'),
+    school_tiffin: { participatingMemberIds: [], tiffinMemberIds: [] },
+    office_tiffin: { participatingMemberIds: [], tiffinMemberIds: [] },
     lunch: fromSlot('lunch'),
     dinner: fromSlot('dinner'),
     high_tea: fromSlot('snacks'),
@@ -1673,6 +1685,12 @@ export default function PlannerPage() {
           if (weeklyUpdateData.weeklyPlan) {
             setWeeklyPlan(weeklyUpdateData.weeklyPlan);
             window.localStorage.setItem(WEEKLY_MASTER_PLAN_KEY, JSON.stringify(weeklyUpdateData.weeklyPlan));
+            const groceryRefresh = await fetch('/api/weekly-shopping-list', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ weekStartDate: weeklyUpdateData.weeklyPlan.weekStartDate, action: 'refresh' }),
+            });
+            if (!groceryRefresh.ok) console.warn('Weekly shopping-list refresh failed after a saved replacement.');
           }
         }
       }
@@ -1717,6 +1735,14 @@ export default function PlannerPage() {
       if (parsed.success && parsed.data?.weeklyPlan) {
         setNextWeekPlan(parsed.data.weeklyPlan);
         window.localStorage.setItem(NEXT_WEEK_MASTER_PLAN_KEY, JSON.stringify(parsed.data.weeklyPlan));
+        // A weekly plan is the authoritative grocery source. Refresh only after
+        // its server save succeeds; a grocery failure must never discard the plan.
+        const groceryRefresh = await fetch('/api/weekly-shopping-list', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ weekStartDate: parsed.data.weeklyPlan.weekStartDate, action: 'refresh' }),
+        });
+        if (!groceryRefresh.ok) console.warn('Weekly shopping-list refresh failed after a saved plan.');
         setWeekPlanStatus('READY');
       } else {
         setWeekPlanStatus('FAILED');
@@ -1762,6 +1788,7 @@ export default function PlannerPage() {
             <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">MAMAAI Planner</p>
             <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">{t.title}</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">{t.subtitle}</p>
+            <Link href="/tiffin" className="mt-3 inline-flex min-h-10 items-center rounded-xl bg-amber-100 px-4 text-sm font-black text-amber-950">आज टिफिन में क्या बनाऊँ? / What Can I Pack Today?</Link>
           </div>
           <LanguageSelector />
         </div>
@@ -1837,7 +1864,7 @@ export default function PlannerPage() {
                 <div className="mt-4">
                   <p className="text-sm font-black text-slate-800">{t.chooseAnotherMeal}</p>
                   <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    {dailyScheduleMealTimes.map((mealTime) => (
+                    {plannerMealTimes.map((mealTime) => (
                       <button
                         key={`choose-${mealTime}`}
                         type="button"
@@ -2160,7 +2187,9 @@ export default function PlannerPage() {
                       {weeklyPlan.weeklyGroceryRequirements.slice(0, 10).map((item) => (
                         <div key={item.itemId} className="rounded-xl bg-white p-3 text-xs ring-1 ring-amber-100">
                           <span className="font-black text-slate-900">{item.name}</span>
-                          <span className="block text-slate-600">{item.quantityToPurchase}</span>
+                          <span className="block text-slate-600">Need: {item.totalQuantity}</span>
+                          {item.pantryQuantity ? <span className="block text-emerald-700">At home: {item.pantryQuantity}</span> : null}
+                          <span className="block font-bold text-slate-800">Buy: {item.quantityToPurchase}</span>
                           {item.freshnessNote ? <span className="mt-1 block text-[11px] leading-4 text-amber-800">{item.freshnessNote}</span> : null}
                         </div>
                       ))}
@@ -2378,6 +2407,7 @@ export default function PlannerPage() {
                     ) : null}
                   </div>
                 </div>
+                <PetMealPlan />
               </section>
             )}
 

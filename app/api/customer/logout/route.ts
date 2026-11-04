@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { clearCustomerSessionCookie, CUSTOMER_SESSION_COOKIE, verifyCustomerSession } from "@/lib/server/customer-session";
 import { DynamoDbSessionRepository } from "@/lib/repositories/session-repository";
+import { requireSameOrigin } from "@/lib/server/request-security";
 
 function cookieValue(request: Request, name: string): string | undefined {
   const cookie = request.headers.get("cookie") || "";
@@ -9,6 +10,7 @@ function cookieValue(request: Request, name: string): string | undefined {
 }
 
 export async function POST(request: Request) {
+  try { requireSameOrigin(request); } catch { return NextResponse.json({ error: "CSRF_ORIGIN_REJECTED" }, { status: 403 }); }
   const repository = new DynamoDbSessionRepository();
   try {
     const session = await verifyCustomerSession(cookieValue(request, CUSTOMER_SESSION_COOKIE), repository);

@@ -5,7 +5,8 @@ import { SubscriptionRepository } from "@/lib/repositories/subscription-reposito
 import { authErrorResponse, requireUser } from "@/lib/server/auth";
 import { getSession } from "@/lib/auth/session";
 import { docClient, TABLE_NAMES } from "@/lib/repositories/dynamo";
-import { createMealPlanRequestSchema } from "@/lib/shared/schemas";
+import { createMealPlanRequestSchema, familyMealPlanSchema } from "@/lib/shared/schemas";
+import { z } from "zod";
 import type { CreateMealPlanRequest } from "@/lib/shared/contracts";
 
 export const dynamic = "force-dynamic";
@@ -161,6 +162,18 @@ export async function POST(request: Request) {
       { status: 422 }
     );
   }
+}
+
+const weeklyPatchSchema = z.object({ familyId: z.string().min(1), weekStartDate: z.string().date(), slotId: z.string().min(1), selectedMealPlan: familyMealPlanSchema, reason: z.string().max(500).optional(), expectedPlanVersion: z.number().int().positive() });
+export async function PATCH(request: Request) {
+  try {
+    const user = await requireUser(request); const input = weeklyPatchSchema.parse(await request.json()); const service = new WeeklyMealPlanningService(); const current = await service.getCurrent(input.familyId, input.weekStartDate);
+    if (!current) return NextResponse.json({ error: { code: "NOT_FOUND", message: "Weekly plan not found." } }, { status: 404 });
+    if (current.userId !== user.userId) return NextResponse.json({ error: { code: "FORBIDDEN", message: "You cannot update this family plan." } }, { status: 403 });
+    const slot = current.days.flatMap((day) => day.meals).find((item) => item.slotId === input.slotId);
+    if (!slot || input.selectedMealPlan.familyId !== input.familyId || input.selectedMealPlan.targetDate !== slot.date || input.selectedMealPlan.commonMeal.mealTime !== slot.mealTime) return NextResponse.json({ error: { code: "SLOT_MISMATCH", message: "Replacement does not match the selected weekly slot." } }, { status: 400 });
+    const result = await service.selectSlot(input as Parameters<typeof service.selectSlot>[0]); return NextResponse.json({ success: true, ...result, shoppingListState: "stale_refresh_required" });
+  } catch (error) { const auth = authErrorResponse(error); if (auth) return auth; if (error instanceof z.ZodError) return NextResponse.json({ error: { code: "VALIDATION_ERROR", message: "Replacement request is invalid." } }, { status: 400 }); if (error instanceof Error && error.message === "WEEKLY_PLAN_VERSION_CONFLICT") return NextResponse.json({ error: { code: "STALE_PLAN", message: "Refresh the weekly plan before changing a meal." } }, { status: 409 }); return NextResponse.json({ error: { code: "WEEKLY_REPLACEMENT_FAILED", message: "Unable to replace weekly meal." } }, { status: 422 }); }
 }
 
 

@@ -151,18 +151,12 @@ export default function PantryPage() {
             setSyncStatus(t.savedCloud);
           }
         } else if (localItems.length) {
-          const migration = await fetch('/api/pantry', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: localItems }),
-          });
-          if (!migration.ok) throw new Error('Pantry migration unavailable');
-          const migrated = await migration.json();
-          const migratedItems = Array.isArray(migrated.items) ? migrated.items.map(normalizeClientItem) : localItems;
+          // The cloud account is authoritative. Never auto-upload an old browser
+          // cache into a newly authenticated household.
           if (!cancelled) {
-            setItems(migratedItems);
-            writeLocalPantry(migratedItems);
-            setSyncStatus(t.migrated);
+            setItems([]);
+            writeLocalPantry([]);
+            setSyncStatus(t.savedCloud);
           }
         } else if (!cancelled) {
           setItems(starterItems);

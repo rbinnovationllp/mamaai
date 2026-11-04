@@ -19,6 +19,14 @@ export type AskMamaCategory =
   | "replacement"
   | "grocery"
   | "subscriptions"
+  | "account_access"
+  | "password_recovery"
+  | "privacy"
+  | "data_export"
+  | "account_deletion"
+  | "pet_meal_plan"
+  | "troubleshooting"
+  | "legal"
   | "testing_status"
   | "medical_safety"
   | "support"
@@ -78,6 +86,14 @@ const localizedAskMamaAnswers = {
     installIpad:
       "On iPad, open www.mamaai.in in Safari. Tap the Share button near the address bar. Choose Add to Home Screen, then tap Add. The MAMAAI icon will appear on your iPad Home Screen for quick access.",
     subscriptions: "Planned tiers are Family Starter (Rs. 399/mo | US$4.99/mo for up to 4), Family Premium (Rs. 599/mo | US$7.99/mo for up to 6), and Family Plus (Rs. 999/mo | US$12.99/mo for up to 10). Family Plus adds extended four-paw member meal planning with separate pet-appropriate guidance. Judge/Demo Mode bypasses payment so you can explore all features.",
+    accountAccess: "You can register and sign in with a mobile number and password, an email address and password, or both. You need at least one identifier; email and mobile are not individually compulsory. Use Logout on a shared device and keep your password private.",
+    passwordRecovery: "Email password recovery depends on the configured email service. Mobile-only accounts use recovery codes shown once during registration. Store those codes safely: MAMAAI cannot show the same codes again.",
+    privacy: "Household, pantry, meal-plan and pet-profile data are intended to stay scoped to your signed-in account. Never put passwords, recovery codes, card details or other secrets in Ask MAMA. Read the Privacy page for the current policy.",
+    dataExport: "Use Account Export while signed in to request the data MAMAAI makes available for export. The workflow requires your authenticated account and does not expose credentials or another household's information.",
+    accountDeletion: "Account deletion is a protected workflow requiring a signed-in account and confirmation. Do not treat it as complete until the approved retention/deletion policy and the app both confirm the result.",
+    petMealPlan: "Family Plus keeps optional dog and cat profiles separate from human family meals. Pet Meal Plan guidance uses species, life stage and recorded dietary needs, prioritises complete species-appropriate food, and never treats leftovers or AI recipes as a complete diet. Consult a veterinarian for illness, prescription diets, pregnancy or special needs.",
+    troubleshooting: "If something is not loading, refresh once, check your connection, and sign in again if the session ended. For a meal plan, check that the household profile and attendance are complete. Do not retry a payment repeatedly; check Subscription status, then contact support if needed.",
+    legal: "MAMAAI has separate Privacy, Terms and Refund Policy pages. Until owner approval, they should not be treated as final contractual commitments. Ask MAMA can point you to them but cannot give legal advice.",
     testingStatus: "MAMAAI testing mode is active with interactive AI meal planning, Ask MAMA assistance, and demo profiles fully operational.",
     support: (suffix: string) => `For support, contact ${MAMAAI_SUPPORT_EMAIL}. Project owner contact: ${MAMAAI_OWNER_EMAIL}.${suffix}`,
     fallback: `Sorry, I do not have a reliable MAMAAI answer for that question yet. Please contact ${MAMAAI_SUPPORT_EMAIL} for the correct answer.`,
@@ -112,6 +128,14 @@ const localizedAskMamaAnswers = {
     installIpad:
       "iPad पर Safari खोलें और www.mamaai.in पर जाएं. address bar के पास Share button दबाएं. Add to Home Screen चुनें, फिर Add दबाएं. MAMAAI icon iPad Home Screen पर आ जाएगा.",
     subscriptions: "Family Starter Rs. 399/mo या US$4.99/mo में 4 members तक, Family Premium Rs. 599/mo या US$7.99/mo में 6 members तक, और Family Plus Rs. 999/mo या US$12.99/mo में 10 members तक support करता है। Family Plus में four-paw family members के लिए अलग pet-appropriate meal planning शामिल है।",
+    accountAccess: "आप mobile number और password, email address और password, या दोनों से register और sign in कर सकते हैं। कम-से-कम एक identifier जरूरी है; email और mobile अलग-अलग अनिवार्य नहीं हैं। Shared device पर Logout करें और password निजी रखें।",
+    passwordRecovery: "Email password recovery configured email service पर निर्भर है। Mobile-only account के लिए registration में एक बार दिखाए गए recovery codes उपयोग करें। उन्हें सुरक्षित रखें; वही codes दोबारा नहीं दिखाए जाते।",
+    privacy: "Household, pantry, meal plan और pet profile data आपके signed-in account तक सीमित रखने के लिए बनाए गए हैं। Ask MAMA में password, recovery code, card details या अन्य secrets न लिखें। मौजूदा policy के लिए Privacy page पढ़ें।",
+    dataExport: "Sign in के बाद Account Export से उपलब्ध data export का अनुरोध करें। यह workflow authenticated account मांगता है और credentials या किसी दूसरे household की जानकारी नहीं दिखाता।",
+    accountDeletion: "Account deletion protected workflow है और इसके लिए signed-in account व confirmation चाहिए। Approved retention/deletion policy और app result confirm होने तक इसे पूरा न मानें।",
+    petMealPlan: "Family Plus में optional dog और cat profiles human family meals से अलग रहते हैं। Pet Meal Plan species, life stage और saved dietary needs के आधार पर complete species-appropriate food को प्राथमिकता देता है। Leftovers या AI recipes complete diet नहीं हैं। बीमारी, prescription diet, pregnancy या special needs में veterinarian से सलाह लें।",
+    troubleshooting: "कुछ load न हो तो एक बार refresh करें, connection जांचें और session समाप्त होने पर फिर sign in करें। Meal Plan के लिए household profile और attendance पूरा होना चाहिए। Payment को बार-बार retry न करें; Subscription status देखें और जरूरत हो तो support से संपर्क करें।",
+    legal: "MAMAAI में Privacy, Terms और Refund Policy के अलग pages हैं। Owner approval से पहले इन्हें final contractual commitment न मानें। Ask MAMA pages ढूंढने में मदद कर सकती है, कानूनी सलाह नहीं देती।",
     testingStatus: "MAMAAI में interactive meal planning, Ask MAMA assistance और demo profiles उपलब्ध हैं।",
     support: (suffix: string) => `Support के लिए ${MAMAAI_SUPPORT_EMAIL} पर संपर्क करें। Project owner: ${MAMAAI_OWNER_EMAIL}.${suffix}`,
     fallback: `माफ कीजिए, मेरे पास इस प्रश्न का भरोसेमंद MAMAAI उत्तर अभी नहीं है। सही उत्तर के लिए कृपया ${MAMAAI_SUPPORT_EMAIL} पर संपर्क करें।`,
@@ -146,6 +170,14 @@ const localizedAskMamaAnswers = {
     installIpad:
       "iPad ನಲ್ಲಿ Safari ತೆರೆಯಿರಿ ಮತ್ತು www.mamaai.in ಗೆ ಹೋಗಿ. address bar ಹತ್ತಿರದ Share button ಒತ್ತಿ. Add to Home Screen ಆಯ್ಕೆ ಮಾಡಿ, ನಂತರ Add ಒತ್ತಿ. MAMAAI icon iPad Home Screen ನಲ್ಲಿ ಕಾಣಿಸುತ್ತದೆ.",
     subscriptions: "Family Starter Rs. 399/mo ಅಥವಾ US$4.99/mo ನಲ್ಲಿ 4 members ವರೆಗೆ, Family Premium Rs. 599/mo ಅಥವಾ US$7.99/mo ನಲ್ಲಿ 6 members ವರೆಗೆ, Family Plus Rs. 999/mo ಅಥವಾ US$12.99/mo ನಲ್ಲಿ 10 members ವರೆಗೆ support ಮಾಡುತ್ತದೆ. Family Plus ನಲ್ಲಿ four-paw family members ಗಾಗಿ ಬೇರೆ pet-appropriate meal planning ಸೇರಿದೆ.",
+    accountAccess: "ನೀವು mobile number ಮತ್ತು password, email address ಮತ್ತು password, ಅಥವಾ ಎರಡನ್ನೂ ಬಳಸಿ register ಮತ್ತು sign in ಮಾಡಬಹುದು. ಕನಿಷ್ಠ ಒಂದು identifier ಸಾಕು; email ಮತ್ತು mobile ಪ್ರತ್ಯೇಕವಾಗಿ ಕಡ್ಡಾಯವಲ್ಲ. Shared device ನಲ್ಲಿ Logout ಮಾಡಿ ಮತ್ತು password ಖಾಸಗಿಯಾಗಿ ಇರಿಸಿ.",
+    passwordRecovery: "Email password recovery configured email service ಮೇಲೆ ಅವಲಂಬಿತವಾಗಿರುತ್ತದೆ. Mobile-only account ಗೆ registration ನಲ್ಲಿ ಒಮ್ಮೆ ತೋರಿದ recovery codes ಬಳಸಿ. ಅವನ್ನು ಸುರಕ್ಷಿತವಾಗಿ ಉಳಿಸಿ; ಅದೇ codes ಮತ್ತೆ ತೋರಿಸುವುದಿಲ್ಲ.",
+    privacy: "Household, pantry, meal plan ಮತ್ತು pet profile data ನಿಮ್ಮ signed-in account ಗೆ ಮಾತ್ರ ಸೀಮಿತವಾಗಿರುವಂತೆ ವಿನ್ಯಾಸಗೊಳಿಸಲಾಗಿದೆ. Ask MAMA ಯಲ್ಲಿ password, recovery code, card details ಅಥವಾ ಬೇರೆ secrets ಬರೆಯಬೇಡಿ. ಪ್ರಸ್ತುತ policy ಗಾಗಿ Privacy page ಓದಿ.",
+    dataExport: "Sign in ಆದ ನಂತರ Account Export ಮೂಲಕ ಲಭ್ಯವಿರುವ data export ಕೇಳಬಹುದು. ಈ workflow authenticated account ಬೇಕಾಗುತ್ತದೆ ಮತ್ತು credentials ಅಥವಾ ಇನ್ನೊಂದು household ನ ಮಾಹಿತಿ ತೋರಿಸುವುದಿಲ್ಲ.",
+    accountDeletion: "Account deletion protected workflow ಆಗಿದ್ದು signed-in account ಮತ್ತು confirmation ಬೇಕಾಗುತ್ತದೆ. Approved retention/deletion policy ಮತ್ತು app result confirm ಆಗುವವರೆಗೆ ಇದು ಪೂರ್ಣವಾಗಿದೆ ಎಂದು ಪರಿಗಣಿಸಬೇಡಿ.",
+    petMealPlan: "Family Plus ನಲ್ಲಿ optional dog ಮತ್ತು cat profiles human family meals ನಿಂದ ಪ್ರತ್ಯೇಕವಾಗಿರುತ್ತವೆ. Pet Meal Plan species, life stage ಮತ್ತು saved dietary needs ಆಧರಿಸಿ complete species-appropriate food ಗೆ ಆದ್ಯತೆ ನೀಡುತ್ತದೆ. Leftovers ಅಥವಾ AI recipes complete diet ಅಲ್ಲ. ಅನಾರೋಗ್ಯ, prescription diet, pregnancy ಅಥವಾ special needs ಗೆ veterinarian ಸಲಹೆ ಪಡೆಯಿರಿ.",
+    troubleshooting: "ಏನಾದರೂ load ಆಗದಿದ್ದರೆ ಒಮ್ಮೆ refresh ಮಾಡಿ, connection ಪರಿಶೀಲಿಸಿ ಮತ್ತು session ಮುಗಿದಿದ್ದರೆ ಮತ್ತೆ sign in ಮಾಡಿ. Meal Plan ಗೆ household profile ಮತ್ತು attendance ಪೂರ್ಣವಾಗಿರಬೇಕು. Payment ಅನ್ನು ಪುನಃಪುನಃ retry ಮಾಡಬೇಡಿ; Subscription status ನೋಡಿ, ನಂತರ support ಸಂಪರ್ಕಿಸಿ.",
+    legal: "MAMAAI ನಲ್ಲಿ Privacy, Terms ಮತ್ತು Refund Policy ಗೆ ಪ್ರತ್ಯೇಕ pages ಇವೆ. Owner approval ಮೊದಲು ಇವನ್ನು final contractual commitment ಎಂದು ಪರಿಗಣಿಸಬೇಡಿ. Ask MAMA pages ಹುಡುಕಲು ಸಹಾಯ ಮಾಡಬಹುದು, ಕಾನೂನು ಸಲಹೆ ನೀಡುವುದಿಲ್ಲ.",
     testingStatus: "MAMAAI ನಲ್ಲಿ interactive meal planning, Ask MAMA assistance ಮತ್ತು demo profiles ಲಭ್ಯವಿವೆ.",
     support: (suffix: string) => `Support ಗಾಗಿ ${MAMAAI_SUPPORT_EMAIL} ಸಂಪರ್ಕಿಸಿ. Project owner: ${MAMAAI_OWNER_EMAIL}.${suffix}`,
     fallback: `ಕ್ಷಮಿಸಿ, ಈ ಪ್ರಶ್ನೆಗೆ ನನ್ನ ಬಳಿ ವಿಶ್ವಾಸಾರ್ಹ MAMAAI ಉತ್ತರ ಇನ್ನೂ ಇಲ್ಲ. ಸರಿಯಾದ ಉತ್ತರಕ್ಕಾಗಿ ದಯವಿಟ್ಟು ${MAMAAI_SUPPORT_EMAIL} ಸಂಪರ್ಕಿಸಿ.`,
@@ -157,7 +189,8 @@ const promptAttackTerms = [
   "developer message",
   "api key",
   "secret key",
-  "password",
+  "show password",
+  "reveal password",
   "internal config",
   "ignore previous",
   "bypass",
@@ -464,7 +497,7 @@ export function answerAskMama(question: string, detailed = false, language: AppL
     };
   }
 
-  if (hasAny(text, familyProfileTerms) || hasAny(rawText, familyProfileTermsUnicode)) {
+  if ((hasAny(text, familyProfileTerms) || hasAny(rawText, familyProfileTermsUnicode)) && !hasAny(text, ["dog profile", "cat profile", "pet profile"])) {
     return {
       category: "family_profile",
       answer: localized.familyProfile,
@@ -515,7 +548,7 @@ export function answerAskMama(question: string, detailed = false, language: AppL
 
   if (
     hasAny(text, ["add family", "start", "get started", "create family"]) ||
-    hasAny(text, mealPlanningTerms) ||
+    (hasAny(text, mealPlanningTerms) && !hasAny(text, ["pet meal", "pet plan", "dog profile", "cat profile", "pet profile", "four paw"])) ||
     hasAny(rawText, mealPlanningTermsUnicode)
   ) {
     return {
@@ -596,6 +629,70 @@ export function answerAskMama(question: string, detailed = false, language: AppL
       category: "subscriptions",
       answer: localized.subscriptions,
       suggestions: ["How does MAMAAI work?", "Plan meals for my family"],
+    };
+  }
+
+  if (hasAny(text, ["login", "log in", "sign in", "register", "registration", "create account", "mobile number", "email address", "account access"]) || hasAny(rawText, ["लॉगिन", "साइन इन", "रजिस्टर", "अकाउंट", "ಲಾಗಿನ್", "ಸೈನ್ ಇನ್", "ನೋಂದಣಿ", "ಖಾತೆ"])) {
+    return {
+      category: "account_access",
+      answer: localized.accountAccess,
+      suggestions: ["How do I recover my password?", "How is my data protected?", "How do I export my data?"],
+    };
+  }
+
+  if (hasAny(text, ["forgot password", "forgot my password", "reset password", "reset my password", "recovery code", "recover account", "password recovery"]) || hasAny(rawText, ["पासवर्ड भूल", "पासवर्ड रीसेट", "रिकवरी कोड", "ಪಾಸ್‌ವರ್ಡ್ ಮರೆ", "ರಿಕವರಿ ಕೋಡ್"])) {
+    return {
+      category: "password_recovery",
+      answer: localized.passwordRecovery,
+      suggestions: ["How do I sign in?", "How is my data protected?", "Contact support"],
+    };
+  }
+
+  if ((hasAny(text, ["privacy", "data safe", "my data", "security", "personal data", "secure account"]) || hasAny(rawText, ["प्राइवेसी", "गोपनीयता", "डेटा सुरक्षित", "प्राइवेसी", "ಗೌಪ್ಯತೆ", "ನನ್ನ ಡೇಟಾ", "ಸುರಕ್ಷಿತ"])) && !hasAny(text, ["export", "download", "delete", "close account", "remove account"])) {
+    return {
+      category: "privacy",
+      answer: localized.privacy,
+      suggestions: ["How do I export my data?", "How do I delete my account?", "Show Privacy Policy"],
+    };
+  }
+
+  if (hasAny(text, ["export data", "export my data", "download my data", "account export", "data download"]) || hasAny(rawText, ["डेटा एक्सपोर्ट", "डेटा डाउनलोड", "डेटा निर्यात", "ಡೇಟಾ ರಫ್ತು", "ಡೇಟಾ ಡೌನ್‌ಲೋಡ್"])) {
+    return {
+      category: "data_export",
+      answer: localized.dataExport,
+      suggestions: ["How is my data protected?", "How do I delete my account?", "Contact support"],
+    };
+  }
+
+  if (hasAny(text, ["delete account", "delete my account", "delete my data", "close account", "account deletion", "remove account"]) || hasAny(rawText, ["अकाउंट डिलीट", "खाता हटाएं", "अकाउंट हटाएं", "ಖಾತೆ ಅಳಿಸಿ", "ಖಾತೆ ತೆಗೆದುಹಾಕಿ"])) {
+    return {
+      category: "account_deletion",
+      answer: localized.accountDeletion,
+      suggestions: ["How do I export my data?", "How is my data protected?", "Contact support"],
+    };
+  }
+
+  if (hasAny(text, ["pet meal", "pet plan", "dog profile", "cat profile", "pet profile", "four paw"]) || hasAny(rawText, ["पालतू भोजन", "पेट मील", "कुत्ता प्रोफाइल", "बिल्ली प्रोफाइल", "ಸಾಕುಪ್ರಾಣಿ", "ನಾಯಿ ಪ್ರೊಫೈಲ್", "ಬೆಕ್ಕು ಪ್ರೊಫೈಲ್"])) {
+    return {
+      category: "pet_meal_plan",
+      answer: localized.petMealPlan,
+      suggestions: ["Show subscription plans", "How are allergies handled?", "Contact support"],
+    };
+  }
+
+  if (hasAny(text, ["not working", "error", "loading", "failed", "problem", "troubleshoot", "payment pending", "payment failed"]) || hasAny(rawText, ["काम नहीं", "लोड नहीं", "समस्या", "पेमेंट फेल", "ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತಿಲ್ಲ", "ಲೋಡ್ ಆಗುತ್ತಿಲ್ಲ", "ಸಮಸ್ಯೆ", "ಪಾವತಿ ವಿಫಲ"])) {
+    return {
+      category: "troubleshooting",
+      answer: localized.troubleshooting,
+      suggestions: ["Show subscription plans", "How do I sign in?", "Contact support"],
+    };
+  }
+
+  if (hasAny(text, ["terms", "refund policy", "refund", "legal", "privacy policy"]) || hasAny(rawText, ["नियम", "रिफंड", "गोपनीयता नीति", "ನಿಯಮಗಳು", "ಮರುಪಾವತಿ", "ಗೌಪ್ಯತಾ ನೀತಿ"])) {
+    return {
+      category: "legal",
+      answer: localized.legal,
+      suggestions: ["How is my data protected?", "Show subscription plans", "Contact support"],
     };
   }
 

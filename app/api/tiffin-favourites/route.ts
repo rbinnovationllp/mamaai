@@ -1,0 +1,8 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { authErrorResponse, requireUser } from "@/lib/server/auth";
+import { TiffinFavouriteRepository } from "@/lib/repositories/tiffin-favourite-repository";
+const save=z.object({recipeId:z.string().min(1),recipeName:z.string().trim().min(1).max(160),tiffinType:z.enum(["school_tiffin","office_tiffin","general"])});
+export async function GET(request:Request){try{const user=await requireUser(request);return NextResponse.json({items:await new TiffinFavouriteRepository().list(user.userId)});}catch(error){return authErrorResponse(error)??NextResponse.json({error:{code:"FAVOURITES_LOAD_FAILED",message:"Unable to load favourites."}},{status:500});}}
+export async function POST(request:Request){try{const user=await requireUser(request);const input=save.parse(await request.json());return NextResponse.json({item:await new TiffinFavouriteRepository().create(user.userId,{recipeId:input.recipeId,recipeName:input.recipeName,tiffinType:input.tiffinType})},{status:201});}catch(error){const auth=authErrorResponse(error);if(auth)return auth;return NextResponse.json({error:{code:"FAVOURITE_INVALID",message:"Unable to save favourite."}},{status:400});}}
+export async function DELETE(request:Request){try{const user=await requireUser(request);const id=new URL(request.url).searchParams.get("favouriteId");if(!id)return NextResponse.json({error:{code:"FAVOURITE_ID_REQUIRED",message:"Choose a favourite."}},{status:400});await new TiffinFavouriteRepository().remove(user.userId,id);return new NextResponse(null,{status:204});}catch(error){return authErrorResponse(error)??NextResponse.json({error:{code:"FAVOURITE_DELETE_FAILED",message:"Unable to remove favourite."}},{status:500});}}

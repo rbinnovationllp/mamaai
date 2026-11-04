@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "node --test tests/*.test.cjs",
-    "test:security": "node --test tests/security.test.cjs"
+    "test:security": "node --test tests/security.test.cjs",
+    "test:browser": "playwright test"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1108.0",
@@ -17,6 +18,7 @@
     "@google/generative-ai": "^0.24.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/oidc-aws-credentials-provider": "^3.3.15",
+    "argon2": "^0.44.0",
     "next": "16.2.10",
     "react": "19.2.7",
     "react-dom": "19.2.7",
@@ -24,11 +26,14 @@
     "zod": "3.23.8"
   },
   "devDependencies": {
+    "@dynoxide/win32-x64": "1.5.0",
+    "@playwright/test": "^1.64.1",
     "@types/node": "^20.19.43",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@types/uuid": "^10.0.0",
     "autoprefixer": "^10.5.4",
+    "dynoxide": "1.5.0",
     "eslint": "9.18.0",
     "eslint-config-next": "16.2.10",
     "postcss": "^8.5.26",

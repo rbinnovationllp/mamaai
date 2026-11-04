@@ -22,7 +22,7 @@ const foodAdviceTerms = [
 ];
 
 const knownGeneralTerms = [
-  "mamaai", "subscription", "pricing", "price", "plan", "install", "language", "support", "contact", "account", "profile", "attendance", "budget", "history", "app", "feature",
+  "mamaai", "subscription", "pricing", "price", "plan", "install", "language", "support", "contact", "account", "profile", "attendance", "budget", "history", "app", "feature", "login", "sign in", "register", "password", "recovery", "privacy", "export", "delete account", "pet profile", "pet plan", "troubleshoot", "not working", "refund", "terms",
   "मामाआई", "सब्सक्रिप्शन", "कीमत", "प्लान", "इंस्टॉल", "भाषा", "सहायता", "प्रोफाइल",
   "ಸಬ್ಸ್ಕ್ರಿಪ್ಷನ್", "ಬೆಲೆ", "ಪ್ಲ್ಯಾನ್", "ಇನ್‌ಸ್ಟಾಲ್", "ಭಾಷೆ", "ಸಹಾಯ", "ಪ್ರೊಫೈಲ್",
 ];
