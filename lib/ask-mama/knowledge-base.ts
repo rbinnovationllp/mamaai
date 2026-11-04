@@ -485,6 +485,14 @@ export function answerAskMama(question: string, detailed = false, language: AppL
     };
   }
 
+  if (hasAny(text, ["pet meal", "pet plan", "dog profile", "cat profile", "pet profile", "four paw"]) || hasAny(rawText, ["पालतू भोजन", "पेट मील", "कुत्ता प्रोफाइल", "बिल्ली प्रोफाइल", "ಸಾಕುಪ್ರಾಣಿ", "ನಾಯಿ ಪ್ರೊಫೈಲ್", "ಬೆಕ್ಕು ಪ್ರೊಫೈಲ್"])) {
+    return {
+      category: "pet_meal_plan",
+      answer: localized.petMealPlan,
+      suggestions: ["Show subscription plans", "How are allergies handled?", "Contact support"],
+    };
+  }
+
   if (
     hasAny(text, ["what is", "about mamaai", "how does mamaai work", "how it work", "how does it work"]) ||
     hasAny(rawText, overviewTermsUnicode)
@@ -669,14 +677,6 @@ export function answerAskMama(question: string, detailed = false, language: AppL
       category: "account_deletion",
       answer: localized.accountDeletion,
       suggestions: ["How do I export my data?", "How is my data protected?", "Contact support"],
-    };
-  }
-
-  if (hasAny(text, ["pet meal", "pet plan", "dog profile", "cat profile", "pet profile", "four paw"]) || hasAny(rawText, ["पालतू भोजन", "पेट मील", "कुत्ता प्रोफाइल", "बिल्ली प्रोफाइल", "ಸಾಕುಪ್ರಾಣಿ", "ನಾಯಿ ಪ್ರೊಫೈಲ್", "ಬೆಕ್ಕು ಪ್ರೊಫೈಲ್"])) {
-    return {
-      category: "pet_meal_plan",
-      answer: localized.petMealPlan,
-      suggestions: ["Show subscription plans", "How are allergies handled?", "Contact support"],
     };
   }
 

@@ -1,4 +1,5 @@
 'use client';
+import { plannerFailureMessage } from "@/lib/planner/request-failure";
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -105,7 +106,7 @@ type WeekPlanState = 'IDLE' | 'GENERATING' | 'READY' | 'FAILED';
 async function safeParseJsonResponse<T = any>(
   response: Response,
   fallbackMessage = 'API request failed.'
-): Promise<{ success: boolean; data?: T; errorText?: string }> {
+): Promise<{ success: boolean; data?: T; errorText?: string; errorCode?: string; status?: number }> {
   const contentType = response.headers.get('content-type') || '';
   if (!contentType.includes('application/json')) {
     const rawHtml = await response.text().catch(() => '');
@@ -120,7 +121,7 @@ async function safeParseJsonResponse<T = any>(
     const json = await response.json();
     if (!response.ok) {
       const msg = json?.error?.message || json?.error || fallbackMessage;
-      return { success: false, data: json, errorText: msg };
+      return { success: false, data: json, errorText: typeof msg === "string" ? msg : fallbackMessage, errorCode: json?.error?.code, status: response.status };
     }
     return { success: true, data: json };
   } catch (err) {
@@ -224,7 +225,7 @@ const plannerCopy = {
     nextWeekCardGenBtn: 'Generating Weekly Plan...',
     nextWeekCardFailTitle: 'Weekly Plan Generation Failed',
     nextWeekCardFailDesc: 'Could not establish connection to planner service.',
-    nextWeekCardIdleTitle: 'Plan Next Week (Aug 31 – Sep 06)',
+    nextWeekCardIdleTitle: 'Plan Next Week',
     nextWeekCardIdleDesc: 'Create Monday–Sunday menu and smart procurement preview.',
     nextWeekCardIdleBtn: 'Generate Weekly Plan',
     tryAgain: 'Try Again',
@@ -1104,6 +1105,7 @@ export default function PlannerPage() {
   const [isStalePlan, setIsStalePlan] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
+  const [weekPlanError, setWeekPlanError] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingServerProfile, setIsLoadingServerProfile] = useState(true);
   const [lastPlan, setLastPlan] = useState('');
@@ -1595,7 +1597,7 @@ export default function PlannerPage() {
 
       const dailyParsed = await safeParseJsonResponse<{ mealPlan: FamilyMealPlan }>(dailyResponse);
       if (!dailyParsed.success || !dailyParsed.data?.mealPlan) {
-        throw new Error(dailyParsed.errorText || 'Generation failed.');
+        throw Object.assign(new Error('Generation failed.'), { code: dailyParsed.errorCode, status: dailyResponse.status });
       }
 
       const alignedPlan = alignMealPlanToActiveRequest(dailyParsed.data.mealPlan, activeMealSlot, targetDate);
@@ -1625,7 +1627,7 @@ export default function PlannerPage() {
     } catch (err: any) {
       setStatus('');
       console.error('Meal plan request failed:', err);
-      setError(mealGenerationFailureMessage(language));
+      setError(plannerFailureMessage(language, err));
     } finally {
       setIsGenerating(false);
     }
@@ -1708,6 +1710,7 @@ export default function PlannerPage() {
 
   // 9. Next Week Plan Generation
   const handleGenerateNextWeek = async () => {
+    setWeekPlanError('');
     setWeekPlanStatus('GENERATING');
 
     const controller = new AbortController();
@@ -1745,10 +1748,14 @@ export default function PlannerPage() {
         if (!groceryRefresh.ok) console.warn('Weekly shopping-list refresh failed after a saved plan.');
         setWeekPlanStatus('READY');
       } else {
+        setWeekPlanError(plannerFailureMessage(language, { code: parsed.errorCode, status: res.status }));
         setWeekPlanStatus('FAILED');
       }
-    } catch {
+    } catch (failure) {
+      setWeekPlanError(plannerFailureMessage(language, failure));
       setWeekPlanStatus('FAILED');
+    } finally {
+      clearTimeout(timer);
     }
   };
 
@@ -2068,7 +2075,7 @@ export default function PlannerPage() {
               ) : weekPlanStatus === 'FAILED' ? (
                 <>
                   <h2 className="mt-2 text-lg font-bold text-red-950">{t.nextWeekCardFailTitle}</h2>
-                  <p className="mt-1 text-xs text-red-600">{t.nextWeekCardFailDesc}</p>
+                  <p className="mt-1 text-xs text-red-600">{weekPlanError || t.nextWeekCardFailDesc}</p>
                   <button
                     type="button"
                     onClick={handleGenerateNextWeek}

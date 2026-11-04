@@ -340,3 +340,12 @@ Remaining screenshot caveat:
 ### Deployment Status
 - Local source integration complete. No commit, push, or production deployment performed.
 - Live payment/email/authenticated browser journeys and production database compatibility have not been reverified in this integration. Historical preview reports remain historical and are not a fresh launch-readiness certification.
+
+## Ask MAMA product-help and planner diagnostics — 4 November 2026
+
+- Owner authorized local fixes after the read-only audit. No commit, push or deployment performed.
+- Fixed exact offered product-help questions being rejected as pet-feeding advice or classified as specific food advice. Pet knowledge-base matching now precedes generic overview matching.
+- Added actual API-handler tests with mocked rate-limit/auth/storage/provider boundaries; unsupported pet-feeding requests remain rejected.
+- Planner now distinguishes authentication, subscription, permission, rate-limit and timeout failures, and reports allowlisted HTTP/error references without raw backend error text. Weekly timeout timer is cleared on every exit. Removed an obsolete hardcoded next-week date label.
+- Fresh main-project regression suite: 127 passed, zero failed, exit 0. Production build including TypeScript: exit 0.
+- The production planner failure shown in customer screenshots remains undiagnosed pending runtime status/error evidence. These changes improve diagnosis; they do not establish live meal generation as repaired.

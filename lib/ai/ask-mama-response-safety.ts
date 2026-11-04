@@ -1,3 +1,4 @@
+import { isAskMamaProductHelpQuestion } from "./ask-mama-product-help";
 import type { FamilyMember } from "@/lib/shared/contracts";
 import { evaluateIngredientSafety, type SafetyResult } from "./safety-validation-service";
 
@@ -29,6 +30,7 @@ const knownGeneralTerms = [
 
 export function classifyAskMamaRequest(message: string): AskMamaRequestKind {
   const text = message.normalize("NFKD").toLocaleLowerCase();
+  if (isAskMamaProductHelpQuestion(message)) return "general";
   if (foodAdviceTerms.some((term) => text.includes(term))) return "specific_food_advice";
   return knownGeneralTerms.some((term) => text.includes(term)) ? "general" : "specific_food_advice";
 }
