@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { PASSWORD_HELP_TEXT, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/lib/shared/password-policy";
 
-const PASSWORD_HELP = "Use 12 to 256 characters. Do not reuse your current password.";
+const PASSWORD_HELP = `${PASSWORD_HELP_TEXT} Do not reuse your current password.`;
 
 export function ChangePasswordForm() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -34,8 +35,8 @@ export function ChangePasswordForm() {
     <p className="mt-1 text-sm text-slate-600">{PASSWORD_HELP}</p>
     <form className="mt-3 space-y-3" onSubmit={submit}>
       <label className="block text-sm font-medium">Current password<input required autoComplete="current-password" type={passwordType} value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} className="mt-1 min-h-11 w-full rounded border px-3" /></label>
-      <label className="block text-sm font-medium">New password<input required minLength={12} maxLength={256} autoComplete="new-password" type={passwordType} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="mt-1 min-h-11 w-full rounded border px-3" /></label>
-      <label className="block text-sm font-medium">Confirm new password<input required minLength={12} maxLength={256} autoComplete="new-password" type={passwordType} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="mt-1 min-h-11 w-full rounded border px-3" /></label>
+      <label className="block text-sm font-medium">New password<input required minLength={PASSWORD_MIN_LENGTH} maxLength={PASSWORD_MAX_LENGTH} autoComplete="new-password" type={passwordType} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="mt-1 min-h-11 w-full rounded border px-3" /></label>
+      <label className="block text-sm font-medium">Confirm new password<input required minLength={PASSWORD_MIN_LENGTH} maxLength={PASSWORD_MAX_LENGTH} autoComplete="new-password" type={passwordType} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="mt-1 min-h-11 w-full rounded border px-3" /></label>
       <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={showPasswords} onChange={(event) => setShowPasswords(event.target.checked)} /> Show passwords</label>
       {message ? <p role="status" className="text-sm text-slate-700">{message}</p> : null}
       <button type="submit" disabled={submitting} className="min-h-11 rounded bg-emerald-800 px-4 font-bold text-white disabled:opacity-50">{submitting ? "Changing password…" : "Change password"}</button>

@@ -6,11 +6,12 @@ import { clearCustomerSessionCookie } from "@/lib/server/customer-session";
 import { requireSameOrigin } from "@/lib/server/request-security";
 import { authErrorResponse } from "@/lib/server/auth";
 import { enforceDurableRateLimit, requestIpAddress, stableRateLimitKey, RateLimitExceededError } from "@/lib/server/durable-rate-limit";
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/lib/shared/password-policy";
 const contact = { method: z.enum(["mobile", "email"]), identifier: z.string().trim().min(3).max(254) };
 const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("request"), ...contact }),
-  z.object({ action: z.literal("verify"), challengeId: z.string().uuid(), code: z.string().regex(/^\d{6}$/), newPassword: z.string().min(12).max(256) }),
-  z.object({ action: z.literal("recovery_code"), ...contact, recoveryCode: z.string().trim().min(8).max(64), newPassword: z.string().min(12).max(256) }),
+  z.object({ action: z.literal("verify"), challengeId: z.string().uuid(), code: z.string().regex(/^\d{6}$/), newPassword: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH) }),
+  z.object({ action: z.literal("recovery_code"), ...contact, recoveryCode: z.string().trim().min(8).max(64), newPassword: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH) }),
 ]);
 export async function POST(request: Request) {
   try {

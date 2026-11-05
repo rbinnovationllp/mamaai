@@ -8,7 +8,7 @@ const {PasswordRecoveryService}=require('../lib/services/password-recovery-servi
 const {PasswordRecoveryRepository}=require('../lib/repositories/password-recovery-repository.ts');
 const {MobilePasswordAuthService,mobileLookupHash,emailLookupHash,recoveryCodeHash}=require('../lib/services/mobile-password-auth-service.ts');
 const {POST}=require('../app/api/customer/auth/recovery/route.ts');
-const OLD='old-fictional-password',NEW='new-fictional-password',CODE='ABCDEF1234';
+const OLD='old-pass10',NEW='new-pass10',CODE='ABCDEF1234';
 async function fixture(kind='mobile',verified=true){
  let now=Date.parse('2026-11-04T00:00:00Z');const account={userId:'fictional-preserved-user',passwordHash:await argon2.hash(OLD),mobileVerificationStatus:verified?'verified':'unverified',emailVerificationStatus:verified?'verified':'unverified',passwordVersion:0,deviceActivationVersion:1,activeDeviceId:'old-device',createdAt:'2025-01-01',updatedAt:'2025-01-01'};
  if(kind!=='email')account.mobileHash=mobileLookupHash('+919999000001');if(kind!=='mobile')account.emailHash=emailLookupHash('fictional@example.test');

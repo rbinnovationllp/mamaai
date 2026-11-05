@@ -2,6 +2,7 @@ import * as crypto from "crypto";
 import argon2 from "argon2";
 import { AccountSecurityRepository, type PasswordAccountRecord, type DeviceRecord, type TransferRecord } from "@/lib/repositories/account-security-repository";
 import { createOpaqueSessionToken, hashSessionToken, CUSTOMER_SESSION_MAX_AGE_SECONDS, TRUSTED_DEVICE_SESSION_MAX_AGE_SECONDS } from "@/lib/server/customer-session";
+import { isPasswordLengthValid, PASSWORD_HELP_TEXT } from "@/lib/shared/password-policy";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const FREE_TRANSFER_LIMIT = 2;
@@ -22,7 +23,7 @@ export function normaliseEmail(input: string) {
 export function mobileLookupHash(mobile: string) { return crypto.createHmac("sha256", process.env.MAMA_AI_MOBILE_LOOKUP_PEPPER ?? "development-only-mobile-pepper").update(mobile).digest("hex"); }
 export function emailLookupHash(email: string) { return crypto.createHmac("sha256", process.env.MAMA_AI_EMAIL_LOOKUP_PEPPER ?? "development-only-email-pepper").update(email).digest("hex"); }
 export function assertPasswordPolicy(password: string) {
-  if (password.length < 12 || password.length > 256) throw new MobilePasswordAuthError("PASSWORD_POLICY", "Choose a password of 12 to 256 characters.");
+  if (!isPasswordLengthValid(password)) throw new MobilePasswordAuthError("PASSWORD_POLICY", PASSWORD_HELP_TEXT);
 }
 export function generateRecoveryCodes() { return Array.from({ length: 8 }, () => crypto.randomBytes(5).toString("hex").toUpperCase()); }
 export function recoveryCodeHash(code: string) { return crypto.createHmac("sha256", process.env.MAMA_AI_RECOVERY_CODE_PEPPER ?? "development-only-recovery-pepper").update(code.replace(/\s/g, "").toUpperCase()).digest("hex"); }

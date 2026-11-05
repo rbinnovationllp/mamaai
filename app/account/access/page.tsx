@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { PasswordRecoveryForm, recoveryCopy } from "@/components/account/PasswordRecoveryForm";
+import { PASSWORD_HELP_TEXT, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/lib/shared/password-policy";
 
 const formCopy = {
   "en": {
@@ -85,8 +86,9 @@ export default function AccessPage() {
           <label className="block text-sm font-bold">{text.email}<input autoComplete="email" type="email" value={email} onChange={e => setEmail(e.target.value)} className={input} /></label>
           <label className="block text-sm font-bold">{text.mobile}<input autoComplete="tel" value={mobile} onChange={e => setMobile(e.target.value)} className={input} /></label>
         </>}
-        <label className="block text-sm font-bold">{form.password}<input autoComplete={mode === "register" ? "new-password" : "current-password"} minLength={12} maxLength={256} required type="password" value={password} onChange={e => setPassword(e.target.value)} className={input} /></label>
-        {mode === "register" && <label className="block text-sm font-bold">{form.confirm}<input autoComplete="new-password" minLength={12} maxLength={256} required type="password" value={confirm} onChange={e => setConfirm(e.target.value)} className={input} /></label>}
+        <label className="block text-sm font-bold">{form.password}<input autoComplete={mode === "register" ? "new-password" : "current-password"} minLength={PASSWORD_MIN_LENGTH} maxLength={PASSWORD_MAX_LENGTH} required type="password" value={password} onChange={e => setPassword(e.target.value)} className={input} /></label>
+        <p className="text-sm text-slate-600">{PASSWORD_HELP_TEXT}</p>
+        {mode === "register" && <label className="block text-sm font-bold">{form.confirm}<input autoComplete="new-password" minLength={PASSWORD_MIN_LENGTH} maxLength={PASSWORD_MAX_LENGTH} required type="password" value={confirm} onChange={e => setConfirm(e.target.value)} className={input} /></label>}
         <label className="flex items-center gap-2 text-sm"><input checked={stay} onChange={e => setStay(e.target.checked)} type="checkbox" />{form.stay}</label><button disabled={busy} className="min-h-12 w-full rounded-xl bg-emerald-800 font-bold text-white">{busy ? "…" : form.continue}</button>
       </form>
       <button type="button" disabled={busy} onClick={() => switchMode("forgot")} className="mt-5 min-h-11 text-sm font-bold text-emerald-800 underline">{recoveryCopy[language].title}</button>
