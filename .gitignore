@@ -66,6 +66,13 @@ dist/
 .dynamodb/
 .firebase/
 
+# Local QA runtime, downloaded tools, and audit evidence. Keep outside Git.
+/work/
+/audit-input/
+*.db
+*.sqlite
+*.sqlite3
+
 # Package & Editor artifacts
 *.tgz
 .vscode-test/
