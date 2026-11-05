@@ -1,3 +1,4 @@
+import { hasCurrentEntitlement, needsPaymentReconciliation } from "@/lib/services/paid-entitlement";
 import { NextResponse } from "next/server";
 import { SubscriptionService } from "@/lib/services/subscription-service";
 import { SubscriptionRepository } from "@/lib/repositories/subscription-repository";
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
           status: latestSubscriptionRecord.status,
           paymentChannel: latestSubscriptionRecord.paymentChannel,
           paymentStatus: latestSubscriptionRecord.paymentStatus,
-          isActive: latestSubscriptionRecord.status === "active" || latestSubscriptionRecord.status === "trialing",
+          isActive: hasCurrentEntitlement(latestSubscriptionRecord),
           bypassPaymentForDemo: false,
           razorpaySubscriptionId: latestSubscriptionRecord.razorpaySubscriptionId,
           startsAt: latestSubscriptionRecord.startsAt,
@@ -37,12 +38,13 @@ export async function GET(request: Request) {
           features: service.getPlanFeatures(latestSubscriptionRecord.plan),
           checkedAt: new Date().toISOString()
         }
-        : service.resolveLocalEntitlement(userId);
+        : { userId, status: "expired", isActive: false, bypassPaymentForDemo: false };
 
     return NextResponse.json({
       entitlement,
       subscriptionRecord: judgeMode ? undefined : latestSubscriptionRecord,
-      paymentHistory: judgeMode ? [] : await repository.listPaymentHistoryForUser(userId, 20),
+      paymentHistory: url.searchParams.get("includeHistory") === "true" ? await repository.listPaymentHistoryForUser(userId, 20) : [],
+      needsReconciliation: needsPaymentReconciliation(latestSubscriptionRecord),
       sourceOfTruth: judgeMode ? "demo_judge_access" : "dynamodb",
       productionStatus:
         "Razorpay subscription, payment, and entitlement records are read from DynamoDB. Full app data migration and production authentication are still required before broad launch.",
@@ -59,7 +61,7 @@ export async function GET(request: Request) {
     if (authResponse) return authResponse;
     return NextResponse.json(
       { error: { code: "SUBSCRIPTION_STATUS_FAILED", message: "Unable to read subscription status." } },
-      { status: 500 }
+      { status: 503 }
     );
   }
 }

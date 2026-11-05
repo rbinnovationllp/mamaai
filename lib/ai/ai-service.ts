@@ -1147,6 +1147,7 @@ function regionalIndianCandidates(
     recentMeals: recentMealsFor(input, mealTime),
     targetDate: input.targetDate,
     includePanIndiaFallback: true,
+    includeCompatibleNonRegionalAlternatives: Boolean(input.excludeDishes?.length),
   }).map((record: IndianFoodRecord) => ({
     mealId: `${mealId}-${record.id}`,
     name: record.typicalCombination,
@@ -1329,11 +1330,11 @@ function requestedCandidate(candidates: CommonMealDraft[], input: GeneratePlanIn
 }
 
 function selectCandidate(candidates: CommonMealDraft[], input: GeneratePlanInput, mealTime: MealTime) {
-  const requested = requestedCandidate(candidates, input);
-  if (requested && !isMealRecentlyUsed(input, mealTime, requested.name)) return requested;
   const explicitlyExcluded = new Set((input.excludeDishes ?? []).map((dish) => normalize(dish)));
   const permittedCandidates = candidates.filter((candidate) => !explicitlyExcluded.has(normalize(candidate.name)));
   if (!permittedCandidates.length) throw new Error("No compatible replacement candidate is available after exclusions.");
+  const requested = requestedCandidate(permittedCandidates, input);
+  if (requested && !isMealRecentlyUsed(input, mealTime, requested.name)) return requested;
   let validCandidates = permittedCandidates.filter((candidate) => !isMealRecentlyUsed(input, mealTime, candidate.name));
   if (!validCandidates.length) validCandidates = permittedCandidates;
   const index = Math.abs(dinnerRotationIndex(input)) % validCandidates.length;

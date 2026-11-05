@@ -377,3 +377,18 @@ https://github.com/rbinnovationllp/mamaai
 - Support: support@mamaai.in
 - Owner: rbinnovationllp@gmail.com
 
+
+
+## Password recovery
+
+The account screen offers mobile or email recovery in English, Hindi and Kannada. Mobile-only customers never need to add email. Saved recovery codes can reset either account type and are now shown once after registration without browser persistence.
+
+SMS/email OTP delivery is deliberately unavailable until a legitimate adapter implementing RecoveryDelivery is integrated and independently verified contacts are enrolled. Configure a 32+ character MAMA_AI_RECOVERY_CHALLENGE_SECRET before enabling challenge delivery. Do not mark legacy contacts verified by data presence. Existing customers without saved codes and without verified contacts need a separately defined, secure enrollment/support process; email is not a mandatory fallback. No production resources were changed.
+
+## Remembered devices and installed-app sign-in — 4 November 2026
+
+Remembering a device is enabled by the existing Stay signed in choice (default true). New remembered password-account sessions last 365 days and renew when a validated app-open/resume check occurs within the final 45 days. Unchecked sessions retain their existing 30-day server limit and browser-session-only cookie. Existing sessions lacking a rememberDevice flag are not silently converted to persistent sessions.
+
+The account access page checks the server session before displaying credentials and redirects valid users to their existing account destination. A temporary server/network failure offers Retry instead of demanding another password. First login/registration and device changes still use existing verification. Logout, password reset/change, device revocation, expiration or cleared cookies can require sign-in. Recognition is based on HTTP-only credentials in that browser/PWA and origin; installation alone, a phone number or a device fingerprint cannot authorize access.
+
+Session renewal requires the original opaque session token, matching device cookie and active server-side password/device versions. It conditionally extends both session expiry and DynamoDB TTL without reviving revoked sessions. Session API responses are private/no-store; the worker now caches only public shell/assets and purges its previous app-cache version, excluding private pages and APIs.

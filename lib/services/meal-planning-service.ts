@@ -2,7 +2,7 @@ import { store, nowIso } from "@/lib/repositories/in-memory-store";
 import { FamilyMealRepository } from "@/lib/repositories/family-meal-repository";
 import { AIService } from "@/lib/ai/ai-service";
 import { SafetyValidationService } from "@/lib/ai/safety-validation-service";
-import { classifyIngredients, evaluateMealNutritionalBalance } from "@/lib/ai/nutrition-validator";
+import { classifyIngredients } from "@/lib/ai/nutrition-validator";
 import type {
   CreateMealPlanRequest,
   ReplaceMealRequest,
@@ -13,13 +13,15 @@ import type {
   FamilyMealPlan,
 } from "@/lib/shared/contracts";
 import { NutritionContextService } from "./nutrition-context-service";
-import { FamilyService } from "./family-service";
+import { resolvePlanningHousehold } from "./planning-household";
+import { demoFamily, demoMembers } from "@/lib/shared/demo-data";
 import { MealRetentionService } from "./meal-retention-service";
 
 function canonicalMealTime(request: Pick<CreateMealPlanRequest, "mealTime" | "mealSlot">): MealTime {
   if (request.mealTime === "snack" || request.mealTime === "evening_snack" || request.mealTime === "high_tea") {
     return "high_tea";
   }
+  if (request.mealTime === "office_tiffin" || request.mealTime === "school_tiffin") return request.mealTime;
   if (request.mealTime === "breakfast" || request.mealTime === "lunch" || request.mealTime === "dinner") {
     return request.mealTime;
   }
@@ -79,7 +81,6 @@ function uniqueCustomizationsByMember(plan: FamilyMealPlan): FamilyMealPlan {
 }
 
 export class MealPlanningService {
-  private readonly familyService = new FamilyService();
   private readonly nutritionContextService = new NutritionContextService();
   private readonly aiService = new AIService();
   private readonly safetyValidationService = new SafetyValidationService();
@@ -173,69 +174,20 @@ export class MealPlanningService {
     return [...new Set(pastPulses)];
   }
 
-  async generate(request: CreateMealPlanRequest): Promise<{ mealPlan: FamilyMealPlan; nutritionContexts: any[] }> {
+  async generate(request: CreateMealPlanRequest, demo = false): Promise<{ mealPlan: FamilyMealPlan; nutritionContexts: any[] }> {
     this.mealRetentionService.removeExpiredDetailedMealPlans();
 
-    let familyContext = await this.familyService.getFamilyWithMembers(request.familyId).catch(() => null);
-
-    if (!familyContext) {
-      const fallbackFamily: Family = {
-        familyId: request.familyId || "fam-recovered",
-        userId: request.userId || "usr-recovered",
-        name: "Household",
-        country: request.mealTimeContext?.country || "India",
-        state: request.mealTimeContext?.region || "Karnataka",
-        city: request.mealTimeContext?.city || "Bengaluru",
-        dietPreference: "vegetarian",
-        cuisinePreferences: ["Home-style"],
-        favoriteFoodStyles: ["Home-style Traditional", "North Indian", "South Indian"],
-        budget: { type: "daily", amount: 600, currency: "INR" },
-        kitchenProfile: { equipment: ["Gas stove", "Pressure cooker"], cookingTimePreference: "under_30" },
-        subscriptionPlan: "starter",
-        mealTimings: request.customMealTimings,
-        mealSchedule: request.mealSchedule,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-      };
-
-      const fallbackMembers: FamilyMember[] = [
-        {
-          memberId: "mem-rajesh-1",
-          familyId: fallbackFamily.familyId,
-          name: "Rajesh",
-          relationship: "Self",
-          age: 35,
-          gender: "prefer_not_to_say",
-          activityLevel: "moderate",
-          goals: ["Balanced daily nutrition"],
-          dietType: "vegetarian",
-          likes: [],
-          dislikes: [],
-          allergies: [],
-          foodAllergies: [],
-          ingredientAllergies: [],
-          foodDislikes: [],
-          dislikedMeals: [],
-          excludedIngredients: [],
-          dietaryRestrictions: [],
-          healthConditions: [],
-          doctorRestrictions: [],
-          specialStatuses: [],
-        },
-      ];
-
-      familyContext = { family: fallbackFamily, members: fallbackMembers };
-    }
+    let familyContext = demo
+      ? { family: demoFamily, members: demoMembers }
+      : await resolvePlanningHousehold(request);
 
     const targetDate = request.targetDate ?? new Date().toISOString().slice(0, 10);
     const targetSlot = canonicalMealTime(request);
     familyContext = { ...familyContext, members: uniqueMembersById(familyContext.members) };
 
     try {
-      const existingPlan = await this.repository.getMealPlan(`${request.familyId}-${targetDate}`);
-      const excludedNames = new Set((request.excludeDishes ?? []).map((dish) => dish.trim().toLowerCase()));
-      const cachedMealIsExcluded = existingPlan && excludedNames.has(existingPlan.commonMeal.name.trim().toLowerCase());
-      if (existingPlan && !cachedMealIsExcluded && existingPlan.commonMeal.mealTime === targetSlot) {
+      const existingPlan = demo || request.excludeDishes?.length ? undefined : await this.repository.getMealPlan(`${request.familyId}-${targetDate}`);
+      if (existingPlan && existingPlan.commonMeal.mealTime === targetSlot) {
         const existingSafety = this.safetyValidationService.validateMealPlan(existingPlan, familyContext.members);
         if (!existingSafety.ok) throw new Error(`Existing meal plan failed safety validation: ${[...existingSafety.errors, ...existingSafety.warnings].join(" ")}`);
         return {
@@ -256,112 +208,71 @@ export class MealPlanningService {
       activeMembers.length ? activeMembers : familyContext.members
     );
 
-    const pastPulses = this.extractRecentPulses(familyContext.family);
+    const finalizedMealPlan = this.safeCandidate({
+      family: { ...familyContext.family, mealTimings: request.customMealTimings || familyContext.family.mealTimings, mealSchedule: request.mealSchedule || familyContext.family.mealSchedule },
+      members: familyContext.members,
+      planType: request.planType || "daily",
+      mealTime: targetSlot,
+      mealTimeContext: request.mealTimeContext,
+      mealAttendance,
+      highTeaPreference: request.highTeaPreference,
+      userPlanningMode: request.userPlanningMode,
+      targetDate,
+      userPromptOverride: request.userPromptOverride,
+      excludeDishes: request.excludeDishes,
+    }, request.preferredLanguage || request.mealTimeContext?.locale || "hi");
 
-    let generatedMealPlan: FamilyMealPlan;
-
-    try {
-      generatedMealPlan = this.aiService.generateFamilyMealPlan({
-        family: {
-          ...familyContext.family,
-          mealTimings: request.customMealTimings || familyContext.family.mealTimings,
-          mealSchedule: request.mealSchedule || familyContext.family.mealSchedule,
-        },
-        members: familyContext.members,
-        planType: request.planType || "daily",
-        mealTime: targetSlot,
-        mealTimeContext: request.mealTimeContext,
-        mealAttendance,
-        highTeaPreference: request.highTeaPreference,
-        userPlanningMode: request.userPlanningMode,
-        targetDate,
-        userPromptOverride: request.userPromptOverride,
-        excludeDishes: request.excludeDishes,
-      });
-
-      const score = evaluateMealNutritionalBalance(
-        generatedMealPlan.commonMeal,
-        familyContext.family,
-        familyContext.members,
-        pastPulses
-      );
-
-      if (!score.isBalanced && score.improvementSuggestions.length > 0) {
-        console.log(`[MAMAAI Nutrition Intelligence] Enhancing meal for balance: ${score.improvementSuggestions.join("; ")}`);
-      }
-
-      const safety = this.safetyValidationService.validateMealPlan(generatedMealPlan, familyContext.members);
-      if (!safety.ok) {
-        throw new Error(`Meal plan failed safety validation: ${[...safety.errors, ...safety.warnings].join(" ")}`);
-      }
-    } catch (genErr) {
-      console.warn("[MAMAAI Generation Fallback Activated]:", genErr);
-      generatedMealPlan = this.aiService.generateFamilyMealPlan({
-        family: {
-          ...familyContext.family,
-          mealTimings: request.customMealTimings || familyContext.family.mealTimings,
-          mealSchedule: request.mealSchedule || familyContext.family.mealSchedule,
-        },
-        members: familyContext.members,
-        planType: request.planType || "daily",
-        mealTime: targetSlot,
-        mealTimeContext: request.mealTimeContext,
-        mealAttendance,
-        highTeaPreference: request.highTeaPreference,
-        userPlanningMode: request.userPlanningMode,
-        targetDate,
-        userPromptOverride: request.userPromptOverride,
-        excludeDishes: request.excludeDishes,
-      });
+    if (!demo && !(request.planType === "weekly" && request.excludeDishes?.length)) {
+      await this.repository.saveMealPlan(finalizedMealPlan);
+      store.mealPlans = store.mealPlans.filter((plan) => plan.mealPlanId !== finalizedMealPlan.mealPlanId);
+      store.mealPlans.push(finalizedMealPlan);
     }
-
-    const finalSafety = this.safetyValidationService.validateMealPlan(generatedMealPlan, familyContext.members);
-    if (!finalSafety.ok) {
-      throw new Error(`Meal plan failed safety validation: ${[...finalSafety.errors, ...finalSafety.warnings].join(" ")}`);
-    }
-
-    const finalizedMealPlan = uniqueCustomizationsByMember(
-      this.aiService.localizeFamilyMealPlan(
-        generatedMealPlan,
-        request.preferredLanguage || request.mealTimeContext?.locale || "hi"
-      )
-    );
-
-    const localizedSafety = this.safetyValidationService.validateMealPlan(finalizedMealPlan, familyContext.members);
-    if (!localizedSafety.ok) throw new Error(`Localized meal plan failed safety validation: ${[...localizedSafety.errors, ...localizedSafety.warnings].join(" ")}`);
-
-    await this.repository.saveMealPlan(finalizedMealPlan);
-    store.mealPlans = store.mealPlans.filter((plan) => plan.mealPlanId !== finalizedMealPlan.mealPlanId);
-    store.mealPlans.push(finalizedMealPlan);
 
     return { nutritionContexts, mealPlan: finalizedMealPlan };
   }
 
-  async replace(mealPlanId: string, request: ReplaceMealRequest): Promise<{ mealPlan: FamilyMealPlan }> {
+  private safeCandidate(input: Parameters<AIService["generateFamilyMealPlan"]>[0], language?: string) {
+    const excludeDishes = [...(input.excludeDishes ?? [])];
+    for (let attempt = 0; attempt < 6; attempt++) {
+      let candidate: FamilyMealPlan;
+      try {
+        candidate = this.aiService.generateFamilyMealPlan({ ...input, excludeDishes });
+      } catch (error) {
+        if (!(error instanceof Error) || !error.message.includes("No compatible replacement candidate")) throw error;
+        break;
+      }
+      if (this.safetyValidationService.validateMealPlan(candidate, input.members).ok) {
+        const localized = uniqueCustomizationsByMember(this.aiService.localizeFamilyMealPlan(candidate, language));
+        const alreadyExcluded = excludeDishes.some((name) => name.trim().toLowerCase() === localized.commonMeal.name.trim().toLowerCase());
+        if (!alreadyExcluded && this.safetyValidationService.validateMealPlan(localized, input.members).ok) return localized;
+      }
+      excludeDishes.push(candidate.commonMeal.name);
+    }
+    throw new Error("No safe alternative fits this slot and the saved household restrictions. Keep the current meal or try a different dish that fits those restrictions.");
+  }
+
+  async replace(mealPlanId: string, request: ReplaceMealRequest, userId: string): Promise<{ mealPlan: FamilyMealPlan }> {
     const existingPlan = await this.repository.getMealPlan(mealPlanId);
     if (!existingPlan) throw new Error("Meal plan not found.");
 
-    const familyContext = await this.familyService.getFamilyWithMembers(existingPlan.familyId).catch(() => null);
-    if (!familyContext) throw new Error("Family not found.");
+    const familyContext = await resolvePlanningHousehold({ familyId: existingPlan.familyId, userId, planType: existingPlan.planType });
 
     const targetSlot = existingPlan.commonMeal.mealTime;
     const excludedDishes = Array.from(
       new Set([
         existingPlan.commonMeal.name,
-        ...(existingPlan.commonMeal.alternativeOptions ?? []).map((option) => option.title),
         ...(request.excludeDishes ?? []),
-        ...(request.previousMeals ?? []),
       ].filter(Boolean))
     );
 
-    const generatedMealPlan = this.aiService.generateFamilyMealPlan({
+    const localizedPlan = this.safeCandidate({
       family: familyContext.family,
       members: familyContext.members,
       planType: existingPlan.planType,
       mealTime: targetSlot,
       targetDate: existingPlan.targetDate,
       mealAttendance: existingPlan.mealAttendance,
-      previousMeals: excludedDishes,
+      previousMeals: request.previousMeals,
       excludeDishes: excludedDishes,
       userPromptOverride: [
         request.userPromptOverride,
@@ -373,13 +284,7 @@ export class MealPlanningService {
       ]
         .filter(Boolean)
         .join(" "),
-    });
-
-    const replacementSafety = this.safetyValidationService.validateMealPlan(generatedMealPlan, familyContext.members);
-    if (!replacementSafety.ok) throw new Error(`Replacement meal plan failed safety validation: ${[...replacementSafety.errors, ...replacementSafety.warnings].join(" ")}`);
-    const localizedPlan = uniqueCustomizationsByMember(this.aiService.localizeFamilyMealPlan(generatedMealPlan, request.preferredLanguage));
-    const localizedReplacementSafety = this.safetyValidationService.validateMealPlan(localizedPlan, familyContext.members);
-    if (!localizedReplacementSafety.ok) throw new Error(`Localized replacement meal plan failed safety validation: ${[...localizedReplacementSafety.errors, ...localizedReplacementSafety.warnings].join(" ")}`);
+    }, request.preferredLanguage);
     const replacementPlan: FamilyMealPlan = {
       ...localizedPlan,
       familyId: existingPlan.familyId,

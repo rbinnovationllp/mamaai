@@ -948,7 +948,7 @@ export default function FamilyProfilePage() {
     const cleanRelation = relation.trim();
     const parsedAge = Number(ageInput);
 
-    if (!cleanName || !cleanRelation || (ageInput.trim() && (!Number.isInteger(parsedAge) || parsedAge < 0 || parsedAge > 120))) {
+    if (!cleanName || !cleanRelation || (ageInput.trim() && (!Number.isFinite(parsedAge) || parsedAge < 0 || parsedAge > 120))) {
       setFormError('Please enter member name and relation. If age is added, use a number from 0 to 120.');
       return;
     }
@@ -1589,6 +1589,7 @@ export default function FamilyProfilePage() {
                 <span className="text-sm font-semibold text-slate-700">{t.age} <span className="font-normal text-slate-500">({uxCopy.optional})</span></span>
                 <VoiceTextInput
                   type="number"
+                  step="any"
                   value={ageInput}
                   onValueChange={setAgeInput}
                   placeholder={t.ageHint}

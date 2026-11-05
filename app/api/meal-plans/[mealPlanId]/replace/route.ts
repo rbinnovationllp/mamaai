@@ -1,3 +1,4 @@
+import { PlanningHouseholdError } from "@/lib/services/planning-household";
 import { NextResponse } from "next/server";
 import { MealPlanningService } from "@/lib/services/meal-planning-service";
 import { replaceMealRequestSchema } from "@/lib/shared/schemas";
@@ -22,11 +23,12 @@ export async function POST(request: Request, context: { params: Promise<{ mealPl
     const repository = new FamilyMealRepository();
     const existing = await repository.getMealPlan(params.mealPlanId);
     if (!existing) return NextResponse.json({ error: { code: "NOT_FOUND", message: "Meal plan not found." } }, { status: 404 });
-    const family = await repository.getFamilyContext(existing.familyId);
-    if (!family || family.family.userId !== user.userId) return NextResponse.json({ error: { code: "FORBIDDEN", message: "You cannot replace this meal." } }, { status: 403 });
-    const result = await new MealPlanningService().replace(params.mealPlanId, parsed.data as ReplaceMealRequest);
+    const result = await new MealPlanningService().replace(params.mealPlanId, parsed.data as ReplaceMealRequest, user.userId);
     return NextResponse.json(result);
   } catch (error) {
+    if (error instanceof PlanningHouseholdError) {
+      return NextResponse.json({ error: { code: error.code, message: error.message } }, { status: error.code === "FORBIDDEN" ? 403 : 409 });
+    }
     const authResponse = authErrorResponse(error);
     if (authResponse) return authResponse;
     return NextResponse.json(

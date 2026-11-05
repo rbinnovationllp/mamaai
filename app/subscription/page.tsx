@@ -227,7 +227,9 @@ export default function SubscriptionPage() {
   const [customerMobile, setCustomerMobile] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [checkoutStatus, setCheckoutStatus] = useState('');
-  const [checkingEntitlement, setCheckingEntitlement] = useState(false);
+  const [checkingEntitlement, setCheckingEntitlement] = useState(true);
+  const [billingCheck, setBillingCheck] = useState("checking");
+  const [billingCheckAttempt, setBillingCheckAttempt] = useState(0);
   const [selectedPlan, setSelectedPlan] = useState<PlanTier | null>(null);
 
   useEffect(() => {
@@ -307,37 +309,32 @@ export default function SubscriptionPage() {
   }, []);
 
   useEffect(() => {
-    if (!customerUserId) return;
     let cancelled = false;
-
-    async function redirectActiveSubscriber() {
+    async function checkSubscription() {
       setCheckingEntitlement(true);
+      setBillingCheck("checking");
       try {
-        const response = await fetch(`/api/subscriptions/status?userId=${encodeURIComponent(customerUserId)}`, {
-          cache: 'no-store',
-        });
-        if (!response.ok) return;
+        const response = await fetch("/api/subscriptions/status", { cache: "no-store" });
+        if (cancelled) return;
+        if (response.status === 401) { setBillingCheck("sign-in"); return; }
+        if (!response.ok) throw new Error("Unable to verify subscription");
         const data = await response.json();
-        const entitlement = data.entitlement;
-        const isActive =
-          entitlement?.isActive === true &&
-          (entitlement?.status === 'active' || entitlement?.status === 'trialing');
-        if (!cancelled && isActive) {
-          setCheckoutStatus(t.activeRedirecting);
-          window.location.href = '/planner?subscription=active';
+        if (cancelled) return;
+        if (data.entitlement?.isActive) {
+          setBillingCheck("checking");
+          window.location.replace("/planner");
+          return;
         }
+        setBillingCheck(data.needsReconciliation ? "pending" : "available");
       } catch {
-        // Keep the subscription page usable if the status lookup is temporarily unavailable.
+        if (!cancelled) setBillingCheck("retry");
       } finally {
         if (!cancelled) setCheckingEntitlement(false);
       }
     }
-
-    redirectActiveSubscriber();
-    return () => {
-      cancelled = true;
-    };
-  }, [customerUserId, t.activeRedirecting]);
+    void checkSubscription();
+    return () => { cancelled = true; };
+  }, [billingCheckAttempt]);
 
   const suggestedPlan = useMemo(
     () => getSuggestedPlan(householdMembers.length),
@@ -374,16 +371,8 @@ export default function SubscriptionPage() {
         return;
       }
 
-      const sessionResponse = await fetch('/api/customer/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: cleanName,
-          mobile: cleanMobile,
-          email: cleanEmail,
-          preferredLanguage: language,
-        }),
-      });
+      if (billingCheck !== "available") return;
+      const sessionResponse = await fetch("/api/customer/session", { cache: "no-store" });
       const sessionData = await sessionResponse.json();
 
       if (!sessionResponse.ok || !sessionData.authenticated) {
@@ -440,6 +429,7 @@ export default function SubscriptionPage() {
         description: data.checkout.description,
         image: '/logo.png',
         handler: async function (response: any) {
+          setBillingCheck("pending");
           const verifyRes = await fetch('/api/razorpay/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -457,7 +447,7 @@ export default function SubscriptionPage() {
             alert('Subscription activated successfully. Welcome to MAMAAI.');
             window.location.href = '/planner?subscription=success';
           } else {
-            setCheckoutStatus('Payment completed, but verification failed. Support team notified.');
+            setBillingCheck("pending");
           }
         },
         prefill: {
@@ -483,6 +473,14 @@ export default function SubscriptionPage() {
       setLoadingPlan(null);
     }
   };
+
+  if (billingCheck !== "available") return (
+    <main className="mx-auto max-w-xl p-6">
+      <AppPageNav />
+      <p role="status">{billingCheck === "checking" ? "Checking your subscription…" : billingCheck === "sign-in" ? "Sign in to check your existing subscription." : billingCheck === "pending" ? "Your subscription needs confirmation. If you already paid, please wait or contact support." : "Your subscription could not be checked right now."}</p>
+      {billingCheck === "sign-in" ? <a href="/account/access">Sign in</a> : billingCheck !== "checking" ? <button type="button" onClick={() => setBillingCheckAttempt(value => value + 1)}>Retry</button> : null}
+    </main>
+  );
 
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-10 font-sans sm:px-6 lg:px-8">

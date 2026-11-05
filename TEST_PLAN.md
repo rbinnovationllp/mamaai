@@ -155,3 +155,9 @@ Do not mark "Hackathon MVP Ready" until:
 - Grocery update works after replacement.
 - Meal-wise ingredient quantities and fasting requirements work.
 - README setup is accurate.
+
+## Recovery validation — 4 November 2026
+
+New tests/password-recovery.test.cjs exercises mobile-only and email-only saved codes, both verified contact methods, fictional mobile/email OTP journeys, incorrect/unverified contacts, expiry, incorrect attempts/lockout, replay/concurrent consumption, new-password login, old-password rejection, old password-account session invalidation, HTTP request limits, disabled delivery, actual DynamoDB transaction command conditions, changed contact/version denial and legacy API compatibility. 15/15 passed. Full suite 142/142; security/auth subset 48/48; all exit 0. Production build and standalone TypeScript exit 0.
+
+UI verified locally through browser with fictional inputs and intercepted reset responses for English/Hindi/Kannada, mobile/email field selection, absent email input in mobile mode, disabled delivery disclosure and reset-success screen. Updated the existing public-pages recovery scenario; full Playwright suite was not run. No real provider delivery, real customer or live AWS used.

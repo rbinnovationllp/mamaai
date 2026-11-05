@@ -146,6 +146,9 @@ test('transfer management remains separate and account access is email-first wit
   assert.match(ui, /payment integration is unavailable|real payments are unavailable/);
   assert.match(access, /Email address/);
   assert.match(access, /Stay signed in on this device/);
-  assert.match(access, /Password-reset email delivery is not configured/);
+  assert.match(access, /PasswordRecoveryForm/);
+  const recovery = read("components/account/PasswordRecoveryForm.tsx");
+  assert.match(recovery, /Nothing was sent/);
+  assert.match(recovery, /Email is not required for mobile-only accounts/);
   assert.doesNotMatch(access, /paymentSuccess|settleSimulatedPayment/);
 });

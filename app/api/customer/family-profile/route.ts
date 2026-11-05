@@ -1,3 +1,4 @@
+import { hasCurrentEntitlement, needsPaymentReconciliation } from "@/lib/services/paid-entitlement";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { CustomerProfileRepository } from "@/lib/repositories/customer-profile-repository";
@@ -251,7 +252,7 @@ export async function POST(request: Request) {
     }));
     const userId = (await requireUser(request)).userId;
     const subscription = await new SubscriptionRepository().getLatestSubscriptionForUser(userId);
-    if (subscription && (subscription.status === "active" || subscription.status === "trialing") && members.length > subscription.memberLimit) {
+    if (subscription && hasCurrentEntitlement(subscription) && members.length > subscription.memberLimit) {
       return NextResponse.json({ error: { code: "HOUSEHOLD_MEMBER_LIMIT", message: `Your ${subscription.plan} plan allows up to ${subscription.memberLimit} family members.` } }, { status: 409 });
     }
     const repository = new CustomerProfileRepository();

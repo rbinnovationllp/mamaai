@@ -43,7 +43,7 @@ export function getMamaAiDynamoDb() {
         new DynamoDBClient({
           region: configuration.region,
           endpoint: configuration.endpoint,
-          credentials: configuration.runtime === "local" ? { accessKeyId: "LOCAL_TEST_ONLY", secretAccessKey: "LOCAL_TEST_ONLY" } : getDynamoCredentials(configuration),
+          credentials: configuration.runtime === "local" ? { accessKeyId: "LOCALTESTONLY", secretAccessKey: "LOCALTESTONLY" } : getDynamoCredentials(configuration),
         }),
         { marshallOptions: { removeUndefinedValues: true, convertClassInstanceToMap: true } }
       ),

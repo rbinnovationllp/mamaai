@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { RazorpayService } from "@/lib/services/razorpay-service";
 import { SubscriptionRepository } from "@/lib/repositories/subscription-repository";
-import type { SubscriptionPlan } from "@/lib/shared/contracts";
 
 type RazorpayWebhookPayload = {
   event?: string;
+  created_at?: number;
   payload?: {
     subscription?: {
       entity?: {
@@ -32,16 +32,6 @@ type RazorpayWebhookPayload = {
 
 function isoFromSeconds(value?: number) {
   return value ? new Date(value * 1000).toISOString() : undefined;
-}
-
-function subscriptionPlanFromNote(value?: string): SubscriptionPlan | undefined {
-  return value === "starter" ||
-    value === "premium" ||
-    value === "family_plus" ||
-    value === "family_starter" ||
-    value === "family_premium"
-    ? value
-    : undefined;
 }
 
 function webhookIdempotencyKey(request: Request, rawBody: string) {
@@ -73,36 +63,31 @@ export async function POST(request: Request) {
   try {
     const body = JSON.parse(rawBody) as RazorpayWebhookPayload;
     const eventType = body.event ?? "unknown";
-    const idempotency = await subscriptionRepository.acceptWebhookOnce({
-      provider: "razorpay",
-      idempotencyKey: webhookIdempotencyKey(request, rawBody),
-      eventType,
-      bodyHash: crypto.createHash("sha256").update(rawBody).digest("hex"),
-    });
-    if (!idempotency.accepted) {
-      return NextResponse.json({
-        received: true,
-        persisted: false,
-        duplicate: true,
-        idempotencyKey: idempotency.idempotencyKey,
-      });
+    const key = webhookIdempotencyKey(request, rawBody);
+    if (await subscriptionRepository.getWebhookRecord("razorpay", `atomic:${key}`)) return NextResponse.json({ received: true, duplicate: true });
+    if (!["subscription.activated", "subscription.charged", "subscription.completed", "subscription.cancelled", "subscription.paused", "subscription.resumed", "subscription.pending", "subscription.halted", "payment.failed"].includes(eventType)) {
+      return NextResponse.json({ received: true, persisted: false });
     }
-
     const subscription = body.payload?.subscription?.entity;
     const payment = body.payload?.payment?.entity;
-    const notes = { ...(payment?.notes ?? {}), ...(subscription?.notes ?? {}) };
     const subscriptionId = subscription?.id;
 
     if (!subscriptionId) {
       return NextResponse.json({ received: true, persisted: false, reason: "No subscription entity present." });
     }
-    if (!notes.userId) {
-      return NextResponse.json({ error: { code: "WEBHOOK_METADATA_MISSING", message: "Webhook customer metadata is missing." } }, { status: 422 });
+    const associated = await subscriptionRepository.findSubscriptionByRazorpaySubscriptionId(subscriptionId);
+    const ownerId = associated?.userId ?? subscription?.notes?.userId;
+    if (!ownerId || (!associated && subscription?.notes?.project !== "mamaai")) {
+      return NextResponse.json({ error: { code: "WEBHOOK_OWNER_UNCONFIRMED" } }, { status: 503 });
     }
-
+    if (["subscription.activated", "subscription.charged"].includes(eventType) && (!payment?.id || payment.status !== "captured" || subscription?.status !== "active" || !subscription.current_end)) {
+      return NextResponse.json({ received: true, persisted: false, reason: "Awaiting captured charge" });
+    }
     const record = await service.upsertSubscriptionFromProvider({
-      userId: notes.userId ?? "unknown-user",
-      plan: subscriptionPlanFromNote(notes.plan),
+      userId: ownerId,
+      plan: associated?.plan,
+      webhookKey: key,
+      eventAt: isoFromSeconds(body.created_at),
       razorpaySubscriptionId: subscriptionId,
       razorpayPaymentId: payment?.id,
       razorpayPlanId: subscription?.plan_id,
@@ -119,8 +104,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true, persisted: true, subscriptionRecord: record });
   } catch {
     return NextResponse.json(
-      { error: { code: "RAZORPAY_WEBHOOK_PARSE_FAILED", message: "Razorpay webhook payload could not be processed." } },
-      { status: 400 }
+      { error: { code: "RAZORPAY_WEBHOOK_PROCESSING_FAILED", message: "Razorpay webhook payload could not be processed." } },
+      { status: 503 }
     );
   }
 }

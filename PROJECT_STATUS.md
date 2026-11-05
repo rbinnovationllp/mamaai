@@ -2,6 +2,11 @@
 
 ## Current Launch Snapshot - August 14, 2026
 
+## Controlled beta entitlement — 5 November 2026
+
+- Added an isolated-runtime-only, operator-granted beta entitlement. It is non-paying, non-renewing, expiry-bound, and restricted to Starter or Premium; Family Plus, demo/judge paths, browser flags, and production tables are rejected.
+- Local validation completed for grant, expiration, revocation, owner isolation, payment/Ask MAMA isolation, authentication, planning, grocery safety, TypeScript, clean production build, and public browser smoke tests. No cloud deployment or production data access occurred.
+
 Overall status: controlled hackathon launch and colleague payment testing candidate, pending final deployed Razorpay verification.
 
 
@@ -349,3 +354,36 @@ Remaining screenshot caveat:
 - Planner now distinguishes authentication, subscription, permission, rate-limit and timeout failures, and reports allowlisted HTTP/error references without raw backend error text. Weekly timeout timer is cleared on every exit. Removed an obsolete hardcoded next-week date label.
 - Fresh main-project regression suite: 127 passed, zero failed, exit 0. Production build including TypeScript: exit 0.
 - The production planner failure shown in customer screenshots remains undiagnosed pending runtime status/error evidence. These changes improve diagnosis; they do not establish live meal generation as repaired.
+
+## Mobile-only password recovery — 4 November 2026
+
+### Completed
+- Removed email-only Forgot Password flow. Mobile/email method selection and saved-code recovery now support English, Hindi and Kannada; registration displays issued recovery codes once without browser persistence.
+- Preserved mobile-only identity lookups and original account IDs. Legacy mobile+recoveryCode API input remains accepted. Atomic proof consumption/password update revokes password-account sessions and clears current device/session cookies.
+- Added OTP challenge storage, hashing, expiry, attempt controls, verified-contact checks and an injected delivery boundary. Default production delivery is unavailable and never claims a code was sent.
+- Main regression suite: 142/142, exit 0. Security/authentication/recovery subset: 48/48, exit 0. New recovery tests: 15/15. Standalone TypeScript and production build: exit 0.
+- Local browser checks passed for method switching, zero email inputs for mobile mode, English/Hindi/Kannada, honest disabled-delivery state and mocked mobile/email reset success.
+
+### Known Bugs / Remaining Work
+- No legitimate SMS/email delivery adapter or verified-contact enrollment service is installed. OTP journeys were tested only with fictional injected transport and mocked repositories.
+- An unverified legacy contact with no saved recovery code cannot safely self-reset yet. It needs a separately verified enrollment/support process, without requiring email. Do not mark it verified merely because a number is present.
+- Historical signed legacy-token transition/revocation remains separate from password-account session versioning.
+
+### Deployment Status
+- Local implementation only; no commit, push, production deployment, real SMS/email, customer-data access or live resource/configuration change performed.
+
+## Remembered device validation — 4 November 2026
+
+- Valid saved sessions resume without a password prompt. New remembered sessions last 365 days and renew near expiry on the same verified device. Legacy sessions keep their original expiry.
+- Local regression suite: 150 passed. Standalone TypeScript and production build exited 0. Local browser checks with mocked responses verified repeat opens, sign-in when signed out, and Retry during outages.
+- The recording shows the stopped temporary server at 127.0.0.1:3127. Changes are local and unpublished.
+
+## Paid subscriber recognition — 4 November 2026
+
+- Shared owner-scoped paid-period checks prefer valid paid records over pending checkout attempts. Unresolved billing state offers Retry or reconciliation. Checkout confirmation verifies Razorpay capture and period. Webhook markers commit with entitlement writes.
+- Local regression: 155 passed. Full fictional provider-backed staging journey and approved live reconciliation remain pending.
+
+## Functional QA, 4 November 2026
+
+- Fixed legacy family authorization, weekly cached-plan ownership, fractional ages, weekly candidate selection and auth origin error handling.
+- Verified vegetarian seven-day planning, weekday tiffin slots and persisted grocery purchases in loopback storage. Full browser suite still fails mixed-diet slot replacement. Production unchanged.

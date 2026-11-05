@@ -51,6 +51,10 @@ Admin roles:
 
 Sensitive health data visibility must be limited to roles with a clear operational need.
 
+## Isolated beta access
+
+Non-paying beta access is a server-side, operator-granted, expiring trial record. It is permitted only when the isolated beta runtime, `MAMA_AI_BETA_ACCESS_ENABLED`, a `mamaai-preview-beta-*` table, and a future beta end date are all configured. The grant endpoint requires the dedicated beta operator secret, verifies the tester account exists, fixes the plan to Starter or Premium, and rejects Family Plus. Browser flags, client payload plan choices, judge/demo mode, and production tables cannot create beta access. Revocation writes a cancelled beta record for the same account; no payment entitlement is created.
+
 ## AI Safety
 
 MAMA AI must never diagnose disease, prescribe medication, change medication, recommend stopping medication, override doctor instructions, guarantee recovery, or claim medical treatment.
@@ -161,3 +165,20 @@ Production APIs should rate limit:
 - Demo data is fictional.
 - Ask MAMA refuses prompt-injection, secret-disclosure, private-data, and medical-treatment requests.
 
+
+
+## Recovery controls — 4 November 2026
+
+Recovery ownership proof is either an already issued one-time recovery code or a short-lived OTP delivered to an independently verified stored contact. No number/email matching alone can authorize a reset. Production delivery remains disabled pending vetted SMS/email adapters and contact-verification enrollment.
+
+Six-digit randomInt OTPs are HMAC-bound to random challenge IDs with MAMA_AI_RECOVERY_CHALLENGE_SECRET (at least 32 characters), expire in 10 minutes and allow at most five failed checks. Atomic proof consumption plus password update prevents replay/partial consumption. Durable API limits: 10 requests per IP per 15 minutes, 3 delivery requests per normalized contact and 5 proof attempts per contact/challenge per 15 minutes. Limiter outages fail closed.
+
+Requests do not reveal account existence or available contacts. Adapter implementations must preserve generic responses, avoid logging codes/contacts, bound delivery latency and preferably enqueue delivery to avoid account-dependent response timing. No real SMS/email adapter or queue is currently installed. Existing lookup/recovery peppers must be preserved; rotations require a separate compatibility plan.
+
+Reset invalidates versioned password-account sessions and pre-reset device-less opaque sessions for that account, and clears this browser's legacy cookie. Unrelated signed legacy-token revocation/transition remains a broader migration issue; this change does not claim to revoke every historical token format.
+
+## Recognized-device session policy — 4 November 2026
+
+Added optional DurableSessionRecord.rememberDevice. Only explicitly remembered new sessions receive the 365-day lifetime/rolling renewal; old records retain prior expiry semantics. Renewal UpdateCommand is conditional on unrevoked, remembered, unexpired state and expected previous expiry; both record expiry and top-level TTL are updated atomically. requireUser also compares the browser device cookie with the stored session device before account version checks.
+
+No password/token is stored in localStorage. Session and device cookies stay HttpOnly, SameSite=Lax and Secure in production. Renewal cannot bypass password reset, device activation/version changes or revocation. Browser data removal, expired cookies and different browser/origin cannot be recognized without renewed proof. CacheStorage must never be used as session authority; old app-cache versions are purged and private routes/API responses bypass the new worker cache.

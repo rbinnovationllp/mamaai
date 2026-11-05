@@ -21,10 +21,11 @@ const PANTRY_STORAGE_KEY = 'mamaai_pantry_items_v1';
 async function readAskMamaResponse(response: Response) {
   const contentType = response.headers.get('content-type') || '';
   const raw = await response.text();
-  let data: { response?: string } | null = null;
+  let data: { response?: string; error?: { code?: string; message?: string } } | null = null;
   if (contentType.includes('application/json')) {
     try { data = JSON.parse(raw); } catch { /* handled as an unavailable response */ }
   }
+  if (!response.ok && data?.error?.code === 'ASK_MAMA_PROVIDER_BUSY' && data.error.message) return { response: data.error.message };
   if (!response.ok || !data?.response) throw new Error('ASK_MAMA_UNAVAILABLE');
   return data;
 }

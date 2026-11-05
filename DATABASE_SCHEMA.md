@@ -375,3 +375,16 @@ For Razorpay, store MAMAAI-specific plan IDs and webhook events with `project=ma
 ## Migration Strategy
 
 The MVP uses an in-memory repository to make the vertical slice runnable immediately. Production migration replaces repository implementations with DynamoDB repositories while keeping service interfaces and API contracts stable.
+
+
+## Recovery additions — 4 November 2026
+
+Existing ACCOUNT#userId/PROFILE records keep the same userId and optional mobileHash/emailHash. Added optional `emailVerificationStatus: "verified"|"unverified"`; missing is unverified. A hash/contact in a legacy profile never establishes verification. No existing account backfill is performed.
+
+New `PASSWORD_RECOVERY#<random UUID>` / `CHALLENGE` record contains userId, channel, contactHash, HMAC codeHash, passwordVersion, attempts, expiresAt (epoch seconds), optional consumedAt. Top-level expiresAt supports configured table TTL; application expiry is always checked independently. Raw OTP/contact is not stored. No GSI is required.
+
+A TransactWrite consumes the challenge or an existing ACCOUNT#userId/RECOVERY#hash record and conditionally updates only the same account's password hash/version, device version, updatedAt, and removes activeDeviceId. OTP resets also condition-check verified contact hash/status. Family, grocery, meal, subscription and payment keys are untouched. No destructive migration required.
+
+## Remembered session metadata — 4 November 2026
+
+SESSION#tokenHash/SESSION#CURRENT adds optional record.rememberDevice. Device and password activation versions remain authoritative. Remembered new sessions use 365-day expiry; valid same-device session checks renew in the last 45 days using a conditional update of record.expiresAt, record.expiresAtEpoch and top-level expiresAt. No account/customer ID or family/payment schema changes. No backfill of legacy session records was performed.

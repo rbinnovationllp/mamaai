@@ -1,59 +1,26 @@
+import { PlanningHouseholdError } from "@/lib/services/planning-household";
+import { hasCurrentEntitlement, needsPaymentReconciliation } from "@/lib/services/paid-entitlement";
 import { NextResponse } from "next/server";
 import { MealPlanningService } from "@/lib/services/meal-planning-service";
 import { SubscriptionRepository } from "@/lib/repositories/subscription-repository";
 import { authErrorResponse, requireUser } from "@/lib/server/auth";
 import { getSession } from "@/lib/auth/session";
-import { docClient, TABLE_NAMES } from "@/lib/repositories/dynamo";
-import { GetCommand } from "@aws-sdk/lib-dynamodb";
 import { createMealPlanRequestSchema } from "@/lib/shared/schemas";
 import type { CreateMealPlanRequest } from "@/lib/shared/contracts";
+
+class EntitlementPendingError extends Error {}
 
 export const dynamic = "force-dynamic";
 
 /**
  * Validates whether a user has an active entitlement (Session, DynamoDB, or Trial).
  */
-async function checkEntitlement(session: any, userId?: string): Promise<boolean> {
-  // Strategy A: Quick session validation (Admin / Judge / Active Entitlement)
-  if (
-    session?.role === "admin" ||
-    session?.role === "judge" ||
-    session?.entitlement === "judge" ||
-    session?.entitlement === "active"
-  ) {
-    return true;
-  }
-
+async function checkEntitlement(userId?: string): Promise<boolean> {
   if (!userId) return false;
+  const record = await new SubscriptionRepository().getLatestSubscriptionForUser(userId).catch(() => { throw new EntitlementPendingError(); });
+  if (needsPaymentReconciliation(record)) throw new EntitlementPendingError();
+  return hasCurrentEntitlement(record);
 
-  // Strategy B: DynamoDB primary user record lookup
-  try {
-    const userRecord = await docClient.send(
-      new GetCommand({
-        TableName: TABLE_NAMES.USERS,
-        Key: { userId },
-      })
-    );
-    const userItem = userRecord.Item;
-    const isTrialActive = userItem?.trialEndsAt && new Date(userItem.trialEndsAt) > new Date();
-    const isPaid = userItem?.subscriptionStatus === "active";
-    const isJudge = userItem?.role === "judge" || userItem?.isJudgeDemo === true;
-
-    if (isTrialActive || isPaid || isJudge) {
-      return true;
-    }
-  } catch (error) {
-    console.warn("[MealPlan Route] DynamoDB user check failed, evaluating fallback:", error);
-  }
-
-  // Strategy C: Fallback to SubscriptionRepository
-  try {
-    const subscriptionRepo = new SubscriptionRepository();
-    const latestSub = await subscriptionRepo.getLatestSubscriptionForUser(userId);
-    return latestSub?.status === "active" || latestSub?.status === "trialing";
-  } catch {
-    return false;
-  }
 }
 
 /**
@@ -99,7 +66,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Server-side Entitlement Check
-    const isEntitled = await checkEntitlement(session, resolvedUserId);
+    const isEntitled = await checkEntitlement(resolvedUserId);
 
     if (!isEntitled) {
       return NextResponse.json(
@@ -124,12 +91,16 @@ export async function POST(request: Request) {
       ...result,
     });
   } catch (error) {
+    if (error instanceof PlanningHouseholdError) {
+      return NextResponse.json({ error: { code: error.code, message: error.message } }, { status: error.code === "FORBIDDEN" ? 403 : 409 });
+    }
     const authResponse = authErrorResponse(error);
     if (authResponse) return authResponse;
 
     if (process.env.MAMA_AI_LOCAL_QA === "true") {
       console.error("LOCAL_QA_MEAL_PLAN_ERROR", error instanceof Error ? { name: error.name, message: error.message } : { name: "unknown" });
     }
+    if (error instanceof EntitlementPendingError) return NextResponse.json({ error: { code: "ENTITLEMENT_PENDING" } }, { status: 503 });
     console.error(`[MealPlan Route Uncaught Error] RequestID: ${requestId}:`, error);
 
     return NextResponse.json(

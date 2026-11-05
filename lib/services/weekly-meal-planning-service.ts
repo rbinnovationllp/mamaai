@@ -1,9 +1,8 @@
 import { createId, nowIso } from "@/lib/repositories/in-memory-store";
 import { AIService } from "@/lib/ai/ai-service";
 import { SafetyValidationService } from "@/lib/ai/safety-validation-service";
-import { FamilyService } from "@/lib/services/family-service";
+import { resolvePlanningHousehold } from "./planning-household";
 import { FamilyMealRepository } from "@/lib/repositories/family-meal-repository";
-import { CustomerProfileRepository } from "@/lib/repositories/customer-profile-repository";
 import { PantryRepository } from "@/lib/repositories/pantry-repository";
 import { aggregateWeeklyGroceries } from "@/lib/grocery/weekly-aggregation";
 import type {
@@ -211,30 +210,6 @@ function buildTomorrowReminder(days: WeeklyFamilyMealPlan["days"], items: Weekly
   return { date: tomorrow, meals, stillToArrange };
 }
 
-function dietPreferenceForMember(preference?: string): FamilyMember["dietType"] {
-  if (preference === "eggetarian") return "eggitarian";
-  if (preference === "jain") return "jain";
-  // The shared contract has no pescatarian value. Preserve the narrower
-  // permission set below instead of widening the member to unrestricted meat.
-  if (preference === "pescatarian") return "non_vegetarian";
-  if (preference === "semi_vegetarian") return "non_vegetarian";
-  if (preference === "vegetarian" || preference === "non_vegetarian" || preference === "vegan") return preference;
-  return "other";
-}
-
-function familyDietFromProfile(customerDiet: string | undefined, members: Array<{ foodPreference?: string }>): Family["dietPreference"] {
-  if (customerDiet === "vegetarian" || customerDiet === "non_vegetarian" || customerDiet === "semi_vegetarian" || customerDiet === "eggetarian" || customerDiet === "vegan" || customerDiet === "mixed") {
-    return customerDiet;
-  }
-  const preferences = new Set(members.map((member) => member.foodPreference).filter(Boolean));
-  if (preferences.has("vegan") && preferences.size === 1) return "vegan";
-  if (preferences.has("non_vegetarian")) return preferences.size > 1 ? "mixed" : "non_vegetarian";
-  if (preferences.has("eggetarian")) return preferences.size > 1 ? "mixed" : "eggetarian";
-  if (preferences.has("semi_vegetarian")) return "semi_vegetarian";
-  if (preferences.has("vegetarian")) return "vegetarian";
-  return "mixed";
-}
-
 function buildSabSewaRequirement(items: WeeklyGroceryRequirement[]): SabSewaShoppingRequirement[] {
   return items.slice(0, 80).map((item) => ({
     shoppingDate: item.plannedConsumptionDates?.[0] ?? new Date().toISOString().slice(0, 10),
@@ -245,135 +220,43 @@ function buildSabSewaRequirement(items: WeeklyGroceryRequirement[]): SabSewaShop
   }));
 }
 
+export class WeeklyPlanOwnershipError extends Error {
+  constructor() { super("This household is unavailable to the signed-in customer."); }
+}
+
 export class WeeklyMealPlanningService {
-  private readonly familyService = new FamilyService();
   private readonly repository = new FamilyMealRepository();
   private readonly aiService = new AIService();
   private readonly safetyValidationService = new SafetyValidationService();
-  private readonly customerProfileRepository = new CustomerProfileRepository();
 
   async getCurrent(familyId: string, targetDate: string) {
     return this.repository.getWeeklyMealPlan(familyId, mondayForDate(targetDate));
   }
 
-  private async getFamilyContextForPlanning(request: CreateMealPlanRequest) {
-    const persisted = await this.familyService.getFamilyWithMembers(request.familyId);
-    if (persisted) return persisted;
-
-    if (!request.userId) return null;
-    const [customer, profile] = await Promise.all([
-      this.customerProfileRepository.getCustomer(request.userId).catch(() => undefined),
-      this.customerProfileRepository.getFamilyProfile(request.userId).catch(() => undefined),
-    ]);
-    if (!profile?.members?.length || profile.familyId !== request.familyId) return null;
-
-    const generatedAt = nowIso();
-    // MAMAAI's verified regional catalogue is Indian. A missing optional
-    // request context must use that catalogue rather than fall through to
-    // generic drafts with composite, unverifiable ingredients.
-    const country = request.mealTimeContext?.country || "India";
-    const state = request.mealTimeContext?.region || "Home region";
-    const city = request.mealTimeContext?.city || state;
-    const family: Family = {
-      familyId: profile.familyId,
-      userId: request.userId,
-      name: `${customer?.name || profile.members[0]?.name || "MAMAAI"} Household`,
-      country,
-      state,
-      city,
-      dietPreference: familyDietFromProfile(customer?.householdFoodPreference, profile.members),
-      cuisinePreferences: [
-        ...(customer?.mealTypePreferences ? Object.values(customer.mealTypePreferences).flat().filter(Boolean) : []),
-        customer?.cookingHabit || "fresh_home_cooked",
-      ].slice(0, 12),
-      localIngredientAvailabilityNotes: [
-        "Recovered planning context from saved customer family profile for cross-device continuity.",
-        customer?.cookingHabit ? `Saved cooking habit: ${customer.cookingHabit}.` : "Cooking habit not specified; avoid country-only assumptions.",
-        customer?.budgetPreference ? `Saved budget preference: ${customer.budgetPreference}.` : "Budget preference not specified; use moderate practical cost control.",
-      ],
-      weeklyFoodRoutineStatus: customer?.weeklyFoodRoutineStatus ?? "skip",
-      weeklyFoodRoutine: customer?.weeklyFoodRoutine ?? [],
-      mealTypePreferences: customer?.mealTypePreferences ?? {},
-      recentMealHistory: customer?.recentMealHistory ?? [],
-      mealTimings: customer?.mealTimings ?? {},
-      nonVegPreferredFoods: customer?.nonVegPreferredFoods ?? [],
-      cultureProfile: { country, region: state, city },
-      budget: { type: "daily", amount: 700, currency: "INR", priority: "flexible", preferLowCostMeals: customer?.budgetPreference === "economical" },
-      kitchenProfile: { equipment: ["Basic home kitchen"], cookingTimePreference: "under_30" },
-      subscriptionPlan: profile.suggestedPlan,
-      createdAt: profile.createdAt || generatedAt,
-      updatedAt: generatedAt,
-    };
-
-    const members: FamilyMember[] = profile.members.map((member) => ({
-      memberId: member.id,
-      familyId: profile.familyId,
-      name: member.name,
-      relationship: member.relation || "Family member",
-      age: typeof member.age === "number" ? member.age : 30,
-      gender: "prefer_not_to_say",
-      activityLevel: member.activityLevel ?? "moderate",
-      goals: ["Balanced home meal"],
-      dietType: dietPreferenceForMember(member.foodPreference),
-      dietaryPermissions: member.dietaryPermissions,
-      weekdayDietRules: member.weekdayDietRules ?? [],
-      festivalDietRules: member.festivalDietRules ?? [],
-      nonVegFrequency: member.nonVegFrequency,
-      nonVegAvoidDays: member.nonVegAvoidDays ?? [],
-      nonVegCustomRule: member.nonVegCustomRule,
-      likes: [],
-      dislikes: member.dislikes ?? [],
-      allergies: member.allergies ?? [],
-      foodAllergies: member.allergies ?? [],
-      ingredientAllergies: member.allergies ?? [],
-      foodDislikes: member.dislikes ?? [],
-      dislikedMeals: member.dislikes ?? [],
-      excludedIngredients: [],
-      dietaryRestrictions: member.doctorAdvisedRestrictions ?? [],
-      healthConditions: [],
-      doctorRestrictions: member.doctorAdvisedRestrictions ?? [],
-      specialStatuses: [],
-      fastingPreference: {
-        observesFasting: "no",
-        regularDays: [],
-        allowedFoods: [],
-        avoidedFoods: [],
-        fruitsAllowed: true,
-        dairyAllowed: true,
-        grainsRestricted: false,
-        customRules: [],
-      },
-      scheduleRole: member.scheduleRole,
-      attendanceDays: member.attendanceDays ?? [],
-      holidayOrLeaveDates: member.holidayOrLeaveDates ?? [],
-      tiffinPreferences: member.tiffinPreferences ?? [],
-      packingStorageLimitations: member.packingStorageLimitations ?? [],
-      preferredPreparationTime: member.preferredPreparationTime,
-    }));
-
-    await this.repository.saveFamilyContext({ family, members });
-    return { family, members };
-  }
-
   async generateOrGet(request: CreateMealPlanRequest) {
+    if (!request.userId) throw new WeeklyPlanOwnershipError();
+    const ownPlan = (plan: WeeklyFamilyMealPlan) => {
+      if (plan.userId !== request.userId) throw new WeeklyPlanOwnershipError();
+      return { weeklyPlan: plan, reusedExisting: true };
+    };
     const targetDate = request.targetDate ?? new Date().toISOString().slice(0, 10);
     const weekStartDate = mondayForDate(targetDate);
     const existing = await this.repository.getWeeklyMealPlan(request.familyId, weekStartDate);
-    if (existing) return { weeklyPlan: existing, reusedExisting: true };
+    if (existing) return ownPlan(existing);
 
     const lockAcquired = await this.repository.tryBeginWeeklyMealPlanGeneration(request.familyId, weekStartDate);
     if (!lockAcquired) {
       const inProgressExisting = await this.repository.getWeeklyMealPlan(request.familyId, weekStartDate);
-      if (inProgressExisting) return { weeklyPlan: inProgressExisting, reusedExisting: true };
+      if (inProgressExisting) return ownPlan(inProgressExisting);
       throw new Error("This weekly plan is already being prepared. Please try again in a moment.");
     }
 
     try {
       const recheckedExisting = await this.repository.getWeeklyMealPlan(request.familyId, weekStartDate);
-      if (recheckedExisting) return { weeklyPlan: recheckedExisting, reusedExisting: true };
+      if (recheckedExisting) return ownPlan(recheckedExisting);
 
-      const familyContext = await this.getFamilyContextForPlanning(request);
-      if (!familyContext) throw new Error("Family not found.");
+      const familyContext = await resolvePlanningHousehold(request);
+      if (!familyContext) throw new WeeklyPlanOwnershipError();
 
       const generatedAt = nowIso();
       const recentMeals: string[] = [...(request.previousMeals ?? [])];
@@ -389,7 +272,10 @@ export class WeeklyMealPlanningService {
         const tiffinMemberIds = tiffinRole ? familyContext.members.filter((member) => member.scheduleRole === tiffinRole && !(member.holidayOrLeaveDates ?? []).includes(date) && (!(member.attendanceDays?.length) || member.attendanceDays.includes(day))).map((member) => member.memberId) : [];
         if (tiffinRole && tiffinMemberIds.length === 0) continue;
         const attendance = tiffinRole ? [{ mealTime, participatingMemberIds: tiffinMemberIds, absentMemberIds: [], fastingMemberIds: [], guestCount: 0, enabled: tiffinMemberIds.length > 0 }] : slotAttendance(request, mealTime);
-        const generated = this.aiService.generateFamilyMealPlan({
+        const rejected: string[] = [];
+        let localized: FamilyMealPlan | undefined;
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const generated = this.aiService.generateFamilyMealPlan({
           family: {
             ...familyContext.family,
             mealTimings: request.customMealTimings || familyContext.family.mealTimings,
@@ -403,16 +289,21 @@ export class WeeklyMealPlanningService {
           userPlanningMode: "returning_user_weekly_editable",
           userPromptOverride: request.userPromptOverride,
           previousMeals: recentMeals.slice(-18),
-          excludeDishes: recentMeals.slice(-18),
+          excludeDishes: [...(request.excludeDishes ?? []), ...rejected],
           targetDate: date,
         });
 
-        const safety = this.safetyValidationService.validateMealPlan(generated, familyContext.members);
-        if (!safety.ok) throw new Error(`Weekly meal plan failed safety validation for ${date} ${mealTime} (${generated.commonMeal.mealId}: ${generated.commonMeal.name}) [${generated.commonMeal.ingredients.map((ingredient) => ingredient.name).join(", ")}]: ${[...safety.errors, ...safety.warnings].join(" ")}`);
-
-        const localized = this.aiService.localizeFamilyMealPlan(generated, request.preferredLanguage || request.mealTimeContext?.locale);
-        const localizedSafety = this.safetyValidationService.validateMealPlan(localized, familyContext.members);
-        if (!localizedSafety.ok) throw new Error(`Localized weekly meal plan failed safety validation: ${[...localizedSafety.errors, ...localizedSafety.warnings].join(" ")}`);
+          const safety = this.safetyValidationService.validateMealPlan(generated, familyContext.members);
+          if (safety.ok) {
+            const candidate = this.aiService.localizeFamilyMealPlan(generated, request.preferredLanguage || request.mealTimeContext?.locale);
+            if (this.safetyValidationService.validateMealPlan(candidate, familyContext.members).ok) {
+              localized = candidate;
+              break;
+            }
+          }
+          rejected.push(generated.commonMeal.name);
+        }
+        if (!localized) throw new Error(`No safe weekly meal option found for ${date} ${mealTime}.`);
         recentMeals.push(localized.commonMeal.name);
         meals.push({
           slotId: createId("weekly-slot"),
@@ -464,7 +355,7 @@ export class WeeklyMealPlanningService {
   async selectSlot(input: { familyId: string; weekStartDate: string; slotId: string; selectedMealPlan: FamilyMealPlan; reason?: string; expectedPlanVersion: number }) {
     const existing = await this.repository.getWeeklyMealPlan(input.familyId, input.weekStartDate);
     if (!existing) throw new Error("Weekly meal plan not found.");
-    const familyContext = await this.getFamilyContextForPlanning({ familyId: input.familyId, userId: existing.userId, planType: "weekly" } as CreateMealPlanRequest);
+    const familyContext = await resolvePlanningHousehold({ familyId: input.familyId, userId: existing.userId, planType: "weekly" } as CreateMealPlanRequest);
     if (!familyContext) throw new Error("Family not found.");
     const substitutionSafety = this.safetyValidationService.validateMealPlan(input.selectedMealPlan, familyContext.members);
     if (!substitutionSafety.ok) throw new Error(`Weekly meal substitution failed safety validation: ${[...substitutionSafety.errors, ...substitutionSafety.warnings].join(" ")}`);

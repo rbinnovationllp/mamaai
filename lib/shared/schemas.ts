@@ -247,7 +247,7 @@ export const createFamilyMemberInputSchema = z.object({
   memberId: z.string().min(1).optional(),
   name: z.string().min(1),
   relationship: z.string().min(1),
-  age: z.number().int().min(0).max(120),
+  age: z.number().min(0).max(120),
   gender: z.enum(["female", "male", "other", "prefer_not_to_say"]),
   heightCm: z.number().positive().optional(),
   weightKg: z.number().positive().optional(),

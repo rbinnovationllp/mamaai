@@ -1,3 +1,4 @@
+import { hasCurrentEntitlement, needsPaymentReconciliation } from "@/lib/services/paid-entitlement";
 import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import { GetCommand, PutCommand, QueryCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 import type { PaymentTransaction, SubscriptionRecord } from "@/lib/shared/contracts";
@@ -22,29 +23,59 @@ function subscriptionKeys(record: SubscriptionRecord) {
 function transactionKeys(transaction: PaymentTransaction) {
   return {
     PK: `USER#${transaction.userId}`,
-    SK: `PAYMENT#${transaction.createdAt}#${transaction.transactionId}`,
+    SK: transaction.providerPaymentId && transaction.paymentStatus === "paid" ? `PAYMENT#RAZORPAY#${transaction.providerPaymentId}` : `PAYMENT#${transaction.createdAt}#${transaction.transactionId}`,
   };
 }
 
 export class SubscriptionRepository {
+  async grantBetaEntitlement(subscription: SubscriptionRecord): Promise<SubscriptionRecord> {
+    if (subscription.source !== "beta_operator" || subscription.status !== "trialing" || subscription.paymentChannel !== "manual" || subscription.paymentStatus !== "not_required") {
+      throw new Error("Invalid beta entitlement record.");
+    }
+    await mamaAiDynamoDb.send(new PutCommand({
+      TableName: getMamaAiTableName(),
+      Item: {
+        PK: `USER#${subscription.userId}`,
+        SK: "SUBSCRIPTION#BETA#CURRENT",
+        GSI1PK: "ENTITLEMENT_STATUS#trialing",
+        GSI1SK: subscription.updatedAt,
+        entityType: "subscription",
+        record: subscription,
+        updatedAt: subscription.updatedAt,
+        expiresAt: Math.floor(Date.parse(subscription.expiresAt ?? subscription.updatedAt) / 1000),
+      },
+    }));
+    return subscription;
+  }
+
+  async revokeBetaEntitlement(userId: string, now = new Date().toISOString()): Promise<boolean> {
+    const current = await mamaAiDynamoDb.send(new GetCommand({ TableName: getMamaAiTableName(), ConsistentRead: true, Key: { PK: `USER#${userId}`, SK: "SUBSCRIPTION#BETA#CURRENT" } }));
+    const record = current.Item?.record as SubscriptionRecord | undefined;
+    if (!record || record.userId !== userId || record.source !== "beta_operator") return false;
+    const revoked: SubscriptionRecord = { ...record, status: "cancelled", cancelledAt: now, updatedAt: now };
+    await mamaAiDynamoDb.send(new PutCommand({ TableName: getMamaAiTableName(), Item: { ...current.Item, record: revoked, updatedAt: now } }));
+    return true;
+  }
+
   async getLatestSubscriptionForUser(userId: string): Promise<SubscriptionRecord | undefined> {
-    const response = await mamaAiDynamoDb.send(
-      new QueryCommand({
+    const records: SubscriptionRecord[] = [];
+    let cursor: Record<string, unknown> | undefined;
+    do {
+      const response = await mamaAiDynamoDb.send(new QueryCommand({
         TableName: getMamaAiTableName(),
         KeyConditionExpression: "PK = :pk AND begins_with(SK, :prefix)",
-        ExpressionAttributeValues: {
-          ":pk": `USER#${userId}`,
-          ":prefix": "SUBSCRIPTION#",
-        },
-        ScanIndexForward: false,
-        Limit: 10,
-      })
-    );
-
-    return (response.Items ?? [])
-      .map((item) => item.record as SubscriptionRecord | undefined)
-      .filter((item): item is SubscriptionRecord => Boolean(item))
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
+        ExpressionAttributeValues: { ":pk": `USER#${userId}`, ":prefix": "SUBSCRIPTION#" },
+        ConsistentRead: true,
+        ExclusiveStartKey: cursor,
+      }));
+      for (const item of response.Items ?? []) {
+        const record = item.record as SubscriptionRecord | undefined;
+        if (record?.userId === userId) records.push(record);
+      }
+      cursor = response.LastEvaluatedKey;
+    } while (cursor);
+    records.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    return records.find(record => hasCurrentEntitlement(record)) ?? records.find(record => needsPaymentReconciliation(record)) ?? records[0];
   }
 
   async listPaymentHistoryForUser(userId: string, limit = 20): Promise<PaymentTransaction[]> {
@@ -74,8 +105,9 @@ export class SubscriptionRepository {
         KeyConditionExpression: "GSI1PK = :pk",
         ExpressionAttributeValues: {
           ":pk": `RAZORPAY_SUBSCRIPTION#${razorpaySubscriptionId}`,
+          ":subscription": "subscription",
         },
-        Limit: 1,
+        FilterExpression: "entityType = :subscription",
       })
     );
 
@@ -88,6 +120,7 @@ export class SubscriptionRepository {
   ): Promise<SubscriptionRecord | undefined> {
     const response = await mamaAiDynamoDb.send(
       new GetCommand({
+        ConsistentRead: true,
         TableName: getMamaAiTableName(),
         Key: {
           PK: `USER#${userId}`,
@@ -102,6 +135,8 @@ export class SubscriptionRepository {
   async saveSubscriptionAndPayment(input: {
     subscription: SubscriptionRecord;
     payment: PaymentTransaction;
+    webhookKey?: string;
+    expectedUpdatedAt?: string;
   }): Promise<SubscriptionRecord> {
     const tableName = getMamaAiTableName();
     const subscriptionKey = subscriptionKeys(input.subscription);
@@ -110,9 +145,16 @@ export class SubscriptionRepository {
     await mamaAiDynamoDb.send(
       new TransactWriteCommand({
         TransactItems: [
+          ...(input.webhookKey ? [{ Put: {
+            TableName: tableName,
+            Item: { PK: "WEBHOOK#RAZORPAY", SK: `razorpay:atomic:${input.webhookKey}`, entityType: "webhook_idempotency", createdAt: nowIso() },
+            ConditionExpression: "attribute_not_exists(PK)",
+          } }] : []),
           {
             Put: {
               TableName: tableName,
+              ConditionExpression: input.expectedUpdatedAt ? "#updated = :previous" : "attribute_not_exists(PK)",
+              ...(input.expectedUpdatedAt ? { ExpressionAttributeNames: { "#updated": "updatedAt" }, ExpressionAttributeValues: { ":previous": input.expectedUpdatedAt } } : {}),
               Item: {
                 ...subscriptionKey,
                 GSI1PK: `RAZORPAY_SUBSCRIPTION#${input.subscription.razorpaySubscriptionId}`,
@@ -130,9 +172,7 @@ export class SubscriptionRepository {
               TableName: tableName,
               Item: {
                 ...transactionKey,
-                GSI1PK: input.payment.providerPaymentId
-                  ? `RAZORPAY_PAYMENT#${input.payment.providerPaymentId}`
-                  : `RAZORPAY_SUBSCRIPTION#${input.payment.providerSubscriptionId}`,
+                GSI1PK: input.payment.providerPaymentId ? `RAZORPAY_PAYMENT#${input.payment.providerPaymentId}` : undefined,
                 GSI1SK: input.payment.createdAt,
                 GSI2PK: `PAYMENTS#${input.payment.paymentStatus}`,
                 GSI2SK: input.payment.createdAt,
@@ -159,7 +199,7 @@ export class SubscriptionRepository {
                   status: input.subscription.status,
                   paymentChannel: input.subscription.paymentChannel,
                   paymentStatus: input.subscription.paymentStatus,
-                  isActive: input.subscription.status === "active" || input.subscription.status === "trialing",
+                  isActive: hasCurrentEntitlement(input.subscription),
                   bypassPaymentForDemo: false,
                   razorpaySubscriptionId: input.subscription.razorpaySubscriptionId,
                   startsAt: input.subscription.startsAt,
@@ -213,6 +253,7 @@ export class SubscriptionRepository {
   async getWebhookRecord(provider: "razorpay", idempotencyKey: string) {
     const response = await mamaAiDynamoDb.send(
       new GetCommand({
+        ConsistentRead: true,
         TableName: getMamaAiTableName(),
         Key: {
           PK: `WEBHOOK#${provider.toUpperCase()}`,

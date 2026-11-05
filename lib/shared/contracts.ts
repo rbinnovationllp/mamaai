@@ -136,7 +136,7 @@ export type SubscriptionPlan =
   | "family_starter"
   | "family_premium";
 
-export type EntitlementSource = "demo_judge_access" | "local_demo" | "razorpay" | "revenuecat" | "manual_admin";
+export type EntitlementSource = "demo_judge_access" | "local_demo" | "razorpay" | "revenuecat" | "manual_admin" | "beta_operator";
 
 export type PaymentChannel = "demo" | "razorpay" | "web_payment" | "google_play" | "apple_app_store" | "manual_admin";
 

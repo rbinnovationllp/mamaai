@@ -1,13 +1,14 @@
+import { PlanningHouseholdError } from "@/lib/services/planning-household";
+import { hasCurrentEntitlement, needsPaymentReconciliation } from "@/lib/services/paid-entitlement";
 import { NextResponse } from "next/server";
-import { GetCommand } from "@aws-sdk/lib-dynamodb";
-import { WeeklyMealPlanningService } from "@/lib/services/weekly-meal-planning-service";
+import { WeeklyMealPlanningService, WeeklyPlanOwnershipError } from "@/lib/services/weekly-meal-planning-service";
 import { SubscriptionRepository } from "@/lib/repositories/subscription-repository";
 import { authErrorResponse, requireUser } from "@/lib/server/auth";
-import { getSession } from "@/lib/auth/session";
-import { docClient, TABLE_NAMES } from "@/lib/repositories/dynamo";
 import { createMealPlanRequestSchema, familyMealPlanSchema } from "@/lib/shared/schemas";
 import { z } from "zod";
 import type { CreateMealPlanRequest } from "@/lib/shared/contracts";
+
+class EntitlementPendingError extends Error {}
 
 export const dynamic = "force-dynamic";
 
@@ -15,55 +16,14 @@ async function hasMealPlanningEntitlement(
   request: Request,
   requestData: CreateMealPlanRequest
 ): Promise<{ ok: boolean; userId?: string }> {
-  const session = await getSession();
   const user = await requireUser(request);
   const resolvedUserId = user.userId;
   if (requestData.userId && requestData.userId !== resolvedUserId) return { ok: false, userId: resolvedUserId };
 
-  // Admin / Judge / Active Entitlement quick pass
-  if (
-    session?.role === "admin" ||
-    (session as any)?.role === "judge" ||
-    session?.entitlement === "judge" ||
-    session?.entitlement === "active"
-  ) {
-    return { ok: true, userId: resolvedUserId || "admin_session" };
-  }
+  const record = await new SubscriptionRepository().getLatestSubscriptionForUser(resolvedUserId).catch(() => { throw new EntitlementPendingError(); });
+  if (needsPaymentReconciliation(record)) throw new EntitlementPendingError();
+  return { ok: hasCurrentEntitlement(record), userId: resolvedUserId };
 
-  if (!resolvedUserId) {
-    return { ok: false, userId: undefined };
-  }
-
-  try {
-    const userRecord = await docClient.send(
-      new GetCommand({
-        TableName: TABLE_NAMES.USERS,
-        Key: { userId: resolvedUserId },
-      })
-    );
-    const userItem = userRecord.Item;
-    const isPaid = userItem?.subscriptionStatus === "active" || userItem?.plan === "premium" || userItem?.plan === "starter" || userItem?.plan === "family_plus";
-    const isTrialActive = userItem?.trialEndsAt && new Date(userItem.trialEndsAt) > new Date();
-    const isJudge = userItem?.role === "judge" || userItem?.isJudgeDemo === true;
-
-    if (isPaid || isTrialActive || isJudge) {
-      return { ok: true, userId: resolvedUserId };
-    }
-  } catch (error) {
-    console.warn("[WeeklyMealPlan Route] DynamoDB check fallback:", error);
-  }
-
-  try {
-    const subscriptionRepo = new SubscriptionRepository();
-    const latestSub = await subscriptionRepo.getLatestSubscriptionForUser(resolvedUserId);
-    if (latestSub?.status === "active" || latestSub?.status === "trialing") {
-      return { ok: true, userId: resolvedUserId };
-    }
-  } catch (error) {
-    console.warn("[WeeklyMealPlan Route] SubscriptionRepository check failed:", error);
-  }
-
-  return { ok: false, userId: resolvedUserId };
 }
 
 export async function GET(request: Request) {
@@ -86,6 +46,9 @@ export async function GET(request: Request) {
     }
     return NextResponse.json({ success: true, weeklyPlan: weeklyPlan ?? null });
   } catch (error) {
+    if (error instanceof PlanningHouseholdError) {
+      return NextResponse.json({ error: { code: error.code, message: error.message } }, { status: error.code === "FORBIDDEN" ? 403 : 409 });
+    }
     const authResponse = authErrorResponse(error);
     if (authResponse) return authResponse;
     return NextResponse.json(
@@ -148,9 +111,14 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, ...result });
   } catch (error) {
+    if (error instanceof PlanningHouseholdError) {
+      return NextResponse.json({ error: { code: error.code, message: error.message } }, { status: error.code === "FORBIDDEN" ? 403 : 409 });
+    }
     const authResponse = authErrorResponse(error);
     if (authResponse) return authResponse;
 
+    if (error instanceof WeeklyPlanOwnershipError) return NextResponse.json({ error: { code: "FORBIDDEN" } }, { status: 403 });
+    if (error instanceof EntitlementPendingError) return NextResponse.json({ error: { code: "ENTITLEMENT_PENDING" } }, { status: 503 });
     console.error("[Weekly Meal Plan API Error]:", error);
     return NextResponse.json(
       {

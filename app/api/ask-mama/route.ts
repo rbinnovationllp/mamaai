@@ -10,9 +10,11 @@ import type { FamilyMember } from "@/lib/shared/contracts";
 import { getSession } from "@/lib/auth/session";
 import { requireUser } from "@/lib/server/auth";
 import { configuredPositiveInt, enforceDurableRateLimit, RateLimitExceededError, RateLimitStorageError, requestIpAddress } from "@/lib/server/durable-rate-limit";
-import { docClient, TABLE_NAMES } from "@/lib/repositories/dynamo";
-import { GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { PantryRepository } from "@/lib/repositories/pantry-repository";
 import { type AppLanguage, isAppLanguage } from "@/lib/i18n";
+import { askMamaDiagnosticId, logAskMamaDiagnostic, type AskMamaStage } from "@/lib/ai/ask-mama-local-diagnostics";
+import { configuredAskMamaGeminiModel } from "@/lib/ai/gemini-model";
+import { askMamaProviderBusyMessage, isAskMamaProviderBusy } from "@/lib/ai/ask-mama-provider-failure";
 
 export const dynamic = "force-dynamic";
 
@@ -139,6 +141,9 @@ CLIENT PROFILE CONTEXT:
 }
 
 export async function POST(request: Request) {
+  const diagnosticId = askMamaDiagnosticId();
+  let diagnosticStage: AskMamaStage = "sdk_init";
+  let providerInvoked = false, providerReceived = false, responseParsed = false;
   let targetLanguage: AppLanguage = "en";
   let queryText = "";
 
@@ -213,6 +218,17 @@ export async function POST(request: Request) {
         });
       }
     }
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      if (requestKind === "general") {
+        const localAnswer = answerAskMama(queryText, true, targetLanguage);
+        if (!localAnswer.unresolved) {
+          return NextResponse.json({ success: true, role: "model", response: localAnswer.answer, answer: localAnswer.answer, responseLanguage: targetLanguage, category: localAnswer.category, suggestions: localAnswer.suggestions, unresolved: false, fallbackSource: "local_mamaai_knowledge_base" });
+        }
+      }
+      return NextResponse.json({ success: false, error: { code: "ASK_MAMA_FOOD_ADVICE_UNAVAILABLE", message: askMamaUnavailableMessage(requestKind, targetLanguage) }, response: askMamaUnavailableMessage(requestKind, targetLanguage), unresolved: true }, { status: 503 });
+    }
+
     const isJudge = Boolean(
       session?.role === "admin" ||
       session?.entitlement === "judge"
@@ -236,34 +252,9 @@ export async function POST(request: Request) {
 
     if (authenticatedUser?.userId) {
       try {
-        const userRes = await docClient.send(
-          new GetCommand({
-            TableName: TABLE_NAMES.USERS,
-            Key: { userId: authenticatedUser.userId },
-          })
-        );
-        const user = userRes.Item;
-
-        const pantryRes = await docClient.send(
-          new QueryCommand({
-            TableName: TABLE_NAMES.PANTRY,
-            KeyConditionExpression: "userId = :uid",
-            ExpressionAttributeValues: { ":uid": authenticatedUser.userId },
-            Limit: 12,
-          })
-        );
-        const serverPantry = (pantryRes.Items || [])
-          .map((i) => `${i.name}: ${i.quantity} ${i.unit}`)
-          .join(", ");
-
-        liveDatabaseContext = `
-AUTHENTICATED DATABASE STATE:
-- User ID: ${authenticatedUser.userId}
-- Name: ${user?.name || "Customer"}
-- Active Subscription: ${user?.subscriptionPlan || "Starter (Trial)"} (Status: ${user?.subscriptionStatus || "Active"})
-- Persistent DynamoDB Pantry: ${serverPantry || "Pantry table empty"}
-- Demo/Judge Bypass: ${isJudge ? "Active Evaluator Mode" : "Standard User"}
-`.trim();
+        const pantry = await new PantryRepository().listForUser(authenticatedUser.userId);
+        const serverPantry = pantry.slice(0, 12).map((item) => `${item.ingredientName}: ${item.quantity} ${item.unit}`).join(", ");
+        liveDatabaseContext = `Signed-in customer. Saved pantry: ${serverPantry || "Empty"}. Evaluator mode: ${isJudge ? "Active" : "Off"}.`;
       } catch (dbErr) {
         console.warn("[Ask MAMA] DynamoDB contextual lookup fallback:", dbErr);
       }
@@ -279,7 +270,7 @@ AUTHENTICATED DATABASE STATE:
     }
     // Personalised guidance for an authenticated user is grounded in the
     // account profile fetched above. Browser context is only a visitor hint.
-    const clientContext = formatClientContext((authorizedProfile as RequestPayload["profileContext"] | undefined) ?? body.profileContext);
+    const clientContext = formatClientContext((authorizedProfile as RequestPayload["profileContext"] | undefined) ?? (authenticatedUser ? undefined : body.profileContext));
 
     // =========================================================
     // STRICT MULTILINGUAL GENERATIVE PROMPT ORCHESTRATION
@@ -320,20 +311,10 @@ ${clientContext}
     // =========================================================
     // GEMINI 2.5 FLASH INFERENCE
     // =========================================================
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      if (requestKind === "general") {
-        const localAnswer = answerAskMama(queryText, true, targetLanguage);
-        if (!localAnswer.unresolved) {
-          return NextResponse.json({ success: true, role: "model", response: localAnswer.answer, answer: localAnswer.answer, responseLanguage: targetLanguage, category: localAnswer.category, suggestions: localAnswer.suggestions, unresolved: false, fallbackSource: "local_mamaai_knowledge_base" });
-        }
-      }
-      return NextResponse.json({ success: false, error: { code: "ASK_MAMA_FOOD_ADVICE_UNAVAILABLE", message: askMamaUnavailableMessage(requestKind) }, response: askMamaUnavailableMessage(requestKind), unresolved: true }, { status: 503 });
-    }
-
     const genAI = new GoogleGenerativeAI(apiKey);
+    diagnosticStage = "model_init";
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: configuredAskMamaGeminiModel(),
       generationConfig: {
         temperature: 0.2,
         topP: 0.8,
@@ -372,8 +353,15 @@ ${clientContext}
       ],
     });
 
-    const result = await chat.sendMessage(queryText);
+    diagnosticStage = "provider_call"; providerInvoked = true;
+    if (process.env.MAMA_AI_DYNAMODB_LOCAL === "true" && process.env.MAMA_AI_LOCAL_QA === "true" && process.env.MAMA_AI_LOCAL_QA_GEMINI_MOCK_FAILURE === "true") {
+      const simulated = Object.assign(new Error("simulated local provider failure"), { status: 500, code: "LOCAL_QA_PROVIDER_FAILURE" });
+      throw simulated;
+    }
+    const result = await chat.sendMessage(queryText); providerReceived = true;
+    diagnosticStage = "response_parse";
     const decision = validateAskMamaModelResponse(result.response.text(), requestKind, safetyMembers);
+    responseParsed = true; diagnosticStage = "validation";
     if (!decision.allowed || !decision.response) return NextResponse.json({ success: true, role: "model", response: decision.message, answer: decision.message, responseLanguage: targetLanguage, category: "safety_clarification", suggestions: getLocalizedSuggestions(targetLanguage), unresolved: true, safetyStatus: decision.safety?.status ?? "needs_clarification" });
 
     return NextResponse.json({
@@ -389,8 +377,12 @@ ${clientContext}
       unresolved: false,
     });
   } catch (error) {
-    console.error("[Ask MAMA API Exception]:", error);
+    logAskMamaDiagnostic(diagnosticId, diagnosticStage, error, { invoked: providerInvoked, received: providerReceived, parsed: responseParsed });
 
+    if (providerInvoked && isAskMamaProviderBusy(error)) {
+      const message = askMamaProviderBusyMessage();
+      return NextResponse.json({ success: false, error: { code: "ASK_MAMA_PROVIDER_BUSY", message }, response: message, unresolved: true }, { status: 503 });
+    }
     if (queryText && classifyAskMamaRequest(queryText) === "general") {
       const localAnswer = answerAskMama(queryText, true, targetLanguage);
       if (!localAnswer.unresolved) {
@@ -425,7 +417,7 @@ ${clientContext}
         success: false,
         error: {
           code: "ASK_MAMA_EXECUTION_FAILURE",
-          message: askMamaUnavailableMessage(classifyAskMamaRequest(queryText || "")),
+          message: askMamaUnavailableMessage(classifyAskMamaRequest(queryText || ""), targetLanguage),
         },
         response: fallbackMessages[targetLanguage],
       },

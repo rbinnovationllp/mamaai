@@ -10,6 +10,10 @@ MVP accepts a demo user through seeded data. Production API routes must resolve 
 
 ## Endpoints
 
+## POST /api/admin/beta-entitlements
+
+Available only to an authenticated operator in the isolated beta runtime. The server accepts a registered tester `userId` and an action of `grant` or `revoke`. The plan and expiry are server configuration, never client input. Beta grants are non-paid, non-renewing, and limited to Starter or Premium; Family Plus is rejected.
+
 ## GET /api/demo
 
 Returns a fictional demo family and a generated starter meal plan.
@@ -639,3 +643,14 @@ Allergy and preference handling:
 - The safety validator checks common meal and recipe ingredients against hard restrictions before display or persistence.
 - If a common meal has a member-specific conflict, the plan must include a clear individual modification or safe alternative for that member.
 - If a soft dislike affects only part of the family, the UI asks whether to prepare a separate simple alternative, keep only one common meal, or suggest two compatible options. This preference flow must not be used for allergies or medical restrictions.
+
+
+## Password recovery — mobile/email backward compatibility (4 November 2026)
+
+POST `/api/customer/auth/recovery` supports:
+- `{action:"request",method:"mobile"|"email",identifier}`: generic 202 plus random challengeId only when a delivery adapter is configured. No account/contact/OTP is returned. Current delivery adapter is unavailable; returns 503 RECOVERY_DELIVERY_UNAVAILABLE, never claims delivery.
+- `{action:"verify",challengeId,code,newPassword}`: six-digit challenge proof, 10-minute expiry, five attempts, single-use atomic reset. Only independently verified stored contacts are eligible.
+- `{action:"recovery_code",method:"mobile"|"email",identifier,recoveryCode,newPassword}`: consumes an established saved recovery code; email is never required for mobile-only users.
+- Legacy `{mobile,recoveryCode,newPassword}` requests map to mobile saved-code recovery.
+
+Success returns `{reset:true,signInRequired:true}` and clears current session/device cookies. It does not automatically sign in. Account password/device versions advance, rejecting previous password-account sessions. Origin checks and durable IP/contact-or-challenge limits apply. Invalid proof/account responses are generic. No raw contact, OTP or account ID is returned.

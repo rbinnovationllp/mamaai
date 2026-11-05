@@ -1,3 +1,5 @@
+import { RegisterServiceWorker } from "@/components/RegisterServiceWorker";
+import { RecognizedDeviceSession } from "@/components/account/RecognizedDeviceSession";
 import type { Metadata, Viewport } from "next";
 import { AnalyticsConsent } from "@/components/AnalyticsConsent";
 import { LanguageProvider } from "@/components/LanguageProvider";
@@ -37,12 +39,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body className="pb-20 md:pb-0">
         <LanguageProvider>
+          <RecognizedDeviceSession />
           {children}
           <Footer />
           <AskMamaLauncher />
           <MobilePrimaryNav />
         </LanguageProvider>
         <AnalyticsConsent />
+        <RegisterServiceWorker />
       </body>
     </html>
   );

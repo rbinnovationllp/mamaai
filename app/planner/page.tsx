@@ -1081,6 +1081,7 @@ export default function PlannerPage() {
   const t = plannerCopy[language] ?? plannerCopy.en;
 
   const [members, setMembers] = useState<HouseholdMember[]>([]);
+  const [paidAccess, setPaidAccess] = useState<boolean | null>(null);
   const [customer, setCustomer] = useState<CustomerAccount>({});
   const [culture, setCulture] = useState<CultureProfile>({});
   const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
@@ -1098,6 +1099,7 @@ export default function PlannerPage() {
 
   // Plan Lifecycle State
   const [mealPlan, setMealPlan] = useState<FamilyMealPlan | null>(null);
+  const [selectedWeeklyDate, setSelectedWeeklyDate] = useState<string>();
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyFamilyMealPlan | null>(null);
   const [nextWeekPlan, setNextWeekPlan] = useState<WeeklyFamilyMealPlan | null>(null);
   const [weekPlanStatus, setWeekPlanStatus] = useState<WeekPlanState>('IDLE');
@@ -1191,6 +1193,7 @@ export default function PlannerPage() {
         if (!response.ok) return;
         const data = await response.json();
         if (cancelled || !data.authenticated) return;
+        setPaidAccess(data.needsReconciliation ? null : data.isEntitled === true);
 
         if (data.customer) {
           setCustomer((prev) => ({
@@ -1203,6 +1206,24 @@ export default function PlannerPage() {
             CUSTOMER_STORAGE_KEY,
             JSON.stringify({ ...data.customer, familyId: data.familyProfile?.familyId })
           );
+        }
+
+        const savedFamilyId = data.familyProfile?.familyId;
+        if (savedFamilyId) {
+          const readWeek = async (targetDate: string) => {
+            const query = new URLSearchParams({ familyId: savedFamilyId, targetDate });
+            const result = await fetch(`/api/weekly-meal-plans?${query}`, { cache: 'no-store' });
+            return result.ok ? (await result.json()).weeklyPlan as WeeklyFamilyMealPlan : null;
+          };
+          void Promise.allSettled([readWeek(todayLocalDate()), readWeek(nextMondayLocalDate())])
+            .then(([current, next]) => {
+              if (cancelled) return;
+              if (current.status === 'fulfilled') setWeeklyPlan(current.value);
+              if (next.status === 'fulfilled') {
+                setNextWeekPlan(next.value);
+                if (next.value) setWeekPlanStatus('READY');
+              }
+            });
         }
 
         if (Array.isArray(data.familyProfile?.members) && data.familyProfile.members.length) {
@@ -1334,7 +1355,7 @@ export default function PlannerPage() {
 
   const detectedMealInfo = useMemo(() => nextMealInfoForCurrentTime(customer.mealTimings), [customer.mealTimings]);
   const activeMealSlot = plannerMode === 'next_meal' ? detectedMealInfo.mealTime : selectedMealTime;
-  const activeTargetDate = plannerMode === 'next_meal' ? detectedMealInfo.targetDate : todayLocalDate();
+  const activeTargetDate = plannerMode === 'next_meal' ? detectedMealInfo.targetDate : selectedWeeklyDate ?? todayLocalDate();
   const activeScheduledTime = plannerMode === 'next_meal' ? detectedMealInfo.scheduledTime : undefined;
   const activeMealLabel = mealLabel(activeMealSlot, t.meals);
   const activeGenerateLabel = t.planMealNow.replace('{meal}', activeMealLabel);
@@ -1364,6 +1385,7 @@ export default function PlannerPage() {
   }, [activeMealSlot, activeTargetDate, mealPlan]);
 
   const selectMealToPlan = (mealTime: MealTime) => {
+    setSelectedWeeklyDate(undefined);
     setPlannerMode('specific_meal');
     setSelectedMealTime(mealTime);
     setMealPlan(null);
@@ -1639,62 +1661,57 @@ export default function PlannerPage() {
     setError('');
 
     try {
-      const res = await fetch(`/api/meal-plans/${mealPlan.mealPlanId}/replace`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reason: userCraving ? 'dont_like_it' : 'ate_recently',
-          userPromptOverride: userCraving,
-          previousMeals: previousMealsForPlanning(activeMealSlot, mealPlan.commonMeal.name),
-          excludeDishes: [mealPlan.commonMeal.name],
-          preferredLanguage: language,
-        }),
+      const activeSlot = weeklySlotFor(weeklyPlan, mealPlan.targetDate, mealPlan.commonMeal.mealTime);
+      const reason = userCraving ? "dont_like_it" : "ate_recently";
+      const preferences = { userPromptOverride: userCraving, preferredLanguage: language, excludeDishes: [mealPlan.commonMeal.name] };
+      const weeklyReplacement = weeklyPlan && activeSlot;
+      const res = await fetch(weeklyReplacement ? "/api/meal-plan" : `/api/meal-plans/${mealPlan.mealPlanId}/replace`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(weeklyReplacement
+          ? { ...preferences, familyId: weeklyPlan.familyId, planType: "weekly", targetDate: activeSlot.date, mealTime: activeSlot.mealTime, mealAttendance: activeSlot.selectedOption.mealAttendance }
+          : { ...preferences, reason, previousMeals: previousMealsForPlanning(activeMealSlot, mealPlan.commonMeal.name) }),
       });
-
       const parsed = await safeParseJsonResponse<{ mealPlan: FamilyMealPlan }>(res);
-      if (!parsed.success || !parsed.data?.mealPlan) throw new Error(parsed.errorText || 'Replacement failed');
-
-      const updatedPlan = adjustGroceryForPantry(parsed.data.mealPlan, pantryItems, t.alreadyInPantry, language);
-      const cleanCustomizations = uniqueByKey(
-        updatedPlan.memberCustomizations || [],
-        (c) => c.memberId || c.memberName
-      );
-
-      const finalUpdatedPlan: FamilyMealPlan = {
-        ...updatedPlan,
-        memberCustomizations: cleanCustomizations,
-      };
-
-      setMealPlan(finalUpdatedPlan);
-      setIsStalePlan(false);
-      window.localStorage.setItem(CURRENT_MEAL_PLAN_KEY, JSON.stringify(finalUpdatedPlan));
-
-      const activeSlot = weeklySlotFor(weeklyPlan, finalUpdatedPlan.targetDate, finalUpdatedPlan.commonMeal.mealTime);
+      if (!parsed.success || !parsed.data?.mealPlan) {
+        if (res.status === 422) { setError(parsed.errorText || mealGenerationFailureMessage(language)); return; }
+        throw Object.assign(new Error("Replacement failed"), { status: res.status, code: parsed.errorCode });
+      }
+      const replacement = parsed.data.mealPlan;
       if (weeklyPlan && activeSlot) {
-        const weeklyUpdate = await fetch('/api/weekly-meal-plans', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            familyId: weeklyPlan.familyId,
-            weekStartDate: weeklyPlan.weekStartDate,
-            slotId: activeSlot.slotId,
-            selectedMealPlan: finalUpdatedPlan,
-            reason: userCraving || 'show_another_option',
-          }),
+        const update = await fetch("/api/weekly-meal-plans", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ familyId: weeklyPlan.familyId, weekStartDate: weeklyPlan.weekStartDate, slotId: activeSlot.slotId, selectedMealPlan: replacement, reason, expectedPlanVersion: weeklyPlan.planVersion }),
         });
-        if (weeklyUpdate.ok) {
-          const weeklyUpdateData = await weeklyUpdate.json();
-          if (weeklyUpdateData.weeklyPlan) {
-            setWeeklyPlan(weeklyUpdateData.weeklyPlan);
-            window.localStorage.setItem(WEEKLY_MASTER_PLAN_KEY, JSON.stringify(weeklyUpdateData.weeklyPlan));
-            const groceryRefresh = await fetch('/api/weekly-shopping-list', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ weekStartDate: weeklyUpdateData.weeklyPlan.weekStartDate, action: 'refresh' }),
-            });
-            if (!groceryRefresh.ok) console.warn('Weekly shopping-list refresh failed after a saved replacement.');
-          }
+        const saved = await safeParseJsonResponse<{ weeklyPlan: WeeklyFamilyMealPlan }>(update);
+        if (!saved.success || !saved.data?.weeklyPlan) {
+          setError(update.status === 409 ? "The weekly plan changed. Reopen it before trying another replacement." : saved.errorText || mealGenerationFailureMessage(language));
+          return;
         }
+        setWeeklyPlan(saved.data.weeklyPlan);
+        if (nextWeekPlan?.weekStartDate === saved.data.weeklyPlan.weekStartDate) {
+          setNextWeekPlan(saved.data.weeklyPlan);
+          window.localStorage.setItem(NEXT_WEEK_MASTER_PLAN_KEY, JSON.stringify(saved.data.weeklyPlan));
+        }
+        window.localStorage.setItem(WEEKLY_MASTER_PLAN_KEY, JSON.stringify(saved.data.weeklyPlan));
+        setMealPlan(replacement);
+        setIsStalePlan(false);
+        window.localStorage.setItem(CURRENT_MEAL_PLAN_KEY, JSON.stringify(replacement));
+        const groceryRefresh = await fetch("/api/weekly-shopping-list", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ weekStartDate: saved.data.weeklyPlan.weekStartDate, action: "refresh" }),
+        }).catch(() => undefined);
+        if (!groceryRefresh?.ok) {
+          setError("The replacement was saved. Open Shopping List and retry the refresh.");
+          return;
+        }
+      } else {
+        const updated = adjustGroceryForPantry(replacement, pantryItems, t.alreadyInPantry, language);
+        setMealPlan(updated);
+        setIsStalePlan(false);
+        window.localStorage.setItem(CURRENT_MEAL_PLAN_KEY, JSON.stringify(updated));
       }
 
       setStatus(t.anotherOptionSuccess);
@@ -1829,9 +1846,9 @@ export default function PlannerPage() {
               <Link href="/profile/family" className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white">
                 {t.completeProfile}
               </Link>
-              <Link href="/subscription" className="rounded-2xl border border-emerald-200 px-5 py-3 text-sm font-bold text-emerald-800">
+              {paidAccess === false && <Link href="/subscription" className="rounded-2xl border border-emerald-200 px-5 py-3 text-sm font-bold text-emerald-800">
                 {t.subscription}
-              </Link>
+              </Link>}
             </div>
           </section>
         ) : (
@@ -1852,9 +1869,9 @@ export default function PlannerPage() {
                   <Link href="/profile/family" className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700">
                     {t.profile}
                   </Link>
-                  <Link href="/subscription" className="rounded-2xl border border-emerald-200 px-4 py-3 text-sm font-bold text-emerald-800">
+                  {paidAccess === false && <Link href="/subscription" className="rounded-2xl border border-emerald-200 px-4 py-3 text-sm font-bold text-emerald-800">
                     {t.subscription}
-                  </Link>
+                  </Link>}
                 </div>
               </div>
 
@@ -2148,6 +2165,7 @@ export default function PlannerPage() {
                                 setPlannerView('today');
                                 setPlannerMode('specific_meal');
                                 setSelectedMealTime(slot.mealTime);
+                                setSelectedWeeklyDate(slot.date);
                                 setMealPlan(adjustGroceryForPantry(slot.selectedOption, pantryItems, t.alreadyInPantry, language));
                               }}
                               className="rounded-xl bg-white p-3 text-left ring-1 ring-slate-200"

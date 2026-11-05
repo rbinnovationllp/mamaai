@@ -1,3 +1,4 @@
+import { SubscriptionRepository } from "@/lib/repositories/subscription-repository";
 import { NextResponse } from 'next/server';
 import { RazorpayService } from '@/lib/services/razorpay-service';
 import { authErrorResponse, requireUser } from '@/lib/server/auth';
@@ -32,8 +33,15 @@ export async function POST(req: Request) {
       );
     }
 
+    const owned = await new SubscriptionRepository().getSubscriptionForUserByRazorpaySubscriptionId(user.userId, razorpay_subscription_id);
+    if (owned?.userId !== user.userId) {
+      return NextResponse.json({ error: { code: "FORBIDDEN" } }, { status: 403 });
+    }
     const providerPlan = await service.resolveProviderPlan(razorpay_subscription_id);
 
+    if (providerPlan.status !== "active" || !providerPlan.expiresAt || Date.parse(providerPlan.expiresAt) <= Date.now() || !(await service.confirmCapturedPayment(razorpay_payment_id))) {
+      return NextResponse.json({ success: false, error: { code: "PAYMENT_CONFIRMATION_PENDING", message: "Your payment is still being confirmed. Please check your subscription status before trying again." } }, { status: 409 });
+    }
     const subscriptionRecord = await service.upsertSubscriptionFromProvider({
       userId: user.userId,
       plan: providerPlan.plan,
@@ -41,7 +49,9 @@ export async function POST(req: Request) {
       razorpayPlanId: providerPlan.planId,
       razorpayPaymentId: razorpay_payment_id,
       eventType: 'subscription.activated',
-      providerStatus: 'active',
+      providerStatus: providerPlan.status,
+      startsAt: providerPlan.startsAt,
+      renewsAt: providerPlan.expiresAt,
     });
 
     return NextResponse.json({ success: true, message: 'Subscription verification recorded.', subscriptionRecord });

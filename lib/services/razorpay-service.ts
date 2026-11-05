@@ -1,3 +1,4 @@
+import { hasCurrentEntitlement, needsPaymentReconciliation } from "./paid-entitlement";
 import crypto from "crypto";
 import type {
   PaymentStatus,
@@ -63,7 +64,7 @@ function mapSubscriptionStatus(
   providerStatus?: string
 ): SubscriptionStatus {
   if (eventType === "subscription.cancelled" || providerStatus === "cancelled") return "cancelled";
-  if (eventType === "payment.failed") return "past_due";
+  if (eventType === "payment.failed" || eventType === "subscription.halted" || eventType === "subscription.paused") return "past_due";
   if (eventType === "subscription.completed" || providerStatus === "completed") return "expired";
   if (
     ["subscription.activated", "subscription.charged", "subscription.resumed"].includes(eventType) ||
@@ -71,8 +72,8 @@ function mapSubscriptionStatus(
   ) {
     return "active";
   }
-  if (eventType === "subscription.pending" || providerStatus === "created") return "trialing";
-  return "trialing";
+  if (eventType === "subscription.pending" || providerStatus === "created") return "past_due";
+  return "past_due";
 }
 
 function mapPaymentStatus(eventType: RazorpaySubscriptionEvent): PaymentStatus {
@@ -91,7 +92,7 @@ function findPlanByRazorpayPlanId(planId?: string): SubscriptionPlan | undefined
   };
   const plan = new SubscriptionService()
     .getPlans()
-    .find((item) => item.razorpayPlanId === planId || usdPlanEnvByPlan[item.plan] === planId);
+    .find((item) => normalizeRazorpayPlanId(item.razorpayPlanId) === planId || usdPlanEnvByPlan[item.plan] === planId);
   return plan?.plan;
 }
 
@@ -107,6 +108,8 @@ export class RazorpayService {
 
   async createSubscription(input: CreateRazorpaySubscriptionInput) {
     if (isIsolatedRuntime()) return { configured: false, message: "Payments are disabled in this isolated environment.", requiredEnvironment: [] };
+    const current = await this.subscriptionRepository.getLatestSubscriptionForUser(input.userId);
+    if (hasCurrentEntitlement(current) || needsPaymentReconciliation(current)) throw new Error("An existing subscription must be checked before starting another checkout.");
     const keys = configuredRazorpayKey();
     const planDefinition = new SubscriptionService().getPlan(input.plan);
     const isInternational = input.billingMarket === "INT";
@@ -222,13 +225,18 @@ export class RazorpayService {
       throw new Error(data.error?.description ?? "Razorpay subscription cancellation failed.");
     }
 
+    if (input.cancelAtCycleEnd && data.status !== "cancelled") {
+      const subscriptionRecord = await this.subscriptionRepository.getSubscriptionForUserByRazorpaySubscriptionId(input.userId, input.razorpaySubscriptionId);
+      return { configured: true, subscriptionRecord };
+    }
+
     const record = await this.upsertSubscriptionFromProvider({
       userId: input.userId,
       razorpaySubscriptionId: input.razorpaySubscriptionId,
       razorpayPlanId: data.plan_id,
       providerStatus: data.status ?? "cancelled",
       eventType: "subscription.cancelled",
-      cancelledAt: input.cancelAtCycleEnd ? undefined : nowIso(),
+      cancelledAt: nowIso(),
     });
 
     return { configured: true, subscriptionRecord: record };
@@ -281,7 +289,20 @@ export class RazorpayService {
     if (!response.ok || !provider.plan_id) throw new Error(provider.error?.description ?? "Unable to verify Razorpay subscription plan.");
     const plan = findPlanByRazorpayPlanId(normalizeRazorpayPlanId(provider.plan_id));
     if (!plan) throw new Error("The Razorpay plan is not mapped to a MamaAI subscription.");
-    return { plan, planId: normalizeRazorpayPlanId(provider.plan_id), status: provider.status };
+    return { plan, planId: normalizeRazorpayPlanId(provider.plan_id), status: provider.status, startsAt: toIsoFromSeconds(provider.current_start), expiresAt: toIsoFromSeconds(provider.current_end) };
+  }
+
+  async confirmCapturedPayment(paymentId: string) {
+    if (isIsolatedRuntime()) throw new Error("Payments are disabled in this isolated environment.");
+    const { keyId, keySecret } = configuredRazorpayKey();
+    if (!keyId || !keySecret) throw new Error("Razorpay credentials are not configured.");
+    const response = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}`, {
+      headers: { Authorization: `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString("base64")}` },
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error("Unable to verify payment with Razorpay.");
+    const payment = await response.json();
+    return payment.id === paymentId && payment.status === "captured" && payment.captured === true;
   }
 
   async upsertSubscriptionFromProvider(input: {
@@ -298,15 +319,24 @@ export class RazorpayService {
     startsAt?: string;
     renewsAt?: string;
     cancelledAt?: string;
+    webhookKey?: string;
+    eventAt?: string;
   }) {
-    const plan = input.plan ?? findPlanByRazorpayPlanId(input.razorpayPlanId) ?? "starter";
+
     const existing = await this.subscriptionRepository.getSubscriptionForUserByRazorpaySubscriptionId(
       input.userId,
       input.razorpaySubscriptionId
     );
+    const plan = findPlanByRazorpayPlanId(normalizeRazorpayPlanId(input.razorpayPlanId)) ?? existing?.plan ?? input.plan;
+    if (!plan) throw new Error("Unmapped subscription plan");
+    if (existing?.lastProviderEventAt && input.eventAt && input.eventAt < existing.lastProviderEventAt && !(existing.paymentStatus === "pending" && input.eventType === "subscription.charged")) return existing;
+    if (existing?.cancelledAt && input.eventType !== "subscription.cancelled") return existing;
     const timestamp = nowIso();
+    const preservePaidPeriod = ["subscription.pending", "payment.failed"].includes(input.eventType) && hasCurrentEntitlement(existing);
+    if (preservePaidPeriod) return existing!;
     const status = mapSubscriptionStatus(input.eventType, input.providerStatus);
-    const paymentStatus = mapPaymentStatus(input.eventType);
+    const eventPaymentStatus = mapPaymentStatus(input.eventType);
+    const paymentStatus = eventPaymentStatus === "pending" && existing?.paymentStatus === "paid" ? "paid" : eventPaymentStatus;
 
     const record: SubscriptionRecord = {
       subscriptionRecordId: existing?.subscriptionRecordId ?? createId("sub"),
@@ -319,13 +349,13 @@ export class RazorpayService {
       memberLimit: subscriptionLimits[plan] ?? 4,
       startsAt: input.startsAt ?? existing?.startsAt ?? timestamp,
       renewsAt: input.renewsAt ?? existing?.renewsAt,
-      expiresAt: existing?.expiresAt,
+      expiresAt: status === "active" && paymentStatus === "paid" ? input.renewsAt ?? existing?.expiresAt : existing?.expiresAt,
       cancelledAt: input.cancelledAt ?? existing?.cancelledAt,
       razorpaySubscriptionId: input.razorpaySubscriptionId,
       razorpayPlanId: input.razorpayPlanId ?? existing?.razorpayPlanId,
       providerStatus: input.providerStatus ?? existing?.providerStatus,
       lastProviderEvent: input.eventType,
-      lastProviderEventAt: timestamp,
+      lastProviderEventAt: input.eventAt ?? timestamp,
       createdAt: existing?.createdAt ?? timestamp,
       updatedAt: timestamp,
     };
@@ -350,6 +380,8 @@ export class RazorpayService {
     return this.subscriptionRepository.saveSubscriptionAndPayment({
       subscription: record,
       payment,
+      webhookKey: input.webhookKey,
+      expectedUpdatedAt: existing?.updatedAt,
     });
   }
 }

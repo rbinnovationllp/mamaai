@@ -8,6 +8,8 @@ export interface PasswordAccountRecord {
   userId: string;
   /** Existing mobile-only records omit emailHash; retain them for migration. */
   emailHash?: string;
+  /** Set only by an independently verified contact enrollment flow. */
+  emailVerificationStatus?: MobileVerificationStatus;
   fullName?: string;
   mobileHash?: string;
   passwordHash: string;
@@ -173,7 +175,7 @@ export class AccountSecurityRepository {
     }));
   }
 
-  async activateDevice(input: { account: PasswordAccountRecord; policy: TransferPolicyRecord; device: DeviceRecord; previousDevice?: DeviceRecord; transfer: TransferRecord; session: { tokenHash: string; createdAt: string; expiresAt: string; expiresAtEpoch: number; passwordVersion?: number; }; }) {
+  async activateDevice(input: { account: PasswordAccountRecord; policy: TransferPolicyRecord; device: DeviceRecord; previousDevice?: DeviceRecord; transfer: TransferRecord; session: { rememberDevice?: boolean; tokenHash: string; createdAt: string; expiresAt: string; expiresAtEpoch: number; passwordVersion?: number; }; }) {
     const account = { ...input.account, activeDeviceId: input.device.deviceId, deviceActivationVersion: input.device.activationVersion, updatedAt: input.transfer.createdAt };
     const policy = { ...input.policy, version: input.policy.version + 1, transfers: [...input.policy.transfers, input.transfer], updatedAt: input.transfer.createdAt };
     await mamaAiDynamoDb.send(new TransactWriteCommand({

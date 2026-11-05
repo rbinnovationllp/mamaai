@@ -16,6 +16,6 @@ export async function GET() {
     store.members.push(...demoMembers);
   }
   let mealPlan = store.mealPlans.find((plan) => plan.familyId === demoFamily.familyId);
-  if (!mealPlan) mealPlan = (await new MealPlanningService().generate({ familyId: demoFamily.familyId, planType: "daily" })).mealPlan;
+  if (!mealPlan) mealPlan = (await new MealPlanningService().generate({ familyId: demoFamily.familyId, planType: "daily" }, true)).mealPlan;
   return NextResponse.json({ family: demoFamily, members: demoMembers, nutritionContexts, mealPlan });
 }

@@ -10,13 +10,14 @@ async function expectRegistration(page: Page) {
 }
 
 test("fictional email account registration, session persistence, logout, login, and duplicate prevention", async ({ page }, testInfo) => {
-  test.setTimeout(45_000);
-  const email = `qa-email-${testInfo.project.name.replace(/[^a-z]/g, "")}-20261102@example.test`;
+  test.setTimeout(90_000);
+  await page.context().setExtraHTTPHeaders({ "x-forwarded-for": testInfo.project.name === "desktop-chromium" ? "198.51.100.101" : "198.51.100.102" });
+  const email = `qa-email-${testInfo.project.name.replace(/[^a-z]/g, "")}-${crypto.randomUUID()}@example.test`;
   await page.goto("/account/access");
   await page.getByRole("button", { name: "Create account" }).click();
   await page.getByLabel("Full name").fill("QA Email Family");
   await page.getByLabel("Email address (optional)").fill(email);
-  await page.getByRole("textbox", { name: "Password", exact: true }).fill(password);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByLabel("Confirm password").fill(password);
   const registerResponse = await expectRegistration(page);
   console.info(`LOCAL_QA_BROWSER_EMAIL_REGISTER status=${registerResponse.status()}`);
@@ -27,20 +28,24 @@ test("fictional email account registration, session persistence, logout, login, 
   expect(await page.evaluate(() => fetch("/api/customer/session").then((response) => response.status))).toBe(200);
   expect(await page.evaluate(() => fetch("/api/customer/logout", { method: "POST" }).then((response) => response.status))).toBe(200);
   expect(await page.evaluate(() => fetch("/api/customer/session").then((response) => response.status))).not.toBe(200);
+  await page.goto("/account/access");
   await page.getByLabel("Email address or mobile number").fill(email);
-  await page.getByRole("textbox", { name: "Password", exact: true }).fill("IncorrectLocalPassword!2026");
+  await page.getByLabel("Password", { exact: true }).fill("IncorrectLocalPassword!2026");
   const rejectedLogin = page.waitForResponse((response) => response.url().includes("/api/customer/auth/login"));
   await page.getByRole("button", { name: "Continue" }).click();
   expect((await rejectedLogin).status()).toBe(401);
-  await page.getByRole("textbox", { name: "Password", exact: true }).fill(password);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   const acceptedLogin = page.waitForResponse((response) => response.url().includes("/api/customer/auth/login"));
   await page.getByRole("button", { name: "Continue" }).click();
   expect((await acceptedLogin).status()).toBe(200);
   expect(await page.evaluate(() => fetch("/api/customer/session").then((response) => response.status))).toBe(200);
+  await page.waitForURL(url => url.pathname !== "/account/access");
+  await page.request.post("/api/customer/logout");
+  await page.goto("/account/access");
   await page.getByRole("button", { name: "Create account" }).click();
   await page.getByLabel("Full name").fill("QA Email Family");
   await page.getByLabel("Email address (optional)").fill(email);
-  await page.getByRole("textbox", { name: "Password", exact: true }).fill(password);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByLabel("Confirm password").fill(password);
   const duplicate = await expectRegistration(page);
   console.info(`LOCAL_QA_BROWSER_EMAIL_DUPLICATE status=${duplicate.status()}`);
@@ -48,13 +53,14 @@ test("fictional email account registration, session persistence, logout, login, 
 });
 
 test("fictional mobile-only account registration completes", async ({ page }, testInfo) => {
-  test.setTimeout(30_000);
-  const mobile = testInfo.project.name === "desktop-chromium" ? "+919900000001" : "+919900000002";
+  test.setTimeout(90_000);
+  await page.context().setExtraHTTPHeaders({ "x-forwarded-for": testInfo.project.name === "desktop-chromium" ? "198.51.100.103" : "198.51.100.104" });
+  const mobile = testInfo.project.name === "desktop-chromium" ? "+12025550151" : "+12025550152";
   await page.goto("/account/access");
   await page.getByRole("button", { name: "Create account" }).click();
   await page.getByLabel("Full name").fill("QA Mobile Family");
   await page.getByLabel("Mobile number (optional)").fill(mobile);
-  await page.getByRole("textbox", { name: "Password", exact: true }).fill(password);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByLabel("Confirm password").fill(password);
   const response = await expectRegistration(page);
   console.info(`LOCAL_QA_BROWSER_MOBILE_REGISTER status=${response.status()}`);

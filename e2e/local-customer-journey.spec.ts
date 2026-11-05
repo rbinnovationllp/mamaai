@@ -4,7 +4,7 @@ import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 
 test.use({ screenshot: "off", trace: "off" });
 const tableName = process.env.MAMA_AI_DYNAMODB_TABLE_NAME ?? "mamaai-local-qa-browser-20261102";
-const localDb = DynamoDBDocumentClient.from(new DynamoDBClient({ endpoint: "http://127.0.0.1:8010", region: "ap-south-1", credentials: { accessKeyId: "LOCAL_TEST_ONLY", secretAccessKey: "LOCAL_TEST_ONLY" } }));
+const localDb = DynamoDBDocumentClient.from(new DynamoDBClient({ endpoint: "http://127.0.0.1:8010", region: "ap-south-1", credentials: { accessKeyId: "LOCALTESTONLY", secretAccessKey: "LOCALTESTONLY" } }));
 const password = "LocalJourneyPassword!2026";
 
 type BrowserRequest = { method?: string; headers?: Record<string, string>; body?: string };
@@ -20,7 +20,7 @@ async function register(page: Page, email: string) {
 
 async function seedFamilyPlus(userId: string) {
   const now = new Date().toISOString();
-  const record = { subscriptionRecordId: `local-e2e-${userId}`, userId, plan: "family_plus", status: "active", paymentChannel: "manual", paymentStatus: "captured", source: "local_qa_fixture", memberLimit: 10, startsAt: now, createdAt: now, updatedAt: now };
+  const record = { subscriptionRecordId: `local-e2e-${userId}`, userId, plan: "family_plus", status: "active", paymentChannel: "manual", paymentStatus: "paid", expiresAt: new Date(Date.now()+86400000).toISOString(), source: "local_qa_fixture", memberLimit: 10, startsAt: now, createdAt: now, updatedAt: now };
   await localDb.send(new PutCommand({ TableName: tableName, Item: { PK: `USER#${userId}`, SK: `SUBSCRIPTION#RAZORPAY#local-e2e-${userId}`, entityType: "subscription", record, updatedAt: now } }));
 }
 
@@ -29,7 +29,7 @@ const family = [
   { id: "mother", name: "Fictional Mother", relation: "mother", age: 66, activityLevel: "light", foodPreference: "vegetarian", allergies: [], doctorAdvisedRestrictions: [], dislikes: [], mealStrategyPreference: "common", scheduleRole: "other", attendanceDays: [], tiffinPreferences: [] },
   { id: "son", name: "Fictional Son", relation: "son", age: 33, activityLevel: "moderate", foodPreference: "vegetarian", allergies: [], doctorAdvisedRestrictions: [], dislikes: [], mealStrategyPreference: "common", scheduleRole: "working", attendanceDays: ["monday", "tuesday", "wednesday", "thursday", "friday"], tiffinPreferences: ["office tiffin"] },
   { id: "daughter-in-law", name: "Fictional Daughter In Law", relation: "daughter-in-law", age: 30, activityLevel: "moderate", foodPreference: "vegetarian", allergies: [], doctorAdvisedRestrictions: [], dislikes: [], mealStrategyPreference: "common", scheduleRole: "working", attendanceDays: ["monday", "tuesday", "wednesday", "thursday", "friday"], tiffinPreferences: ["paneer", "office tiffin"] },
-  { id: "granddaughter", name: "Fictional Granddaughter", relation: "granddaughter", age: 3, activityLevel: "light", foodPreference: "vegetarian", allergies: [], doctorAdvisedRestrictions: ["child-friendly meals"], dislikes: [], mealStrategyPreference: "common", scheduleRole: "other", attendanceDays: [], tiffinPreferences: [] },
+  { id: "granddaughter", name: "Fictional Granddaughter", relation: "granddaughter", age: 3.5, activityLevel: "light", foodPreference: "vegetarian", allergies: [], doctorAdvisedRestrictions: ["child-friendly meals"], dislikes: [], mealStrategyPreference: "common", scheduleRole: "other", attendanceDays: [], tiffinPreferences: [] },
 ];
 
 test("fictional Family Plus household, pets, export, and cross-account isolation persist locally", async ({ page, browser }) => {
@@ -45,6 +45,7 @@ test("fictional Family Plus household, pets, export, and cross-account isolation
   const saved = await json(page, "/api/customer/family-profile", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ customer: { name: "Fictional Father", preferredLanguage: "en", householdFoodPreference: "vegetarian", cookingHabit: "fresh_home_cooked", budgetPreference: "moderate", weeklyFoodRoutineStatus: "add", weeklyFoodRoutine: [{ day: "tuesday", preference: "fasting_vrat", note: "Father fasts", meals: { breakfast: "fasting_vrat", lunch: "fasting_vrat" } }], mealTypePreferences: { breakfast: [], lunch: ["paneer"], snacks: [], dinner: [] }, mealTimings: {}, favoriteFoodTags: ["paneer", "vegetarian"], recentMealHistory: [], nonVegPreferredFoods: [] }, members: family }) });
   expect(saved.status).toBe(200);
   expect(saved.body.familyProfile.members).toHaveLength(5);
+  expect(saved.body.familyProfile.members.find((member: { id: string }) => member.id === "granddaughter").age).toBe(3.5);
   expect(saved.body.familyProfile.members.find((member: { id: string }) => member.id === "father").doctorAdvisedRestrictions).toContain("Tuesday fasting");
   expect(saved.body.familyProfile.members.find((member: { id: string }) => member.id === "daughter-in-law").tiffinPreferences).toContain("paneer");
   const reread = await json(page, "/api/customer/family-profile");

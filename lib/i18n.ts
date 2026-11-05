@@ -180,7 +180,7 @@ export const askMamaCopy = {
 } satisfies Record<AppLanguage, typeof askMamaCopy.en>;
 
 export function isAppLanguage(value: unknown): value is AppLanguage {
-  return typeof value === "string" && value in supportedLanguages;
+  return typeof value === "string" && Object.hasOwn(supportedLanguages, value);
 }
 
 

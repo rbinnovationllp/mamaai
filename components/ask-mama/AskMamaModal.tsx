@@ -97,6 +97,10 @@ export function AskMamaModal({ isOpen, onClose }: Props) {
             const contentType = res.headers.get('content-type') || '';
             const raw = await res.text();
             const data = contentType.includes('application/json') ? JSON.parse(raw) : null;
+            if (!res.ok && data?.error?.code === 'ASK_MAMA_PROVIDER_BUSY' && data.error.message) {
+                setMessages((prev) => [...prev, { sender: 'mama', text: data.error.message }]);
+                return;
+            }
             if (!res.ok || !data?.response) throw new Error(data?.error?.message || labels.error);
 
             setMessages((prev) => [...prev, { sender: 'mama', text: data.response }]);

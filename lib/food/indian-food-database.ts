@@ -94,6 +94,7 @@ export const indianRegionalStructure = [
 const r = (record: Omit<IndianFoodRecord, "country">): IndianFoodRecord => ({ country: "India", ...record });
 
 export const indianFoodDatabase: IndianFoodRecord[] = [
+  r({ id: "gj-lauki-besan-chilla", region: "West", state: "Gujarat", subRegionOrCuisine: "Gujarati", foodPreferences: ["VEG"], mealTypes: ["breakfast", "high_tea"], dishName: "Lauki Besan Chilla", dishCategory: "breakfast", proteinSource: "Chickpea flour and curd", grainBase: "Besan", mainVegetable: "Bottle gourd", typicalCombination: "Lauki Besan Chilla + Plain Curd", mealStyle: "everyday", seasonalSuitability: "All season", prepTimeMinutes: 25, difficulty: "easy", ingredients: ingredients([["Besan", "2 cups", "pulses", 75], ["Bottle gourd", "2 cups", "vegetables", 50], ["Plain curd", "500 g", "dairy", 60], ["Cumin seeds", "1 tsp", "spices", 5], ["Sunflower oil", "2 tbsp", "other", 15], ["Salt", "0.5 tsp", "spices", 2]]) }),
   r({ id: "ka-north-jolada-rotti", region: "South", state: "Karnataka", subRegionOrCuisine: "North Karnataka", foodPreferences: ["VEG"], mealTypes: ["lunch", "dinner"], dishName: "Jolada Rotti", dishCategory: "meal_combination", proteinSource: "Dal/legume", grainBase: "Jowar", mainVegetable: "Seasonal palya", typicalCombination: "Jolada Rotti + Palya + Dal", mealStyle: "everyday", seasonalSuitability: "All season", prepTimeMinutes: 40, difficulty: "medium", ingredients: ingredients([["Jowar flour", "3 cups", "grains", 80], ["Toor dal", "1.25 cups", "pulses", 55], ["Seasonal palya vegetables", "4 cups", "vegetables", 120], ["Curd or buttermilk", "600 g", "dairy", 70], ["Peanut chutney powder", "0.5 cup", "protein", 45]]) }),
   r({ id: "ka-bisibele-bath", region: "South", state: "Karnataka", subRegionOrCuisine: "Karnataka", foodPreferences: ["VEG"], mealTypes: ["lunch", "dinner"], dishName: "Bisibele Bath", dishCategory: "one_pot", proteinSource: "Toor dal", grainBase: "Rice", mainVegetable: "Mixed vegetables", typicalCombination: "Bisibele Bath + Curd + Kosambari", mealStyle: "everyday", seasonalSuitability: "All season", prepTimeMinutes: 45, difficulty: "medium", ingredients: ingredients([["Rice", "1.5 cups", "grains", 55], ["Toor dal", "1.25 cups", "pulses", 55], ["Mixed vegetables", "4 cups", "vegetables", 130], ["Curd", "650 g", "dairy", 75], ["Bisibele bath spice mix", "3 tbsp", "spices", 35]]) }),
   r({ id: "ka-akki-rotti", region: "South", state: "Karnataka", subRegionOrCuisine: "Karnataka", foodPreferences: ["VEG"], mealTypes: ["breakfast", "dinner"], dishName: "Akki Rotti", dishCategory: "breakfast", proteinSource: "Curd/peanut chutney", grainBase: "Rice flour", mainVegetable: "Onion and herbs", typicalCombination: "Akki Rotti + Coconut Chutney + Curd", mealStyle: "everyday", seasonalSuitability: "All season", prepTimeMinutes: 30, difficulty: "medium", ingredients: ingredients([["Rice flour", "3 cups", "grains", 70], ["Onion and coriander", "2 cups", "vegetables", 45], ["Coconut chutney", "1.5 cups", "other", 75], ["Curd", "500 g", "dairy", 60]]) }),
@@ -198,6 +199,7 @@ export function indianFoodCandidatesFor(input: {
   recentMeals: string[];
   targetDate: string;
   includePanIndiaFallback?: boolean;
+  includeCompatibleNonRegionalAlternatives?: boolean;
 }) {
   const allowedCodes = preferenceCodesFor(input.family.dietPreference);
   const mealTime = input.mealTime === "snack" || input.mealTime === "evening_snack" ? "high_tea" : input.mealTime;
@@ -210,7 +212,7 @@ export function indianFoodCandidatesFor(input: {
     .filter((record) => !strictRegional || matchesFamilyRegion(record, input.family));
 
   const regional = pool.filter((record) => matchesFamilyRegion(record, input.family));
-  const candidates = regional.length ? regional : input.includePanIndiaFallback === false ? [] : pool;
+  const candidates = input.includeCompatibleNonRegionalAlternatives && !strictRegional && input.includePanIndiaFallback !== false ? pool : regional.length ? regional : input.includePanIndiaFallback === false ? [] : pool;
   const date = new Date(`${input.targetDate}T12:00:00`);
   const seed = Number.isNaN(date.getTime()) ? 0 : date.getDate();
 
