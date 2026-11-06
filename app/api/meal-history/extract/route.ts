@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from "zod";
 import { requireUser, authErrorResponse } from "@/lib/server/auth";
+import { requireSameOrigin } from "@/lib/server/request-security";
 import { CustomerProfileRepository } from "@/lib/repositories/customer-profile-repository";
+import { MealHistoryUploadError, canonicalMealHistoryDay, parseMealHistoryUploadDataUrl } from "@/lib/shared/meal-history-upload";
 
 const mealHistoryExtractionSchema = z.object({
-  imageDataUrl: z.string().min(100),
+  fileDataUrl: z.string().min(100).optional(),
+  imageDataUrl: z.string().min(100).optional(),
   language: z.enum(["en", "hi", "kn"]).default("en"),
-});
+}).refine((value) => Boolean(value.fileDataUrl || value.imageDataUrl), { message: "A meal-history file is required." });
 
 const extractedEntrySchema = z.object({
   day: z.string(),
@@ -17,15 +20,6 @@ const extractedEntrySchema = z.object({
   dinner: z.string().optional().default(""),
   uncertain: z.array(z.string()).optional().default([]),
 });
-
-function parseDataUrl(value: string) {
-  const match = value.match(/^data:(image\/(?:png|jpeg|jpg|webp));base64,(.+)$/);
-  if (!match) throw new Error("Please upload a PNG, JPG, JPEG or WEBP image.");
-  return {
-    mimeType: match[1] === "image/jpg" ? "image/jpeg" : match[1],
-    base64: match[2],
-  };
-}
 
 function extractJson(text: string) {
   const cleaned = text.replace(/```json|```/g, "").trim();
@@ -37,6 +31,7 @@ function extractJson(text: string) {
 
 export async function POST(request: Request) {
   try {
+    requireSameOrigin(request);
     if (process.env.MAMAAI_SMART_HISTORY_UPLOAD_ENABLED !== "true") {
       return NextResponse.json({ error: { code: "FEATURE_DISABLED", message: "Smart meal-history upload is not enabled." } }, { status: 404 });
     }
@@ -47,7 +42,7 @@ export async function POST(request: Request) {
     const parsed = mealHistoryExtractionSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: { code: "INVALID_MEAL_HISTORY_IMAGE", message: "Please upload a clear meal-history photo.", details: parsed.error.issues } },
+        { error: { code: "INVALID_MEAL_HISTORY_FILE", message: "Choose a clear PNG, JPG, JPEG, WEBP image, or PDF meal-history file." } },
         { status: 400 }
       );
     }
@@ -65,13 +60,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { mimeType, base64 } = parseDataUrl(parsed.data.imageDataUrl);
-    if (base64.length > 7_000_000) {
-      return NextResponse.json(
-        { error: { code: "IMAGE_TOO_LARGE", message: "Please upload a smaller or compressed photo." } },
-        { status: 413 }
-      );
-    }
+    const { mimeType, base64 } = parseMealHistoryUploadDataUrl(parsed.data.fileDataUrl ?? parsed.data.imageDataUrl!);
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: process.env.AI_PRIMARY_MODEL || "gemini-1.5-flash" });
@@ -100,7 +89,9 @@ Rules:
     ]);
 
     const text = result.response.text();
-    const extracted = z.array(extractedEntrySchema).parse(extractJson(text)).slice(0, 7);
+    const extracted = z.array(extractedEntrySchema).parse(extractJson(text)).slice(0, 7)
+      .map((entry) => ({ ...entry, day: canonicalMealHistoryDay(entry.day) }))
+      .filter((entry): entry is Omit<typeof entry, "day"> & { day: string } => Boolean(entry.day));
 
     return NextResponse.json({
       entries: extracted,
@@ -109,11 +100,14 @@ Rules:
   } catch (error) {
     const auth = authErrorResponse(error);
     if (auth) return auth;
+    if (error instanceof MealHistoryUploadError) {
+      return NextResponse.json({ error: { code: error.code, message: error.publicMessage } }, { status: error.status });
+    }
     return NextResponse.json(
       {
         error: {
           code: "MEAL_HISTORY_EXTRACTION_FAILED",
-          message: error instanceof Error ? error.message : "Unable to extract meal history from this photo.",
+          message: "Unable to read that meal-history file. Please review the file and try again, or use manual entry.",
         },
       },
       { status: 422 }

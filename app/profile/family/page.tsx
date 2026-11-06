@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { AppPageNav } from '@/components/AppPageNav';
 import { LanguageSelector, useLanguage } from '@/components/LanguageProvider';
 import { VoiceTextInput } from '@/components/VoiceTextInput';
+import { MEAL_HISTORY_FILE_ACCEPT, prefillMealHistoryReview, validateMealHistoryFile } from '@/lib/shared/meal-history-upload';
 import type {
   ActivityLevel,
   DayFoodPreference,
@@ -45,7 +46,6 @@ type MealPreferenceInputs = Record<MealSlot, string>;
 type MealTimingInputs = Required<Record<MealSlot, string>>;
 type NonVegFoodOption = 'chicken' | 'fish' | 'eggs' | 'mutton_goat' | 'seafood';
 type RecentMealHistoryStatus = 'manual' | 'photo' | 'skip';
-const smartHistoryUploadEnabled = process.env.NEXT_PUBLIC_MAMAAI_SMART_HISTORY_UPLOAD_ENABLED === 'true';
 
 const HOUSEHOLD_STORAGE_KEY = 'mamaai_household_members_v1';
 const CUSTOMER_STORAGE_KEY = 'mamaai_customer_account_v1';
@@ -127,7 +127,7 @@ const copy = {
       'Providing the last 7 days helps MAMAAI understand your actual eating pattern, repeated dishes and family favourites. You can type it, upload a clear photo, or skip it.',
     recentHistoryOptions: {
       manual: 'Manual entry',
-      photo: 'Upload photo and review',
+      photo: 'Upload photo / screenshot / file',
       skip: 'Skip for now',
     },
     recentHistoryPhotoTitle: 'Upload Your Last 7 Days Meal History',
@@ -135,11 +135,12 @@ const copy = {
       "If filling this on your phone feels tedious, write your family's meals for the last 7 days clearly on a blank sheet and upload a photo. MAMAAI will read it and prepare entries for your review.",
     recentHistoryFormat:
       'Suggested format: Day 1 - Breakfast, Lunch, High Tea/Snacks, Dinner. Repeat up to Day 7.',
-    uploadMealPhoto: 'Choose meal-history photo',
-    extractMealPhoto: 'Read photo and prepare draft',
-    extractingMealPhoto: 'Reading photo...',
-    extractionReview: 'Review and correct the extracted meals before saving.',
-    extractionUnavailable: 'Photo reading is not available right now. You can use manual entry or skip for now.',
+    uploadMealPhoto: 'Choose a photo, screenshot, or file',
+    extractMealPhoto: 'Read file and prepare draft',
+    extractingMealPhoto: 'Reading file...',
+    extractionReview: 'Please review the information extracted from your file.',
+    extractionUnavailable: 'File reading is not available right now. You can use manual entry or skip for now.',
+    extractionApproval: 'I have reviewed the extracted meals and want to save them.',
     uncertainField: 'Please check',
     recentHistoryPlaceholder: 'Example: dal rice, dosa, pasta, chicken curry',
     mealPreferenceHints: {
@@ -305,7 +306,7 @@ const copy = {
       'पिछले 7 दिनों की जानकारी से MAMAAI आपकी असली खाने की आदत, दोहराए गए व्यंजन और परिवार की पसंद समझता है। आप इसे लिख सकते हैं, फोटो अपलोड कर सकते हैं या अभी छोड़ सकते हैं।',
     recentHistoryOptions: {
       manual: 'खुद भरें',
-      photo: 'फोटो अपलोड करके review करें',
+      photo: 'फोटो / स्क्रीनशॉट / फाइल अपलोड करें',
       skip: 'अभी skip करें',
     },
     recentHistoryPhotoTitle: 'पिछले 7 दिनों की meal history अपलोड करें',
@@ -313,11 +314,12 @@ const copy = {
       'अगर मोबाइल पर भरना मुश्किल लग रहा है, तो खाली कागज पर पिछले 7 दिनों के परिवार के भोजन साफ-साफ लिखकर फोटो अपलोड करें। MAMAAI उसे पढ़कर review के लिए entries तैयार करेगा।',
     recentHistoryFormat:
       'Suggested format: Day 1 - Breakfast, Lunch, High Tea/Snacks, Dinner. इसी तरह Day 7 तक लिखें।',
-    uploadMealPhoto: 'Meal-history photo चुनें',
-    extractMealPhoto: 'फोटो पढ़कर draft बनाएं',
-    extractingMealPhoto: 'फोटो पढ़ी जा रही है...',
-    extractionReview: 'सेव करने से पहले निकाली गई जानकारी review और correct करें।',
-    extractionUnavailable: 'Photo reading अभी उपलब्ध नहीं है। आप manual entry कर सकते हैं या skip कर सकते हैं।',
+    uploadMealPhoto: 'फोटो, स्क्रीनशॉट या फाइल चुनें',
+    extractMealPhoto: 'फाइल पढ़कर draft बनाएं',
+    extractingMealPhoto: 'फाइल पढ़ी जा रही है...',
+    extractionReview: 'कृपया फाइल से निकाली गई जानकारी review करें।',
+    extractionUnavailable: 'File reading अभी उपलब्ध नहीं है। आप manual entry कर सकते हैं या skip कर सकते हैं।',
+    extractionApproval: 'मैंने निकाले गए meals को review किया है और इन्हें save करना चाहता/चाहती हूँ।',
     uncertainField: 'कृपया जांचें',
     recentHistoryPlaceholder: 'उदाहरण: दाल-चावल, डोसा, पास्ता, चिकन करी',
     mealPreferenceHints: {
@@ -483,7 +485,7 @@ const copy = {
       'ಕಳೆದ 7 ದಿನಗಳ ಮಾಹಿತಿ MAMAAIಗೆ ನಿಮ್ಮ ಕುಟುಂಬದ ನಿಜವಾದ ಆಹಾರ ಅಭ್ಯಾಸ, ಮರುಕಳಿಸುವ ತಿನಿಸುಗಳು ಮತ್ತು ಇಷ್ಟಗಳನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳಲು ಸಹಾಯ ಮಾಡುತ್ತದೆ. ನೀವು ಬರೆಯಬಹುದು, ಫೋಟೋ ಅಪ್ಲೋಡ್ ಮಾಡಬಹುದು ಅಥವಾ ಈಗ ಬಿಟ್ಟುಬಿಡಬಹುದು.',
     recentHistoryOptions: {
       manual: 'ಕೈಯಾರೆ ಭರ್ತಿ ಮಾಡಿ',
-      photo: 'ಫೋಟೋ ಅಪ್ಲೋಡ್ ಮಾಡಿ review ಮಾಡಿ',
+      photo: 'ಫೋಟೋ / ಸ್ಕ್ರೀನ್‌ಶಾಟ್ / ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ',
       skip: 'ಈಗ skip ಮಾಡಿ',
     },
     recentHistoryPhotoTitle: 'ಕಳೆದ 7 ದಿನಗಳ meal history ಅಪ್ಲೋಡ್ ಮಾಡಿ',
@@ -491,11 +493,12 @@ const copy = {
       'ಮೊಬೈಲ್‌ನಲ್ಲಿ ಭರ್ತಿ ಮಾಡುವುದು ಕಷ್ಟವಾಗಿದ್ದರೆ, ಖಾಲಿ ಕಾಗದದಲ್ಲಿ ಕಳೆದ 7 ದಿನಗಳ ಕುಟುಂಬದ ಊಟಗಳನ್ನು ಸ್ಪಷ್ಟವಾಗಿ ಬರೆದು ಫೋಟೋ ಅಪ್ಲೋಡ್ ಮಾಡಿ. MAMAAI ಅದನ್ನು ಓದಿ review ಮಾಡಲು entries ತಯಾರಿಸುತ್ತದೆ.',
     recentHistoryFormat:
       'Suggested format: Day 1 - Breakfast, Lunch, High Tea/Snacks, Dinner. ಇದೇ ರೀತಿ Day 7 ವರೆಗೆ ಬರೆಯಿರಿ.',
-    uploadMealPhoto: 'Meal-history photo ಆಯ್ಕೆಮಾಡಿ',
-    extractMealPhoto: 'ಫೋಟೋ ಓದಿ draft ತಯಾರಿಸಿ',
-    extractingMealPhoto: 'ಫೋಟೋ ಓದಲಾಗುತ್ತಿದೆ...',
-    extractionReview: 'ಉಳಿಸುವ ಮೊದಲು ತೆಗೆದ ಮಾಹಿತಿಯನ್ನು review ಮತ್ತು correct ಮಾಡಿ.',
-    extractionUnavailable: 'Photo reading ಈಗ ಲಭ್ಯವಿಲ್ಲ. ನೀವು manual entry ಮಾಡಬಹುದು ಅಥವಾ skip ಮಾಡಬಹುದು.',
+    uploadMealPhoto: 'ಫೋಟೋ, ಸ್ಕ್ರೀನ್‌ಶಾಟ್ ಅಥವಾ ಫೈಲ್ ಆಯ್ಕೆಮಾಡಿ',
+    extractMealPhoto: 'ಫೈಲ್ ಓದಿ draft ತಯಾರಿಸಿ',
+    extractingMealPhoto: 'ಫೈಲ್ ಓದಲಾಗುತ್ತಿದೆ...',
+    extractionReview: 'ದಯವಿಟ್ಟು ಫೈಲ್‌ನಿಂದ ಪಡೆದ ಮಾಹಿತಿಯನ್ನು review ಮಾಡಿ.',
+    extractionUnavailable: 'File reading ಈಗ ಲಭ್ಯವಿಲ್ಲ. ನೀವು manual entry ಮಾಡಬಹುದು ಅಥವಾ skip ಮಾಡಬಹುದು.',
+    extractionApproval: 'ನಾನು ಪಡೆದ meals ಅನ್ನು review ಮಾಡಿದ್ದೇನೆ ಮತ್ತು ಅವನ್ನು save ಮಾಡಲು ಬಯಸುತ್ತೇನೆ.',
     uncertainField: 'ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ',
     recentHistoryPlaceholder: 'ಉದಾಹರಣೆ: ದಾಲ್-ಅಕ್ಕಿ, ದೋಸೆ, ಪಾಸ್ತಾ, ಚಿಕನ್ ಕರಿ',
     mealPreferenceHints: {
@@ -662,28 +665,11 @@ function cleanMealTypePreferences(inputs: MealPreferenceInputs) {
 }
 
 function defaultRecentMealHistory(): RecentMealHistoryDay[] {
-  return weekdayOptions.map((day) => ({
-    day,
-    breakfast: '',
-    lunch: '',
-    snacks: '',
-    dinner: '',
-  }));
+  return prefillMealHistoryReview([]);
 }
 
 function mergeRecentMealHistory(saved: unknown): RecentMealHistoryDay[] {
-  const savedEntries = Array.isArray(saved) ? saved : [];
-  return weekdayOptions.map((day, index) => {
-    const genericDay = `day_${index + 1}`;
-    const match = savedEntries.find((entry) => entry?.day === day || entry?.day === genericDay);
-    return {
-      day,
-      breakfast: typeof match?.breakfast === 'string' ? match.breakfast : '',
-      lunch: typeof match?.lunch === 'string' ? match.lunch : '',
-      snacks: typeof match?.snacks === 'string' ? match.snacks : '',
-      dinner: typeof match?.dinner === 'string' ? match.dinner : '',
-    };
-  });
+  return prefillMealHistoryReview(saved);
 }
 
 function cleanRecentMealHistory(entries: RecentMealHistoryDay[]) {
@@ -772,6 +758,8 @@ export default function FamilyProfilePage() {
   const [mealHistoryExtractionStatus, setMealHistoryExtractionStatus] = useState('');
   const [mealHistoryExtractionError, setMealHistoryExtractionError] = useState('');
   const [mealHistoryUncertainFields, setMealHistoryUncertainFields] = useState<Record<string, string[]>>({});
+  const [mealHistoryHasExtractedDraft, setMealHistoryHasExtractedDraft] = useState(false);
+  const [mealHistoryReviewApproved, setMealHistoryReviewApproved] = useState(false);
   const [nonVegPreferredFoods, setNonVegPreferredFoods] = useState<string[]>([]);
   const [otherNonVegInput, setOtherNonVegInput] = useState('');
   const [nonVegFrequency, setNonVegFrequency] = useState<NonVegFrequency>('occasionally');
@@ -1058,6 +1046,7 @@ export default function FamilyProfilePage() {
   };
 
   const updateRecentMealHistory = (day: string, slot: MealSlot, value: string) => {
+    if (mealHistoryHasExtractedDraft) setMealHistoryReviewApproved(false);
     setRecentMealHistory((current) =>
       current.map((entry) => (entry.day === day ? { ...entry, [slot]: value } : entry))
     );
@@ -1067,7 +1056,17 @@ export default function FamilyProfilePage() {
     setMealHistoryExtractionStatus('');
     setMealHistoryExtractionError('');
     setMealHistoryUncertainFields({});
+    setMealHistoryHasExtractedDraft(false);
+    setMealHistoryReviewApproved(false);
+    setMealHistoryImageDataUrl('');
+    setMealHistoryPhotoName('');
     if (!file) return;
+    try {
+      validateMealHistoryFile(file);
+    } catch (error) {
+      setMealHistoryExtractionError(error instanceof Error ? error.message : t.extractionUnavailable);
+      return;
+    }
     setMealHistoryPhotoName(file.name);
     const reader = new FileReader();
     reader.onload = () => {
@@ -1087,7 +1086,7 @@ export default function FamilyProfilePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageDataUrl: mealHistoryImageDataUrl,
+          fileDataUrl: mealHistoryImageDataUrl,
           language,
         }),
       });
@@ -1101,15 +1100,22 @@ export default function FamilyProfilePage() {
       if (Array.isArray(data.entries)) {
         data.entries.forEach((entry: { day?: string; uncertain?: string[] }) => {
           if (entry.day && Array.isArray(entry.uncertain) && entry.uncertain.length) {
-            uncertain[entry.day] = entry.uncertain;
+            const genericDay = entry.day.match(/^day_([1-7])$/);
+            const reviewDay = genericDay ? weekdayOptions[Number(genericDay[1]) - 1] : entry.day;
+            uncertain[reviewDay] = entry.uncertain;
           }
         });
       }
       setMealHistoryUncertainFields(uncertain);
       setMealHistoryExtractionStatus(t.extractionReview);
+      setMealHistoryHasExtractedDraft(true);
+      setMealHistoryReviewApproved(false);
     } catch (error) {
       setMealHistoryExtractionStatus('');
       setMealHistoryExtractionError(error instanceof Error ? error.message : t.extractionUnavailable);
+    } finally {
+      // The file is only held in memory for the single extraction attempt.
+      setMealHistoryImageDataUrl('');
     }
   };
 
@@ -1138,6 +1144,11 @@ export default function FamilyProfilePage() {
 
     if (!cleanCustomerName) {
       setFormError('Please enter your name before continuing.');
+      return;
+    }
+
+    if (mealHistoryHasExtractedDraft && !mealHistoryReviewApproved) {
+      setFormError('Please review the extracted meal history and confirm it before saving.');
       return;
     }
 
@@ -1376,16 +1387,25 @@ export default function FamilyProfilePage() {
             <span className="text-sm font-semibold text-slate-700">{t.recentHistoryQuestion}</span>
             <select
               value={recentMealHistoryStatus}
-              onChange={(event) => setRecentMealHistoryStatus(event.target.value as RecentMealHistoryStatus)}
+              onChange={(event) => {
+                const next = event.target.value as RecentMealHistoryStatus;
+                setRecentMealHistoryStatus(next);
+                if (next !== 'photo') {
+                  setMealHistoryHasExtractedDraft(false);
+                  setMealHistoryReviewApproved(false);
+                  setMealHistoryExtractionStatus('');
+                  setMealHistoryExtractionError('');
+                }
+              }}
               className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
             >
               <option value="manual">{t.recentHistoryOptions.manual}</option>
-              {smartHistoryUploadEnabled ? <option value="photo">{t.recentHistoryOptions.photo}</option> : null}
+              <option value="photo">{t.recentHistoryOptions.photo}</option>
               <option value="skip">{t.recentHistoryOptions.skip}</option>
             </select>
           </label>
 
-          {smartHistoryUploadEnabled && recentMealHistoryStatus === 'photo' ? (
+          {recentMealHistoryStatus === 'photo' ? (
             <div className="mt-5 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100">
               <h3 className="text-base font-black text-emerald-950">{t.recentHistoryPhotoTitle}</h3>
               <p className="mt-2 text-sm leading-6 text-emerald-900">{t.recentHistoryPhotoHelp}</p>
@@ -1397,7 +1417,7 @@ export default function FamilyProfilePage() {
                   <span className="text-sm font-semibold text-slate-700">{t.uploadMealPhoto}</span>
                   <input
                     type="file"
-                    accept="image/png,image/jpeg,image/webp"
+                    accept={MEAL_HISTORY_FILE_ACCEPT}
                     onChange={(event) => handleMealHistoryPhoto(event.target.files?.[0])}
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
                   />
@@ -1421,6 +1441,17 @@ export default function FamilyProfilePage() {
                 <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
                   {mealHistoryExtractionError}
                 </p>
+              ) : null}
+              {mealHistoryHasExtractedDraft ? (
+                <label className="mt-4 flex min-h-11 items-start gap-3 rounded-xl bg-white p-3 text-sm font-semibold text-emerald-950 ring-1 ring-emerald-100">
+                  <input
+                    type="checkbox"
+                    checked={mealHistoryReviewApproved}
+                    onChange={(event) => setMealHistoryReviewApproved(event.target.checked)}
+                    className="mt-1 h-4 w-4"
+                  />
+                  <span>{t.extractionApproval}</span>
+                </label>
               ) : null}
             </div>
           ) : null}
