@@ -1092,6 +1092,9 @@ export default function FamilyProfilePage() {
       });
       const data = await response.json();
       if (!response.ok) {
+        if (data.error?.code === 'FEATURE_DISABLED' || data.error?.code === 'MEAL_HISTORY_AI_NOT_CONFIGURED') {
+          throw new Error(t.extractionUnavailable);
+        }
         throw new Error(data.error?.message || t.extractionUnavailable);
       }
       const extracted = mergeRecentMealHistory(data.entries);
