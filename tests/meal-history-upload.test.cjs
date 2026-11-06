@@ -64,6 +64,8 @@ test('the extracted draft is editable and needs explicit user approval before sa
 
 test('the server validates uploads, keeps extraction feature-gated, and returns safe failures', () => {
   assert.match(route, /requireSameOrigin\(request\)/);
+  assert.match(route, /await requireUser\(request\)/);
+  assert.doesNotMatch(route, /FAMILY_PROFILE_NOT_FOUND/);
   assert.match(route, /MAMAAI_SMART_HISTORY_UPLOAD_ENABLED/);
   assert.match(route, /GEMINI_API_KEY/);
   assert.match(route, /parseMealHistoryUploadDataUrl/);

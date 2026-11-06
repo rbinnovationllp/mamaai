@@ -3,7 +3,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from "zod";
 import { requireUser, authErrorResponse } from "@/lib/server/auth";
 import { requireSameOrigin } from "@/lib/server/request-security";
-import { CustomerProfileRepository } from "@/lib/repositories/customer-profile-repository";
 import { MealHistoryUploadError, canonicalMealHistoryDay, parseMealHistoryUploadDataUrl } from "@/lib/shared/meal-history-upload";
 
 const mealHistoryExtractionSchema = z.object({
@@ -35,9 +34,7 @@ export async function POST(request: Request) {
     if (process.env.MAMAAI_SMART_HISTORY_UPLOAD_ENABLED !== "true") {
       return NextResponse.json({ error: { code: "FEATURE_DISABLED", message: "Smart meal-history upload is not enabled." } }, { status: 404 });
     }
-    const user = await requireUser(request);
-    const profile = await new CustomerProfileRepository().getFamilyProfile(user.userId);
-    if (!profile) return NextResponse.json({ error: { code: "FAMILY_PROFILE_NOT_FOUND", message: "Save your family profile before uploading meal history." } }, { status: 409 });
+    await requireUser(request);
     const body = await request.json();
     const parsed = mealHistoryExtractionSchema.safeParse(body);
     if (!parsed.success) {
