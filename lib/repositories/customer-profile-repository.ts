@@ -10,6 +10,7 @@ import type {
   RecentMealHistoryDay,
   WeeklyFoodRoutineStatus,
 } from "@/lib/shared/contracts";
+import type { SnapMealEntry } from "@/lib/shared/snap-meal";
 
 export interface CustomerAccountRecord {
   userId: string;
@@ -29,6 +30,7 @@ export interface CustomerAccountRecord {
   recentMealHistory?: RecentMealHistoryDay[];
   regularAttendancePattern?: DayAttendancePlan;
   nonVegPreferredFoods?: string[];
+  snapMealEntries?: SnapMealEntry[];
   createdAt: string;
   updatedAt: string;
 }
@@ -104,6 +106,7 @@ export class CustomerProfileRepository {
     recentMealHistory?: CustomerAccountRecord["recentMealHistory"];
     regularAttendancePattern?: CustomerAccountRecord["regularAttendancePattern"];
     nonVegPreferredFoods?: CustomerAccountRecord["nonVegPreferredFoods"];
+    snapMealEntries?: CustomerAccountRecord["snapMealEntries"];
   }): Promise<CustomerAccountRecord> {
     const timestamp = nowIso();
     const existing = await this.getCustomer(input.userId);
@@ -125,6 +128,7 @@ export class CustomerProfileRepository {
       recentMealHistory: input.recentMealHistory ?? existing?.recentMealHistory ?? [],
       regularAttendancePattern: input.regularAttendancePattern ?? existing?.regularAttendancePattern,
       nonVegPreferredFoods: input.nonVegPreferredFoods ?? existing?.nonVegPreferredFoods ?? [],
+      snapMealEntries: input.snapMealEntries ?? existing?.snapMealEntries ?? [],
       createdAt: existing?.createdAt ?? timestamp,
       updatedAt: timestamp,
     };

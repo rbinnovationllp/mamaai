@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { AppPageNav } from '@/components/AppPageNav';
 import { LanguageSelector, useLanguage } from '@/components/LanguageProvider';
 import { VoiceTextInput } from '@/components/VoiceTextInput';
+import { FamilyProfileDocumentImport, type ImportedProfileReview } from '@/components/FamilyProfileDocumentImport';
+import { SnapMeal } from '@/components/SnapMeal';
 import { MEAL_HISTORY_FILE_ACCEPT, prefillMealHistoryReview, validateMealHistoryFile } from '@/lib/shared/meal-history-upload';
 import type {
   ActivityLevel,
@@ -1076,6 +1078,18 @@ export default function FamilyProfilePage() {
     reader.readAsDataURL(file);
   };
 
+  const applyDocumentDraft = (draft: ImportedProfileReview) => {
+    const dietMap: Record<string, NonNullable<FamilyMemberProfile['foodPreference']>> = { vegetarian: 'vegetarian', eggetarian: 'eggetarian', non_vegetarian: 'non_vegetarian', semi_vegetarian: 'semi_vegetarian', vegan: 'vegan', other: 'other' };
+    setMembers((current) => draft.members.map((item, index) => {
+      const existing = current.find((member) => member.name.trim().toLowerCase() === item.name.trim().toLowerCase());
+      return { id: existing?.id ?? `document_${Date.now()}_${index}`, name: item.name, relation: item.relation || existing?.relation || 'Family member', age: item.age ?? existing?.age, activityLevel: existing?.activityLevel ?? 'moderate', foodPreference: item.dietType ? dietMap[item.dietType] : existing?.foodPreference ?? 'vegetarian', allergies: item.allergies.length ? item.allergies : existing?.allergies ?? [], doctorAdvisedRestrictions: item.doctorAdvice.length ? item.doctorAdvice : existing?.doctorAdvisedRestrictions ?? [], dislikes: item.dislikes.length ? item.dislikes : existing?.dislikes ?? [], mealStrategyPreference: existing?.mealStrategyPreference ?? 'common' };
+    }));
+    if (draft.household.cuisines.length) setMealPreferenceInputs((current) => ({ ...current, lunch: Array.from(new Set([...current.lunch, ...draft.household.cuisines])), dinner: Array.from(new Set([...current.dinner, ...draft.household.cuisines])) }));
+    if (draft.household.budget) { setBudgetPreference('custom_monthly'); const amount = draft.household.budget.match(/\d[\d,]*/)?.[0]; if (amount) setCustomMonthlyFoodBudget(amount.replace(/,/g, '')); }
+    if (draft.mealHistory.length) { setRecentMealHistory(mergeRecentMealHistory(draft.mealHistory)); setRecentMealHistoryStatus('manual'); }
+    setMealHistoryHasExtractedDraft(true); setMealHistoryReviewApproved(false); setMealHistoryUncertainFields(Object.fromEntries(draft.mealHistory.filter((entry) => entry.uncertain?.length).map((entry) => [entry.day, entry.uncertain ?? []]))); setSaveStatus('Document draft applied. Review all fields, resolve safety details, then confirm the normal save.');
+  };
+
   const extractMealHistoryFromPhoto = async () => {
     if (!mealHistoryImageDataUrl) return;
     setMealHistoryExtractionStatus(t.extractingMealPhoto);
@@ -1216,6 +1230,9 @@ export default function FamilyProfilePage() {
           <p className="mt-3 text-base leading-7 text-slate-600">{t.subtitle}</p>
           <p className="mt-3 text-sm font-semibold text-emerald-700">{uxCopy.draftSaved}</p>
         </section>
+
+        <FamilyProfileDocumentImport onApply={applyDocumentDraft} />
+        <SnapMeal members={members} />
 
         <section className="mb-8 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-emerald-100 sm:p-6">
           <div className="grid gap-5 sm:grid-cols-2">
