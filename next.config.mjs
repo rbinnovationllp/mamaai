@@ -6,6 +6,10 @@ const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Local QA uses 127.0.0.1 while Next may bind development resources to
+  // localhost. Permit the loopback origin so client hydration (including the
+  // signed-in session check) is not blocked in the isolated QA environment.
+  allowedDevOrigins: ["127.0.0.1"],
   // Keep a local `next dev` watcher out of the production-build directory.
   // Vercel and `next build` continue to use the default `.next` directory.
   distDir: process.env.NEXT_BUILD_DIR ?? (process.env.NODE_ENV === "development" && !process.env.VERCEL ? ".next-dev" : ".next"),

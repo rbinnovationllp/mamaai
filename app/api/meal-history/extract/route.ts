@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     const { mimeType, base64 } = parseMealHistoryUploadDataUrl(parsed.data.fileDataUrl ?? parsed.data.imageDataUrl!);
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: process.env.AI_PRIMARY_MODEL || "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: process.env.MAMA_AI_GEMINI_MODEL || process.env.AI_PRIMARY_MODEL || "gemini-2.5-flash" });
     const result = await model.generateContent([
       {
         inlineData: {
@@ -97,6 +97,9 @@ Rules:
   } catch (error) {
     const auth = authErrorResponse(error);
     if (auth) return auth;
+    if (process.env.MAMA_AI_LOCAL_QA === "true") {
+      console.error("LOCAL_QA_MEAL_HISTORY_EXTRACTION_ERROR", error instanceof Error ? { name: error.name, message: error.message } : { name: "unknown" });
+    }
     if (error instanceof MealHistoryUploadError) {
       return NextResponse.json({ error: { code: error.code, message: error.publicMessage } }, { status: error.status });
     }

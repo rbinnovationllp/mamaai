@@ -8,6 +8,9 @@ import { authErrorResponse, requireUser } from "@/lib/server/auth";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  if (process.env.MAMA_AI_LOCAL_QA === "true" && new URL(request.url).searchParams.get("qaSessionFailure") === "1") {
+    return NextResponse.json({ error: { code: "SESSION_UNAVAILABLE", message: "Local QA simulated session failure." } }, { status: 503 });
+  }
   try {
     const user = await requireUser(request);
     const finish = (response: NextResponse) => renewRecognizedDeviceSession(request, response, user);

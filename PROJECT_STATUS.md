@@ -398,3 +398,15 @@ Remaining screenshot caveat:
 
 - Fixed legacy family authorization, weekly cached-plan ownership, fractional ages, weekly candidate selection and auth origin error handling.
 - Verified vegetarian seven-day planning, weekday tiffin slots and persisted grocery purchases in loopback storage. Full browser suite still fails mixed-diet slot replacement. Production unchanged.
+
+## Isolated local QA — 10 November 2026
+
+- Environment: **Passed** — all browser and verifier work used `MAMA_AI_LOCAL_QA=true`, `http://127.0.0.1:8010`, and `mamaai-local-qa-*` DynamoDB tables. No production service, credential, data, deployment, or payment flow was used.
+- Browser sign-in bootstrap: **Passed** — a fresh Chromium mobile viewport now hydrates at `http://127.0.0.1:3106/account/access` and reaches the sign-in/registration screen. The root cause of the prior indefinite spinner was Next development-resource origin blocking: HMR/client resources were rejected at `127.0.0.1`, so the client effect that calls `/api/customer/session` never ran. `allowedDevOrigins` now permits the loopback QA origin while normal session checks and authentication remain active.
+- Browser registration: **Passed** — fictional `browser-qa-20261110b@example.test` registration returned **201** and displayed one-time recovery codes. The browser then used the new explicit **Continue to family profile** action to reach `/profile/family`. The local QA launcher now allowlists only `http://127.0.0.1:<port>` for same-origin mutation checks; it does not weaken production origin validation.
+- Browser family-profile save: **Passed** — a fictional one-member profile saved with **200** and transitioned from `/profile/family` to `/planner`, where the saved household was displayed.
+- Browser session persistence: **Passed** — refreshing `/planner` in the same browser context retained the authenticated session and the saved fictional household.
+- Browser session failure/retry: **Passed** — a separate fresh local browser tab received a local-QA-only simulated **503** from `/api/customer/session`, displayed the recoverable error and Retry control, then Retry removed the QA-only flag and restored the signed-in `/planner` session. The simulation is guarded by `MAMA_AI_LOCAL_QA=true` and is not active in normal environments.
+- `scripts/verify-local-qa.ps1`: **Passed** — clean isolated rerun recorded registration **201**, family-profile save **200**, verified the peanut allergy fixture, and intentionally observed mocked Ask MAMA provider failure **500 / LOCAL_QA_PROVIDER_FAILURE**. This expected mocked-provider result is not a browser or Gemini-live pass.
+- TypeScript: **Passed** — `npx tsc --noEmit --incremental false --pretty false` completed after removal of a stale, generated `.next-dev` directory. The isolated `.next-qa-local` output was retained.
+- Remaining blocker: **Blocked** — live Gemini/OCR validation was not run by this verification; it requires launching the QA workflow with the real-provider option and remains separate from the mocked verifier result.

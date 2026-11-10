@@ -1,10 +1,10 @@
-param([int]$Port = 3106)
+param([int]$Port = 3106, [switch]$SessionFailure)
 $root = Split-Path $PSScriptRoot -Parent
 $config = Join-Path $root '.env.gemini-qa.local'
 $logDir = Join-Path $root 'work\local-qa-diagnostics'
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 Get-Content $config | ForEach-Object { if ($_ -match '^([A-Z][A-Z0-9_]*)=(.*)$') { [Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process') } }
-$env:MAMA_AI_DYNAMODB_LOCAL='true'; $env:MAMA_AI_LOCAL_QA='true'; $env:VERCEL=''; $env:VERCEL_ENV=''
+$env:MAMA_AI_DYNAMODB_LOCAL='true'; $env:MAMA_AI_LOCAL_QA='true'; $env:MAMA_AI_ALLOWED_ORIGINS="http://127.0.0.1:$Port"; $env:MAMA_AI_LOCAL_QA_SESSION_FAILURE=if($SessionFailure){'true'}else{'false'}; $env:MAMAAI_SMART_HISTORY_UPLOAD_ENABLED='true'; $env:VERCEL=''; $env:VERCEL_ENV=''; $env:NEXT_BUILD_DIR='.next-qa-local'
 if ($env:MAMA_AI_DYNAMODB_LOCAL_ENDPOINT -ne 'http://127.0.0.1:8010' -or $env:MAMA_AI_DYNAMODB_TABLE_NAME -notmatch '^mamaai-local-qa-') { throw 'Unsafe local QA configuration.' }
 $out=Join-Path $logDir 'server.out.log'; $err=Join-Path $logDir 'server.err.log'
 $next = Join-Path $root 'node_modules\next\dist\bin\next'
