@@ -194,8 +194,11 @@ export async function GET(request: Request) {
   try {
     const user = await requireUser(request);
     const repository = new CustomerProfileRepository();
-    const familyProfile = await repository.getFamilyProfile(user.userId);
-    return NextResponse.json({ familyProfile });
+    const [familyProfile, customer] = await Promise.all([
+      repository.getFamilyProfile(user.userId),
+      repository.getCustomer(user.userId),
+    ]);
+    return NextResponse.json({ familyProfile, customer });
   } catch (error) {
     const authResponse = authErrorResponse(error);
     if (authResponse) return authResponse;

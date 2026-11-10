@@ -781,6 +781,9 @@ export default function FamilyProfilePage() {
   const [holidayOrLeaveDatesInput, setHolidayOrLeaveDatesInput] = useState('');
   const [tiffinPreferencesInput, setTiffinPreferencesInput] = useState('');
   const [packingStorageInput, setPackingStorageInput] = useState('');
+  // Do not let the persistence effects overwrite the stored profile with
+  // initial empty state before the client-side restore has finished.
+  const [storageHydrated, setStorageHydrated] = useState(false);
 
   const uxCopy = {
     en: { optional: 'Optional', moreDetails: 'Add optional details', hideDetails: 'Hide optional details', draftSaved: 'Your progress is saved on this device.', accountOptional: 'Contact details are optional. Add them only if you want them connected to this profile.' },
@@ -848,21 +851,52 @@ export default function FamilyProfilePage() {
           setMealStrategy(draft.mealStrategy);
         }
       }
+      void fetch('/api/customer/family-profile', { cache: 'no-store' })
+        .then(async (response) => {
+          if (!response.ok) return;
+          const profile = await response.json();
+          if (Array.isArray(profile.familyProfile?.members)) {
+            setMembers(profile.familyProfile.members);
+          }
+          // Once a household exists, the confirmed server record is the
+          // source of truth on reopen. A stale browser draft must not hide
+          // confirmed meal history or profile details.
+          if (profile.customer) {
+            const serverCustomer = profile.customer;
+            setCustomerName(String(serverCustomer.name ?? ''));
+            setCustomerMobile(String(serverCustomer.mobile ?? ''));
+            setCustomerEmail(String(serverCustomer.email ?? ''));
+            setWeeklyFoodRoutineStatus(serverCustomer.weeklyFoodRoutineStatus ?? 'skip');
+            setWeeklyFoodRoutine(mergeWeeklyRoutine(serverCustomer.weeklyFoodRoutine));
+            setMealPreferenceInputs(mealPreferenceInputsFromSaved(serverCustomer.mealTypePreferences));
+            setMealTimingInputs(mealTimingInputsFromSaved(serverCustomer.mealTimings));
+            setRecentMealHistoryStatus(Array.isArray(serverCustomer.recentMealHistory) && serverCustomer.recentMealHistory.length ? 'manual' : 'skip');
+            setRecentMealHistory(mergeRecentMealHistory(serverCustomer.recentMealHistory));
+            setNonVegPreferredFoods(Array.isArray(serverCustomer.nonVegPreferredFoods) ? serverCustomer.nonVegPreferredFoods : []);
+            setBudgetPreference(serverCustomer.budgetPreference ?? 'moderate');
+            setCustomMonthlyFoodBudget(serverCustomer.customMonthlyFoodBudget ? String(serverCustomer.customMonthlyFoodBudget) : '');
+          }
+        })
+        .catch(() => undefined)
+        .finally(() => setStorageHydrated(true));
     } catch {
       setMembers([]);
+      setStorageHydrated(true);
     } });
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
+    if (!storageHydrated) return;
     try {
       window.localStorage.setItem(HOUSEHOLD_STORAGE_KEY, JSON.stringify(members));
     } catch {
       // Local persistence is helpful, but the form should still work without it.
     }
-  }, [members]);
+  }, [members, storageHydrated]);
 
   useEffect(() => {
+    if (!storageHydrated) return;
     try {
       window.localStorage.setItem(
         FAMILY_PROFILE_DRAFT_KEY,
@@ -927,6 +961,7 @@ export default function FamilyProfilePage() {
     customerMobile,
     customerEmail,
     mealStrategy,
+    storageHydrated,
   ]);
 
   const suggestedPlan = useMemo(() => getSuggestedPlan(members.length), [members.length]);
@@ -1084,14 +1119,21 @@ export default function FamilyProfilePage() {
       const existing = current.find((member) => member.name.trim().toLowerCase() === item.name.trim().toLowerCase());
       return { id: existing?.id ?? `document_${Date.now()}_${index}`, name: item.name, relation: item.relation || existing?.relation || 'Family member', age: item.age ?? existing?.age, activityLevel: existing?.activityLevel ?? 'moderate', foodPreference: item.dietType ? dietMap[item.dietType] : existing?.foodPreference ?? 'vegetarian', allergies: item.allergies.length ? item.allergies : existing?.allergies ?? [], doctorAdvisedRestrictions: item.doctorAdvice.length ? item.doctorAdvice : existing?.doctorAdvisedRestrictions ?? [], dislikes: item.dislikes.length ? item.dislikes : existing?.dislikes ?? [], mealStrategyPreference: existing?.mealStrategyPreference ?? 'common' };
     }));
-    if (draft.household.cuisines.length) setMealPreferenceInputs((current) => ({ ...current, lunch: Array.from(new Set([...current.lunch, ...draft.household.cuisines])), dinner: Array.from(new Set([...current.dinner, ...draft.household.cuisines])) }));
+    if (draft.household.cuisines.length) setMealPreferenceInputs((current) => {
+      const mergeCuisines = (value: string) => Array.from(new Set([...splitCsv(value), ...draft.household.cuisines])).join(', ');
+      return { ...current, lunch: mergeCuisines(current.lunch), dinner: mergeCuisines(current.dinner) };
+    });
     if (draft.household.budget) { setBudgetPreference('custom_monthly'); const amount = draft.household.budget.match(/\d[\d,]*/)?.[0]; if (amount) setCustomMonthlyFoodBudget(amount.replace(/,/g, '')); }
     if (draft.mealHistory.length) { setRecentMealHistory(mergeRecentMealHistory(draft.mealHistory)); setRecentMealHistoryStatus('manual'); }
-    setMealHistoryHasExtractedDraft(true); setMealHistoryReviewApproved(false); setMealHistoryUncertainFields(Object.fromEntries(draft.mealHistory.filter((entry) => entry.uncertain?.length).map((entry) => [entry.day, entry.uncertain ?? []]))); setSaveStatus('Document draft applied. Review all fields, resolve safety details, then confirm the normal save.');
+    // The document component only enables Apply after its own required review
+    // checks. Once applied, it is ordinary editable form data; unlike the
+    // photo flow it has no in-context approval checkbox to satisfy.
+    setMealHistoryHasExtractedDraft(false); setMealHistoryReviewApproved(true); setMealHistoryUncertainFields(Object.fromEntries(draft.mealHistory.filter((entry) => entry.uncertain?.length).map((entry) => [entry.day, entry.uncertain ?? []]))); setSaveStatus('Document draft applied. Review all fields, resolve safety details, then confirm the normal save.');
   };
 
   const extractMealHistoryFromPhoto = async () => {
     if (!mealHistoryImageDataUrl) return;
+    let extractionSucceeded = false;
     setMealHistoryExtractionStatus(t.extractingMealPhoto);
     setMealHistoryExtractionError('');
     setMealHistoryUncertainFields({});
@@ -1127,12 +1169,14 @@ export default function FamilyProfilePage() {
       setMealHistoryExtractionStatus(t.extractionReview);
       setMealHistoryHasExtractedDraft(true);
       setMealHistoryReviewApproved(false);
+      extractionSucceeded = true;
     } catch (error) {
       setMealHistoryExtractionStatus('');
       setMealHistoryExtractionError(error instanceof Error ? error.message : t.extractionUnavailable);
     } finally {
-      // The file is only held in memory for the single extraction attempt.
-      setMealHistoryImageDataUrl('');
+      // Keep a failed attempt in memory only long enough for the user to
+      // retry; it is cleared after success or when another file is chosen.
+      if (extractionSucceeded) setMealHistoryImageDataUrl('');
     }
   };
 
