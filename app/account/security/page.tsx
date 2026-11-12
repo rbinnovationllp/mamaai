@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { clearSensitiveBrowserData } from "@/lib/shared/client-privacy";
 import { useCallback, useEffect, useState } from "react";
 import { ChangePasswordForm } from "@/components/account/ChangePasswordForm";
 import { RecoveryCodeRegeneration } from "@/components/account/RecoveryCodeRegeneration";
@@ -34,7 +35,7 @@ export default function AccountSecurityPage() {
 
   async function logout() {
     const response = await fetch("/api/customer/logout", { method: "POST" });
-    if (response.ok) window.location.assign("/");
+    if (response.ok) { await clearSensitiveBrowserData(); window.location.assign("/"); }
     else setMessage("Unable to sign out. Please try again.");
   }
   async function confirmDevice() {

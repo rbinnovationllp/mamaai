@@ -70,8 +70,10 @@ test('the server validates uploads, keeps extraction feature-gated, and returns 
   assert.match(route, /GEMINI_API_KEY/);
   assert.match(route, /parseMealHistoryUploadDataUrl/);
   assert.match(route, /MEAL_HISTORY_AI_NOT_CONFIGURED/);
+  assert.match(route, /aiProcessingConsent/);
   assert.match(route, /Unable to read that meal-history file/);
   assert.doesNotMatch(route, /console\.(log|info|error).*fileDataUrl/);
   assert.match(page, /data\.error\?\.code === 'FEATURE_DISABLED'/);
   assert.match(page, /data\.error\?\.code === 'MEAL_HISTORY_AI_NOT_CONFIGURED'/);
+  assert.match(page, /mealHistoryAiProcessingConsent/);
 });

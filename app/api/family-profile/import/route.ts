@@ -6,13 +6,14 @@ import { requireSameOrigin } from "@/lib/server/request-security";
 import { FAMILY_PROFILE_DOCUMENT_ACCEPT, familyDocumentImportSchema, parseFamilyProfileDocumentText } from "@/lib/shared/family-profile-document";
 import { parseMealHistoryUploadDataUrl } from "@/lib/shared/meal-history-upload";
 
-const requestSchema = z.object({ text: z.string().max(30000).optional(), files: z.array(z.string().min(40)).max(5).optional() }).refine((v) => Boolean(v.text?.trim() || v.files?.length), "Paste text or select at least one file.");
+const requestSchema = z.object({ text: z.string().max(30000).optional(), files: z.array(z.string().min(40)).max(5).optional(), aiProcessingConsent: z.literal(true).optional() }).refine((v) => Boolean(v.text?.trim() || v.files?.length), "Paste text or select at least one file.");
 export async function POST(request: Request) {
   try {
     requireSameOrigin(request); await requireUser(request);
     const parsed = requestSchema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ error: { code: "PROFILE_IMPORT_INVALID", message: "Paste text or select up to five clear image/PDF pages." } }, { status: 400 });
     if (parsed.data.text?.trim()) return NextResponse.json({ draft: parseFamilyProfileDocumentText(parsed.data.text), retention: "Original text is not saved." });
+    if (!parsed.data.aiProcessingConsent) return NextResponse.json({ error: { code: "AI_PROCESSING_CONSENT_REQUIRED", message: "Confirm that the selected document may be sent to the configured AI provider for reading, or paste typed notes instead." } }, { status: 400 });
     // Files are validated and held only for this request; only a reviewed structured draft can later be saved.
     const pages = (parsed.data.files ?? []).map((file) => parseMealHistoryUploadDataUrl(file));
     if (process.env.MAMAAI_FAMILY_DOCUMENT_OCR_ENABLED !== "true" || !process.env.GEMINI_API_KEY) return NextResponse.json({ error: { code: "PROFILE_IMPORT_OCR_NOT_CONFIGURED", message: `Document image/PDF reading needs the optional OCR provider. Accepted formats: ${FAMILY_PROFILE_DOCUMENT_ACCEPT}. Paste the typed notes instead; originals are never saved by MAMAAI.` } }, { status: 503 });

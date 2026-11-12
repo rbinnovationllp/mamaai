@@ -86,21 +86,22 @@ test('problem reports require an authenticated durable save and keep review meta
   assert.match(schema, /max\(1000\)/);
 });
 
-test('public legal routes and food-safety disclosure are present without claiming automated account deletion', () => {
+test('public legal routes and food-safety disclosure describe authenticated, explicit account deletion', () => {
   for (const file of ['app/privacy/page.tsx', 'app/terms/page.tsx', 'app/refund-policy/page.tsx', 'app/disclaimer/page.tsx', 'app/account/delete/page.tsx', 'app/account/export/page.tsx']) {
     assert.ok(fs.existsSync(path.join(root, file)), `${file} should exist`);
   }
-  assert.match(read('app/account/delete/page.tsx'), /not enabled/);
+  assert.match(read('app/account/delete/page.tsx'), /DELETE MY ACCOUNT/);
   assert.match(read('app/disclaimer/page.tsx'), /not a substitute for medical advice/);
 });
 
-test('Phase 2D export and deletion preflight require verified identity and do not delete records', () => {
+test('account export and deletion require verified identity and explicit confirmation', () => {
   const exportRoute = read('app/api/customer/data-export/route.ts');
   const deletionRoute = read('app/api/customer/account-deletion/route.ts');
   assert.match(exportRoute, /await requireUser\(request\)/);
   assert.match(exportRoute, /exportForVerifiedUser\(user\.userId\)/);
   assert.match(deletionRoute, /await requireUser\(request\)/);
-  assert.match(read('lib/repositories/customer-data-repository.ts'), /executable: false/);
+  assert.match(deletionRoute, /DELETION_CONFIRMATION_REQUIRED/);
+  assert.match(read('lib/repositories/customer-data-repository.ts'), /deleteApplicationDataForVerifiedUser/);
 });
 
 test('Phase 2D quota and safety-review frameworks are disabled or denied without explicit configuration', () => {

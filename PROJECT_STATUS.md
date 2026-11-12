@@ -1,5 +1,19 @@
 # MAMA AI Project Status
 
+## Privacy hardening — local implementation, 12 November 2026
+
+- **Implemented (local only):** legacy sensitive browser keys for household profiles, allergies, clinician/dietitian advice, meal history, pantry, plans and attendance are cleared on profile upgrade, sign-out and account deletion. The active service worker caches public assets only and deletes older `mamaai-pwa-*` caches on upgrade.
+- **Implemented:** authenticated profile hydration remains server-backed through `/api/customer/family-profile`; the profile page no longer restores or writes its household/profile draft to `localStorage`.
+- **Implemented:** image/PDF family-document import, meal-history file extraction, and Snap a Meal analysis now require an explicit in-context consent notice before the media/description is sent to the configured Gemini provider. The server independently validates that consent. Manual entry and review-before-save remain available. MAMAAI does not persist originals; the provider retention/data-use configuration must still be verified in the Gemini account before a real-family pilot.
+- **Implemented:** authenticated self-service account deletion requires same-origin request, current authenticated user, and the exact `DELETE MY ACCOUNT` confirmation. It removes known application account, profile, family-plan, pantry, meal-history/Snap and credential records, clears the current cookie and browser copies. It is idempotent before final credential removal. Subscription/payment ledger records, backup retention, provider-held copies, and unindexed expired session-token hashes are explicitly retained/review items and are not reported as deleted.
+- **Privacy policy and in-app notices:** updated to match the consent, non-retention of originals, export, deletion, and separate provider/payment/backup limits.
+
+### Privacy verification
+
+- **Passed (local static/regression):** TypeScript `tsc --noEmit --incremental false`; `npm test` (177 tests). Consent is enforced in UI and API source paths; service-worker test confirms private routes/APIs are never cached.
+- **Blocked (local QA browser):** create two fictional accounts through `scripts/run-local-qa.ps1`; save a profile, sign out, sign in as the other account, and inspect `localStorage`, `sessionStorage`, Cache Storage and IndexedDB. Verify consent refusal emits no upload request; then verify consented synthetic image/PDF/Snap requests reach Gemini and each remains review-only until normal save. Export and deletion need the isolated loopback table plus an account-specific inventory check.
+- **Open release decisions:** configure/verify Gemini provider retention and data-use settings; approve payment-ledger and backup retention/deletion policy; add a session-by-user lookup or deletion-worker capability if immediate physical removal of every historic token-hash row is required. These decisions remain blockers for a real-family pilot claiming comprehensive deletion.
+
 ## Current Launch Snapshot - August 14, 2026
 
 ## Controlled beta entitlement — 5 November 2026

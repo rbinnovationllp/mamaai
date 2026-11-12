@@ -8,6 +8,7 @@ import { VoiceTextInput } from '@/components/VoiceTextInput';
 import { FamilyProfileDocumentImport, type ImportedProfileReview } from '@/components/FamilyProfileDocumentImport';
 import { SnapMeal } from '@/components/SnapMeal';
 import { MEAL_HISTORY_FILE_ACCEPT, prefillMealHistoryReview, validateMealHistoryFile } from '@/lib/shared/meal-history-upload';
+import { clearSensitiveBrowserData } from '@/lib/shared/client-privacy';
 import type {
   ActivityLevel,
   DayFoodPreference,
@@ -756,6 +757,7 @@ export default function FamilyProfilePage() {
   const [recentMealHistory, setRecentMealHistory] =
     useState<RecentMealHistoryDay[]>(() => defaultRecentMealHistory());
   const [mealHistoryImageDataUrl, setMealHistoryImageDataUrl] = useState('');
+  const [mealHistoryAiProcessingConsent, setMealHistoryAiProcessingConsent] = useState(false);
   const [mealHistoryPhotoName, setMealHistoryPhotoName] = useState('');
   const [mealHistoryExtractionStatus, setMealHistoryExtractionStatus] = useState('');
   const [mealHistoryExtractionError, setMealHistoryExtractionError] = useState('');
@@ -793,7 +795,10 @@ export default function FamilyProfilePage() {
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => { try {
-      const saved = window.localStorage.getItem(HOUSEHOLD_STORAGE_KEY);
+      // Prior versions stored profiles and drafts in localStorage. Remove those
+      // copies on upgrade; authenticated server records are the only source on reopen.
+      void clearSensitiveBrowserData();
+      const saved = null;
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
@@ -801,7 +806,7 @@ export default function FamilyProfilePage() {
         }
       }
 
-      const savedCustomer = window.localStorage.getItem(CUSTOMER_STORAGE_KEY);
+      const savedCustomer = null;
       if (savedCustomer) {
         const parsedCustomer = JSON.parse(savedCustomer);
         setCustomerName(String(parsedCustomer.name ?? ''));
@@ -818,7 +823,7 @@ export default function FamilyProfilePage() {
         setCustomMonthlyFoodBudget(parsedCustomer.customMonthlyFoodBudget ? String(parsedCustomer.customMonthlyFoodBudget) : '');
       }
 
-      const savedDraft = window.localStorage.getItem(FAMILY_PROFILE_DRAFT_KEY);
+      const savedDraft = null;
       if (savedDraft) {
         const draft = JSON.parse(savedDraft);
         setName(String(draft.name ?? ''));
@@ -885,84 +890,6 @@ export default function FamilyProfilePage() {
     } });
     return () => window.cancelAnimationFrame(frame);
   }, []);
-
-  useEffect(() => {
-    if (!storageHydrated) return;
-    try {
-      window.localStorage.setItem(HOUSEHOLD_STORAGE_KEY, JSON.stringify(members));
-    } catch {
-      // Local persistence is helpful, but the form should still work without it.
-    }
-  }, [members, storageHydrated]);
-
-  useEffect(() => {
-    if (!storageHydrated) return;
-    try {
-      window.localStorage.setItem(
-        FAMILY_PROFILE_DRAFT_KEY,
-        JSON.stringify({
-          name,
-          relation,
-          ageInput,
-          activityLevel,
-          allergyInput,
-          doctorInput,
-          dislikeInput,
-          memberFoodPreference,
-          householdFoodPreference,
-          cookingHabit,
-          budgetPreference,
-          customMonthlyFoodBudget,
-          weeklyFoodRoutineStatus,
-          weeklyFoodRoutine,
-          mealPreferenceInputs,
-          mealTimingInputs,
-          recentMealHistoryStatus,
-          recentMealHistory,
-          nonVegPreferredFoods,
-          otherNonVegInput,
-          nonVegFrequency,
-          nonVegAvoidDays,
-          nonVegCustomRule,
-          customerName,
-          customerMobile,
-          customerEmail,
-          mealStrategy,
-        })
-      );
-    } catch {
-      // Draft persistence is helpful, but the page still works without it.
-    }
-  }, [
-    name,
-    relation,
-    ageInput,
-    activityLevel,
-    allergyInput,
-    doctorInput,
-    dislikeInput,
-    memberFoodPreference,
-    householdFoodPreference,
-    cookingHabit,
-    budgetPreference,
-    customMonthlyFoodBudget,
-    weeklyFoodRoutineStatus,
-    weeklyFoodRoutine,
-    mealPreferenceInputs,
-    mealTimingInputs,
-    recentMealHistoryStatus,
-    recentMealHistory,
-    nonVegPreferredFoods,
-    otherNonVegInput,
-    nonVegFrequency,
-    nonVegAvoidDays,
-    nonVegCustomRule,
-    customerName,
-    customerMobile,
-    customerEmail,
-    mealStrategy,
-    storageHydrated,
-  ]);
 
   const suggestedPlan = useMemo(() => getSuggestedPlan(members.length), [members.length]);
 
@@ -1036,11 +963,7 @@ export default function FamilyProfilePage() {
 
   const handleClearHousehold = () => {
     setMembers([]);
-    try {
-      window.localStorage.removeItem(HOUSEHOLD_STORAGE_KEY);
-    } catch {
-      // Ignore storage cleanup failures.
-    }
+    void clearSensitiveBrowserData();
   };
 
   const toggleNonVegAvoidDay = (day: string) => {
@@ -1144,6 +1067,7 @@ export default function FamilyProfilePage() {
         body: JSON.stringify({
           fileDataUrl: mealHistoryImageDataUrl,
           language,
+          aiProcessingConsent: mealHistoryAiProcessingConsent,
         }),
       });
       const data = await response.json();
@@ -1246,9 +1170,7 @@ export default function FamilyProfilePage() {
         throw new Error(data.error?.message || data.message || 'Unable to save family profile.');
       }
 
-      window.localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify({ ...customer, userId: data.userId }));
-      window.localStorage.setItem(HOUSEHOLD_STORAGE_KEY, JSON.stringify(members));
-      window.localStorage.removeItem(FAMILY_PROFILE_DRAFT_KEY);
+      void clearSensitiveBrowserData();
       setSaveStatus(t.saved);
       window.setTimeout(() => {
         window.location.href = '/planner';
@@ -1487,10 +1409,14 @@ export default function FamilyProfilePage() {
                   />
                   {mealHistoryPhotoName ? <span className="text-xs font-semibold text-emerald-800">{mealHistoryPhotoName}</span> : null}
                 </label>
+                <label className="rounded-xl bg-white p-3 text-xs font-semibold text-emerald-900 ring-1 ring-emerald-100 sm:col-span-2">
+                  <input type="checkbox" checked={mealHistoryAiProcessingConsent} onChange={(event) => setMealHistoryAiProcessingConsent(event.target.checked)} className="mr-2" />
+                  I understand this selected file will be sent to MAMAAI&apos;s configured AI provider to prepare an editable draft. I can use manual entry instead.
+                </label>
                 <button
                   type="button"
                   onClick={extractMealHistoryFromPhoto}
-                  disabled={!mealHistoryImageDataUrl || mealHistoryExtractionStatus === t.extractingMealPhoto}
+                  disabled={!mealHistoryImageDataUrl || !mealHistoryAiProcessingConsent || mealHistoryExtractionStatus === t.extractingMealPhoto}
                   className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-60"
                 >
                   {mealHistoryExtractionStatus === t.extractingMealPhoto ? t.extractingMealPhoto : t.extractMealPhoto}

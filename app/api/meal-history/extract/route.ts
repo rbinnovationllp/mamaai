@@ -9,6 +9,7 @@ const mealHistoryExtractionSchema = z.object({
   fileDataUrl: z.string().min(100).optional(),
   imageDataUrl: z.string().min(100).optional(),
   language: z.enum(["en", "hi", "kn"]).default("en"),
+  aiProcessingConsent: z.literal(true),
 }).refine((value) => Boolean(value.fileDataUrl || value.imageDataUrl), { message: "A meal-history file is required." });
 
 const extractedEntrySchema = z.object({
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = mealHistoryExtractionSchema.safeParse(body);
     if (!parsed.success) {
-      throw new ExtractionError("local_validation", 400, "Choose a clear PNG, JPG, JPEG, WEBP image, or PDF meal-history file.");
+      throw new ExtractionError("local_validation", 400, "Unable to read that meal-history file. Choose a clear PNG, JPG, JPEG, WEBP image, or PDF meal-history file.");
     }
 
     const apiKey = process.env.GEMINI_API_KEY;

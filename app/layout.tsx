@@ -6,6 +6,7 @@ import { LanguageProvider } from "@/components/LanguageProvider";
 import { MobilePrimaryNav } from "@/components/MobilePrimaryNav";
 import { AskMamaLauncher } from "@/components/ask-mama/AskMamaLauncher";
 import { Footer } from "@/components/Footer";
+import { PrivacyStorageGuard } from "@/components/PrivacyStorageGuard";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body className="pb-20 md:pb-0">
+        <PrivacyStorageGuard />
         <LanguageProvider>
           <RecognizedDeviceSession />
           {children}
