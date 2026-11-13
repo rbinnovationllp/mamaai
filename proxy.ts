@@ -9,6 +9,15 @@ function isAuthorizedAdmin(request: NextRequest, configuredSecret: string) {
 }
 
 export function proxy(request: NextRequest) {
+  if (process.env.MAMAAI_SAMPLE_DATA_DEMO === "true") {
+    const path = request.nextUrl.pathname;
+    if (path.startsWith("/api/")) {
+      return NextResponse.json({ error: { code: "SAMPLE_DEMO_READ_ONLY", message: "This sample demo does not accept accounts, personal data, uploads, payments, or AI requests." } }, { status: 403 });
+    }
+    if (path.startsWith("/account") || path.startsWith("/profile") || path.startsWith("/planner") || path.startsWith("/pantry") || path.startsWith("/subscription")) {
+      return NextResponse.redirect(new URL("/demo", request.url));
+    }
+  }
   const isAdminApi = request.nextUrl.pathname.startsWith("/api/admin");
   const configuredSecret = process.env.ADMIN_SECRET_KEY;
 

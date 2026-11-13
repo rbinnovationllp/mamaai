@@ -9,9 +9,9 @@ export const recoveryCopy = {
   kn: { title: "ಪಾಸ್‌ವರ್ಡ್ ಮರೆತಿದ್ದೀರಾ?", choose: "ಖಾತೆ ಮರುಪಡೆಯುವ ವಿಧಾನ ಆಯ್ಕೆಮಾಡಿ", mobile: "ಮೊಬೈಲ್ ಸಂಖ್ಯೆ", email: "ಇಮೇಲ್ ವಿಳಾಸ", mobileHint: "ನಿಮ್ಮ ನೋಂದಾಯಿತ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ.", emailHint: "ನಿಮ್ಮ ನೋಂದಾಯಿತ ಇಮೇಲ್ ವಿಳಾಸ ನಮೂದಿಸಿ.", proof: "ಖಾತೆಯ ಮಾಲೀಕತ್ವ ದೃಢೀಕರಿಸಿ", saved: "ಉಳಿಸಿದ ರಿಕವರಿ ಕೋಡ್", delivery: "ಪರಿಶೀಲನಾ ಕೋಡ್ ಕೋರಿಕೆ", code: "ಪರಿಶೀಲನಾ ಕೋಡ್", password: "ಹೊಸ ಪಾಸ್‌ವರ್ಡ್", confirm: "ಹೊಸ ಪಾಸ್‌ವರ್ಡ್ ದೃಢೀಕರಿಸಿ", reset: "ಪಾಸ್‌ವರ್ಡ್ ಮರುಹೊಂದಿಸಿ", request: "ಕೋಡ್ ಕೋರಿಕೆ", sign: "ಸೈನ್ ಇನ್‌ಗೆ ಹಿಂತಿರುಗಿ", unavailable: "SMS/ಇಮೇಲ್ ರಿಕವರಿ ವಿತರಣೆ ಕಾನ್ಫಿಗರ್ ಆಗಿಲ್ಲ. ಏನನ್ನೂ ಕಳುಹಿಸಿಲ್ಲ. ಉಳಿಸಿದ ರಿಕವರಿ ಕೋಡ್ ಬಳಸಿ ಅಥವಾ ದೃಢೀಕೃತ ಸಹಾಯ ಪಡೆಯಿರಿ. ಮೊಬೈಲ್ ಮಾತ್ರ ಇರುವ ಖಾತೆಗೆ ಇಮೇಲ್ ಅಗತ್ಯವಿಲ್ಲ.", accepted: "ಇದು ಅರ್ಹ, ದೃಢೀಕೃತ ನೋಂದಾಯಿತ ಸಂಪರ್ಕವಾಗಿದ್ದರೆ ಕೋಡ್ ಬರುತ್ತದೆ. 10 ನಿಮಿಷಗಳಲ್ಲಿ ಅವಧಿ ಮುಗಿಯುತ್ತದೆ. ಅದನ್ನು ಹಂಚಬೇಡಿ.", invalid: "ಖಾತೆ ಮರುಪಡೆಯಲಾಗಲಿಲ್ಲ. ವಿವರ ಪರಿಶೀಲಿಸಿ ಅಥವಾ ಸಹಾಯ ಪಡೆಯಿರಿ. ಖಾತೆಯ ಖಾಸಗಿ ಮಾಹಿತಿ ಬಹಿರಂಗಪಡಿಸಿಲ್ಲ.", success: "ಪಾಸ್‌ವರ್ಡ್ ಮರುಹೊಂದಿಸಲಾಗಿದೆ. ಹಿಂದಿನ ಖಾತೆ ಸೆಷನ್‌ಗಳು ಅಮಾನ್ಯವಾಗಿವೆ. ಹೊಸ ಪಾಸ್‌ವರ್ಡ್ ಬಳಸಿ ಸೈನ್ ಇನ್ ಮಾಡಿ.", mismatch: "ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುವುದಿಲ್ಲ.", limited: "ಹೆಚ್ಚು ರಿಕವರಿ ಪ್ರಯತ್ನಗಳಾಗಿವೆ. ಸ್ವಲ್ಪ ಸಮಯ ಕಾಯಿರಿ.", secure: "ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಅಥವಾ ಇಮೇಲ್ ಮಾತ್ರದಿಂದ ಪಾಸ್‌ವರ್ಡ್ ಬದಲಾಗುವುದಿಲ್ಲ. ದೃಢೀಕರಿಸದ ಹಳೆಯ ಸಂಪರ್ಕಗಳಿಗೆ ಉಳಿಸಿದ ಕೋಡ್ ಅಥವಾ ಪ್ರತ್ಯೇಕ ದೃಢೀಕೃತ ಸಹಾಯ ಅಗತ್ಯ.", busy: "ದಯವಿಟ್ಟು ಕಾಯಿರಿ…", support: "ಸಹಾಯ ಸಂಪರ್ಕಿಸಿ" },
 };
 
-export function PasswordRecoveryForm({ onBack }: { onBack: () => void }) {
+export function PasswordRecoveryForm({ onBack, initialIdentifier = "", initialMethod = "mobile" }: { onBack: () => void; initialIdentifier?: string; initialMethod?: "mobile" | "email" }) {
   const { language } = useLanguage(), t = recoveryCopy[language];
-  const [method, setMethod] = useState<"mobile" | "email">("mobile"), [identifier, setIdentifier] = useState("");
+  const [method, setMethod] = useState<"mobile" | "email">(initialMethod), [identifier, setIdentifier] = useState(initialIdentifier);
   const [proof, setProof] = useState<"recovery_code" | "delivery">("recovery_code"), [code, setCode] = useState("");
   const [challengeId, setChallengeId] = useState(""), [password, setPassword] = useState(""), [confirm, setConfirm] = useState("");
   const [message, setMessage] = useState(""), [busy, setBusy] = useState(false), [done, setDone] = useState(false);

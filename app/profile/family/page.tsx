@@ -1173,7 +1173,11 @@ export default function FamilyProfilePage() {
       void clearSensitiveBrowserData();
       setSaveStatus(t.saved);
       window.setTimeout(() => {
-        window.location.href = '/planner';
+        const next = new URL(window.location.href).searchParams.get('next');
+        const target = next ? new URL(next, window.location.origin) : null;
+        const allowedPlan = target?.pathname === '/subscription' && ['starter', 'premium', 'family_plus'].includes(target.searchParams.get('plan') ?? '');
+        const destination = target?.origin === window.location.origin && (target.pathname === '/planner' || target.pathname === '/subscription' && (allowedPlan || !target.search)) ? `${target.pathname}${target.search}` : '/planner';
+        window.location.href = destination;
       }, 500);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Unable to save family profile.');
