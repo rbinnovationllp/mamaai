@@ -92,6 +92,13 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+            <section className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+              <h2 className="text-base font-black text-emerald-950">{t.onboardingTitle}</h2>
+              <p className="mt-1 text-sm font-medium leading-6 text-emerald-900">{t.onboardingText}</p>
+              <Link href="/account/access?next=%2Fprofile%2Ffamily" className="mt-3 inline-flex min-h-11 items-center rounded-full bg-emerald-800 px-4 text-sm font-black text-white">
+                {t.onboardingCta}
+              </Link>
+            </section>
           </div>
 
           <div className="relative">

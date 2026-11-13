@@ -22,6 +22,9 @@ export const homeCopy = {
     headlineB: "cook today?",
     intro:
       "MAMAAI helps you choose a practical family meal using who is eating today, food preferences, allergies, budget, kitchen stock, and recent meals.",
+    onboardingTitle: "Make every plan more practical",
+    onboardingText: "Tell MAMAAI what’s in your kitchen and which meals you’ve eaten recently.",
+    onboardingCta: "Create your family profile",
     primaryCta: "Plan Today’s Meal",
     plannerCta: "My Family",
     demoCta: "Ask MAMA",
@@ -67,6 +70,9 @@ export const homeCopy = {
     headlineB: "क्या बनेगा?",
     intro:
       "MAMAAI आज कौन खाएगा, पसंद, एलर्जी, बजट, रसोई में मौजूद सामान और हाल के भोजन को देखकर परिवार के लिए व्यावहारिक भोजन सुझाता है।",
+    onboardingTitle: "हर प्लान को अधिक उपयोगी बनाएं",
+    onboardingText: "MAMAAI को बताएं कि आपकी रसोई में क्या है और आपने हाल ही में क्या खाया है।",
+    onboardingCta: "Family profile बनाएं",
     primaryCta: "आज का भोजन प्लान करें",
     plannerCta: "मेरा परिवार",
     demoCta: "Ask MAMA",
@@ -112,6 +118,9 @@ export const homeCopy = {
     headlineB: "ಏನು ಮಾಡೋಣ?",
     intro:
       "ಯಾರು ಇಂದು ಊಟ ಮಾಡುತ್ತಾರೆ, ಆಹಾರ ಇಷ್ಟಗಳು, ಅಲರ್ಜಿ, ಬಜೆಟ್, ಅಡುಗೆಮನೆಯಲ್ಲಿರುವ ಸಾಮಗ್ರಿ ಮತ್ತು ಇತ್ತೀಚಿನ ಊಟಗಳನ್ನು ನೋಡಿ MAMAAI ಕುಟುಂಬಕ್ಕೆ ಪ್ರಾಯೋಗಿಕ ಊಟ ಸೂಚಿಸುತ್ತದೆ.",
+    onboardingTitle: "ಪ್ರತಿ ಪ್ಲ್ಯಾನ್‌ನ್ನು ಇನ್ನಷ್ಟು ಉಪಯುಕ್ತವಾಗಿಸಿ",
+    onboardingText: "ನಿಮ್ಮ ಅಡುಗೆಮನೆಯಲ್ಲಿ ಏನಿದೆ ಮತ್ತು ನೀವು ಇತ್ತೀಚೆಗೆ ಏನು ತಿಂದಿದ್ದೀರಿ ಎಂದು MAMAAI ಗೆ ತಿಳಿಸಿ.",
+    onboardingCta: "ನಿಮ್ಮ family profile ರಚಿಸಿ",
     primaryCta: "ಇಂದಿನ ಊಟ ಪ್ಲ್ಯಾನ್ ಮಾಡಿ",
     plannerCta: "ನನ್ನ ಕುಟುಂಬ",
     demoCta: "Ask MAMA",
