@@ -107,8 +107,11 @@ test('local Razorpay boundary mock accepts one signed captured webhook, rejects 
   const originalFindSubscription = repository.findSubscriptionByRazorpaySubscriptionId;
   const originalUpsert = service.upsertSubscriptionFromProvider;
   const originalFetch = global.fetch;
+  const starterPlan = new SubscriptionService().getPlan('starter');
+  const originalStarterPlanId = starterPlan.razorpayPlanId;
   let duplicate = false;
   let persisted;
+  starterPlan.razorpayPlanId = 'plan_local_mock';
   repository.getWebhookRecord = async () => duplicate ? { id: 'existing' } : undefined;
   repository.findSubscriptionByRazorpaySubscriptionId = async () => ({ userId: 'fictional-payment-user', plan: 'starter' });
   service.upsertSubscriptionFromProvider = async input => { persisted = input; return { ...paid, userId: input.userId, status: 'active', paymentStatus: 'paid' }; };
@@ -143,6 +146,7 @@ test('local Razorpay boundary mock accepts one signed captured webhook, rejects 
     repository.findSubscriptionByRazorpaySubscriptionId = originalFindSubscription;
     service.upsertSubscriptionFromProvider = originalUpsert;
     global.fetch = originalFetch;
+    starterPlan.razorpayPlanId = originalStarterPlanId;
     for (const [name, value] of Object.entries(original)) value === undefined ? delete process.env[name] : process.env[name] = value;
   }
 });
