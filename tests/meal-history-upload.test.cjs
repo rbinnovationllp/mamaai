@@ -24,6 +24,7 @@ const {
 
 const page = fs.readFileSync(path.join(root, 'app/profile/family/page.tsx'), 'utf8');
 const route = fs.readFileSync(path.join(root, 'app/api/meal-history/extract/route.ts'), 'utf8');
+const snap = fs.readFileSync(path.join(root, 'components/SnapMeal.tsx'), 'utf8');
 
 test('manual entry, upload, and skip remain visible choices in the family profile', () => {
   assert.match(page, /Manual entry/);
@@ -76,4 +77,11 @@ test('the server validates uploads, keeps extraction feature-gated, and returns 
   assert.match(page, /data\.error\?\.code === 'FEATURE_DISABLED'/);
   assert.match(page, /data\.error\?\.code === 'MEAL_HISTORY_AI_NOT_CONFIGURED'/);
   assert.match(page, /mealHistoryAiProcessingConsent/);
+});
+
+test('Snap a Meal keeps manual logging available when AI analysis is unavailable or declined', () => {
+  assert.match(snap, /Add meal manually/);
+  assert.match(snap, /const addManualItem=/);
+  assert.match(snap, /disabled=\{busy\|\|!needsAnalysis\|\|!aiProcessingConsent\}/);
+  assert.match(snap, /Confirm and save/);
 });
