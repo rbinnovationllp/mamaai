@@ -23,9 +23,13 @@ test('demo API fails closed in isolated runtime unless its explicit enable flag 
   assert.match(route, /isolatedFeatureDisabledResponse/);
 });
 
-test('payments and webhooks fail closed in isolated runtime', () => {
+test('payments fail closed in isolated runtime unless the dedicated flag, isolated DynamoDB scope, and Razorpay Test Mode credentials are all present', () => {
   const service = read('lib/services/razorpay-service.ts');
-  assert.match(service, /isIsolatedRuntime\(\)\) return false/);
+  assert.match(service, /MAMA_AI_ISOLATED_RAZORPAY_TEST_ENABLED/);
+  assert.match(service, /MAMA_AI_AWS_IDENTITY_SCOPE === "preview-isolated"/);
+  assert.match(service, /MAMA_AI_DYNAMODB_TABLE_NAME\?\.startsWith\("mamaai-preview-"\)/);
+  assert.match(service, /\^rzp_test_/);
+  assert.match(service, /!isIsolatedRuntime\(environment\) \|\| hasIsolatedTestPaymentConfiguration\(environment\)/);
   assert.match(service, /Payments are disabled in this isolated environment/);
   assert.match(read('app/api/revenuecat/webhook/route.ts'), /if \(isIsolatedRuntime\(\)\)/);
 });

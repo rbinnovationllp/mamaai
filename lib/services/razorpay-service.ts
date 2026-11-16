@@ -12,8 +12,18 @@ import { SubscriptionRepository } from "@/lib/repositories/subscription-reposito
 import { SubscriptionService, subscriptionLimits } from "./subscription-service";
 import { isIsolatedRuntime, isolatedFeatureEnabled } from "@/lib/server/isolated-runtime-safety";
 
-function paymentRuntimeAllowed() {
-  return !isIsolatedRuntime() || isolatedFeatureEnabled("MAMA_AI_ISOLATED_RAZORPAY_TEST_ENABLED");
+function hasIsolatedTestPaymentConfiguration(environment: NodeJS.ProcessEnv = process.env) {
+  return (
+    isolatedFeatureEnabled("MAMA_AI_ISOLATED_RAZORPAY_TEST_ENABLED", environment) &&
+    environment.MAMA_AI_AWS_IDENTITY_SCOPE === "preview-isolated" &&
+    environment.MAMA_AI_DYNAMODB_TABLE_NAME?.startsWith("mamaai-preview-") === true &&
+    /^rzp_test_/.test(environment.RAZORPAY_KEY_ID?.trim() ?? "") &&
+    Boolean(environment.RAZORPAY_KEY_SECRET?.trim())
+  );
+}
+
+function paymentRuntimeAllowed(environment: NodeJS.ProcessEnv = process.env) {
+  return !isIsolatedRuntime(environment) || hasIsolatedTestPaymentConfiguration(environment);
 }
 
 type RazorpaySubscriptionEvent =
