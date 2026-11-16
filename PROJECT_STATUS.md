@@ -1,5 +1,18 @@
 # MAMA AI Project Status
 
+## Isolated preview final-QA checkpoint — 16 November 2026
+
+- **Tested isolated deployment:** `dpl_HFnXS8kmEejCaPzsuSfUrYthiPGF` at `https://mamaai-preview-isolated.vercel.app`, **Ready**, from Git commit `7845092` (`Harden isolated Razorpay test payments`). The stable preview alias was verified to resolve to this deployment before QA began.
+- **Passed — isolated-payment safety:** Razorpay is denied in an isolated runtime unless all of the following are present: `MAMA_AI_ISOLATED_RAZORPAY_TEST_ENABLED=true`, `MAMA_AI_AWS_IDENTITY_SCOPE=preview-isolated`, a `mamaai-preview-*` DynamoDB table, and Razorpay Test Mode (`rzp_test_`) credentials. Focused regression: 4/4 passed.
+- **Passed — automated release checks:** `npm test` 177/177 and `npx tsc --noEmit` passed for commit `7845092`.
+- **Passed — mobile browser primary path:** a newly created fictional account registered through the normal mobile UI (`POST /api/customer/auth/register` 201), created a fictional household with a peanut allergy, saved its profile (`POST /api/customer/family-profile` 200), and was redirected to `/planner` on the deployed preview.
+- **Blocked — duplicate-account actions:** after the permitted browser registrations, the registration endpoint correctly returned the durable rate-limit response (`Request limit reached`). The deployed “Sign in instead” / “Forgot Password?” duplicate-account actions could not be re-exercised from this IP during the limit window; they remain covered by the deployed source and need one fresh-IP or post-window browser pass.
+- **Blocked — live Gemini document/history/Snap uploads:** the isolated Vercel environment currently has no configured Gemini key or feature-flag entries for document OCR, smart meal-history extraction, or Snap analysis. Required preview-only variables are `GEMINI_API_KEY`, `MAMAAI_FAMILY_DOCUMENT_OCR_ENABLED=true`, `MAMAAI_SMART_HISTORY_UPLOAD_ENABLED=true`, and `MAMAAI_SNAP_MEAL_AI_ENABLED=true`. Do not use production credentials. After configuration, test synthetic PNG, JPEG, and PDF inputs, consent refusal (no provider request), unreadable-file recovery, provider failure/retry, and manual fallback.
+- **Blocked — shared-browser account isolation, export, and deletion:** browser account switching requires two accessible fictional accounts in the same test run. The rate limit prevented completing that run. Re-run after the limit window or from an approved fresh QA egress; verify sign-out clears browser storage/caches, export is owner scoped, deletion invalidates sessions, retry is safe, and the second account remains intact.
+- **Blocked — Razorpay Test Mode end-to-end:** unsigned webhook rejection is verified (401), but no completed normal test subscription has generated a signed webhook delivery. Required next check: complete one Test Mode subscription in the preview UI, record only its sanitized event reference and HTTP 2xx delivery status, resend the same event, verify one stored event and entitlement after sign-out/sign-in.
+
+**Release decision: No-go for real-family onboarding.** The isolated build is ready for the remaining controlled QA only. Do not promote to `www.mamaai.in` or open general onboarding until the three blocked groups above pass on the same preview build.
+
 ## Privacy hardening — local implementation, 12 November 2026
 
 - **Implemented (local only):** legacy sensitive browser keys for household profiles, allergies, clinician/dietitian advice, meal history, pantry, plans and attendance are cleared on profile upgrade, sign-out and account deletion. The active service worker caches public assets only and deletes older `mamaai-pwa-*` caches on upgrade.
