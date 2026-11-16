@@ -88,6 +88,7 @@ test('local Razorpay boundary mock accepts one signed captured webhook, rejects 
     keyId: process.env.RAZORPAY_KEY_ID,
     keySecret: process.env.RAZORPAY_KEY_SECRET,
     webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET,
+    starterPlan: process.env.RAZORPAY_PLAN_STARTER_MONTHLY,
   };
   Object.assign(process.env, {
     MAMA_AI_ISOLATED_PREVIEW: 'true',
@@ -97,6 +98,7 @@ test('local Razorpay boundary mock accepts one signed captured webhook, rejects 
     RAZORPAY_KEY_ID: 'rzp_test_local_mock',
     RAZORPAY_KEY_SECRET: 'local_mock_key_secret',
     RAZORPAY_WEBHOOK_SECRET: 'local_mock_webhook_secret',
+    RAZORPAY_PLAN_STARTER_MONTHLY: 'plan_local_mock',
   });
   const route = require('../app/api/razorpay/webhook/route.ts');
   const repository = SubscriptionRepository.prototype;
@@ -104,12 +106,23 @@ test('local Razorpay boundary mock accepts one signed captured webhook, rejects 
   const originalGetWebhookRecord = repository.getWebhookRecord;
   const originalFindSubscription = repository.findSubscriptionByRazorpaySubscriptionId;
   const originalUpsert = service.upsertSubscriptionFromProvider;
+  const originalFetch = global.fetch;
   let duplicate = false;
   let persisted;
   repository.getWebhookRecord = async () => duplicate ? { id: 'existing' } : undefined;
   repository.findSubscriptionByRazorpaySubscriptionId = async () => ({ userId: 'fictional-payment-user', plan: 'starter' });
   service.upsertSubscriptionFromProvider = async input => { persisted = input; return { ...paid, userId: input.userId, status: 'active', paymentStatus: 'paid' }; };
   try {
+    let creationRequest;
+    query = input => input.Key ? { Item: undefined } : input.TransactItems ? {} : { Items: [] };
+    global.fetch = async (url, init) => {
+      creationRequest = { url: String(url), method: init.method };
+      return new Response(JSON.stringify({ id: 'sub_created_mock', status: 'created', plan_id: 'plan_local_mock', current_start: 1_793_000_000, current_end: 1_795_600_000 }), { status: 200, headers: { 'content-type': 'application/json' } });
+    };
+    const created = await new RazorpayService().createSubscription({ userId: 'fictional-payment-user', plan: 'starter' });
+    assert.equal(created.configured, true);
+    assert.equal(created.subscriptionId, 'sub_created_mock');
+    assert.deepEqual(creationRequest, { url: 'https://api.razorpay.com/v1/subscriptions', method: 'POST' });
     const body = JSON.stringify({ event: 'subscription.charged', created_at: 1_793_000_000, payload: { subscription: { entity: { id: 'sub_mocked', plan_id: 'plan_mocked', status: 'active', current_start: 1_793_000_000, current_end: 1_795_600_000 } }, payment: { entity: { id: 'pay_mocked', status: 'captured', amount: 39900, currency: 'INR' } } } });
     const signature = crypto.createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET).update(body).digest('hex');
     const first = await route.POST(new Request('https://preview.example/api/razorpay/webhook', { method: 'POST', headers: { 'x-razorpay-signature': signature, 'x-razorpay-event-id': 'evt_mocked' }, body }));
@@ -129,6 +142,7 @@ test('local Razorpay boundary mock accepts one signed captured webhook, rejects 
     repository.getWebhookRecord = originalGetWebhookRecord;
     repository.findSubscriptionByRazorpaySubscriptionId = originalFindSubscription;
     service.upsertSubscriptionFromProvider = originalUpsert;
+    global.fetch = originalFetch;
     for (const [name, value] of Object.entries(original)) value === undefined ? delete process.env[name] : process.env[name] = value;
   }
 });
