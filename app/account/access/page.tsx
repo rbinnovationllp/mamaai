@@ -39,6 +39,21 @@ const formCopy = {
   }
 };
 
+const AUTH_REQUEST_TIMEOUT_MS = 12_000;
+
+async function fetchAuthResponse(input: RequestInfo | URL, init: RequestInit) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), AUTH_REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") throw new Error("AUTH_REQUEST_TIMED_OUT");
+    throw error;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 type SafeDestination = "/planner" | "/profile/family" | "/subscription" | "/subscription?plan=starter" | "/subscription?plan=premium" | "/subscription?plan=family_plus";
 
 function requestedDestination(): SafeDestination | null {
@@ -101,15 +116,22 @@ export default function AccessPage() {
     if (mode === "register" && password !== confirm) { setMessage(recoveryCopy[language].mismatch); return; }
     setBusy(true);
     try {
-      const response = await fetch(mode === "login" ? "/api/customer/auth/login" : "/api/customer/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(mode === "login" ? { identifier, password, staySignedIn: stay } : { fullName: name, email, mobile, password, confirmPassword: confirm, staySignedIn: stay }) });
+      const response = await fetchAuthResponse(mode === "login" ? "/api/customer/auth/login" : "/api/customer/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(mode === "login" ? { identifier, password, staySignedIn: stay } : { fullName: name, email, mobile, password, confirmPassword: confirm, staySignedIn: stay }) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         setMessage(language === "en" ? data.error?.message || form.error : form.error);
         if (mode === "register" && data.error?.code === "MOBILE_ALREADY_REGISTERED") setDuplicateAccount("mobile");
         if (mode === "register" && data.error?.code === "EMAIL_ALREADY_REGISTERED") setDuplicateAccount("email");
       } else setMessage(data.warning || form.signed);
-      if (response.ok) { setPassword(""); setConfirm(""); if (Array.isArray(data.recoveryCodes)) setCodes(data.recoveryCodes.filter((v: unknown) => typeof v === "string")); else if (mode === "login") await resumeAccount().catch(() => false); }
-    } catch { setMessage(recoveryCopy[language].invalid); } finally { setBusy(false); }
+      if (response.ok) {
+        setPassword(""); setConfirm("");
+        if (Array.isArray(data.recoveryCodes)) setCodes(data.recoveryCodes.filter((v: unknown) => typeof v === "string"));
+        else if (mode === "login") {
+          const resumed = await resumeAccount().catch(() => false);
+          if (!resumed) setMessage("You are signed in, but we could not open your account yet. Please use Continue again.");
+        }
+      }
+    } catch (error) { setMessage(error instanceof Error && error.message === "AUTH_REQUEST_TIMED_OUT" ? "This request took too long. No account change was confirmed. Please try again." : recoveryCopy[language].invalid); } finally { setBusy(false); }
   }
   if (sessionUnavailable) return <main className="px-4 py-8"><p role="status">{language === "hi" ? "Saved sign-in की जांच अभी नहीं हो सकी। कृपया फिर कोशिश करें।" : language === "kn" ? "ಉಳಿಸಿದ sign-in ಪರಿಶೀಲಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ." : "Your saved sign-in could not be checked right now. Please retry."}</p><button type="button" onClick={retrySession} className="mt-4 min-h-12 rounded-xl bg-emerald-800 px-5 text-white">{language === "hi" ? "फिर कोशिश करें" : language === "kn" ? "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ" : "Retry"}</button></main>;
   if (checkingSession) return <main className="px-4 py-8"><p role="status">{language === "hi" ? "आपका खाता जांच रहे हैं…" : language === "kn" ? "ನಿಮ್ಮ ಖಾತೆ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ…" : "Checking your saved sign-in…"}</p></main>;

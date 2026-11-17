@@ -101,6 +101,8 @@ test('account export and deletion require verified identity and explicit confirm
   assert.match(exportRoute, /exportForVerifiedUser\(user\.userId\)/);
   assert.match(deletionRoute, /await requireUser\(request\)/);
   assert.match(deletionRoute, /DELETION_CONFIRMATION_REQUIRED/);
+  assert.match(deletionRoute, /DELETION_STORAGE_PERMISSION_DENIED/);
+  assert.match(deletionRoute, /ACCOUNT_DELETION_FAILED/);
   assert.match(read('lib/repositories/customer-data-repository.ts'), /deleteApplicationDataForVerifiedUser/);
 });
 
