@@ -1038,13 +1038,19 @@ export default function FamilyProfilePage() {
 
   const applyDocumentDraft = (draft: ImportedProfileReview) => {
     const dietMap: Record<string, NonNullable<FamilyMemberProfile['foodPreference']>> = { vegetarian: 'vegetarian', eggetarian: 'eggetarian', non_vegetarian: 'non_vegetarian', semi_vegetarian: 'semi_vegetarian', vegan: 'vegan', other: 'other' };
-    setMembers((current) => draft.members.map((item, index) => {
-      const existing = current.find((member) => member.name.trim().toLowerCase() === item.name.trim().toLowerCase());
-      return { id: existing?.id ?? `document_${Date.now()}_${index}`, name: item.name, relation: item.relation || existing?.relation || 'Family member', age: item.age ?? existing?.age, activityLevel: existing?.activityLevel ?? 'moderate', foodPreference: item.dietType ? dietMap[item.dietType] : existing?.foodPreference ?? 'vegetarian', allergies: item.allergies.length ? item.allergies : existing?.allergies ?? [], doctorAdvisedRestrictions: item.doctorAdvice.length ? item.doctorAdvice : existing?.doctorAdvisedRestrictions ?? [], dislikes: item.dislikes.length ? item.dislikes : existing?.dislikes ?? [], mealStrategyPreference: existing?.mealStrategyPreference ?? 'common' };
-    }));
-    if (draft.household.cuisines.length) setMealPreferenceInputs((current) => {
-      const mergeCuisines = (value: string) => Array.from(new Set([...splitCsv(value), ...draft.household.cuisines])).join(', ');
-      return { ...current, lunch: mergeCuisines(current.lunch), dinner: mergeCuisines(current.dinner) };
+    setMembers((current) => {
+      const importedNames = new Set(draft.members.map((item) => item.name.trim().toLowerCase()));
+      const mergedExisting = current.map((member) => {
+        const item = draft.members.find((candidate) => candidate.name.trim().toLowerCase() === member.name.trim().toLowerCase());
+        if (!item) return member;
+        return { ...member, relation: item.relation || member.relation, age: item.age ?? member.age, foodPreference: item.dietType ? dietMap[item.dietType] : member.foodPreference, allergies: item.allergies.length ? item.allergies : member.allergies, doctorAdvisedRestrictions: item.doctorAdvice.length ? item.doctorAdvice : member.doctorAdvisedRestrictions, dislikes: item.dislikes.length ? item.dislikes : member.dislikes };
+      });
+      const newMembers = draft.members.filter((item) => !current.some((member) => member.name.trim().toLowerCase() === item.name.trim().toLowerCase())).map((item, index) => ({ id: `document_${Date.now()}_${index}`, name: item.name, relation: item.relation || 'Family member', age: item.age, activityLevel: 'moderate' as const, foodPreference: item.dietType ? dietMap[item.dietType] : 'vegetarian' as const, allergies: item.allergies, doctorAdvisedRestrictions: item.doctorAdvice, dislikes: item.dislikes, mealStrategyPreference: 'common' as const }));
+      return [...mergedExisting, ...newMembers];
+    });
+    if (draft.household.cuisines.length || Object.values(draft.household.mealPreferences).some(Boolean)) setMealPreferenceInputs((current) => {
+      const merge = (value: string, additions: string[]) => Array.from(new Set([...splitCsv(value), ...additions.flatMap(splitCsv)])).join(', ');
+      return { breakfast: merge(current.breakfast, [draft.household.mealPreferences.breakfast ?? '']), lunch: merge(current.lunch, [draft.household.mealPreferences.lunch ?? '', ...draft.household.cuisines]), snacks: merge(current.snacks, [draft.household.mealPreferences.snacks ?? '']), dinner: merge(current.dinner, [draft.household.mealPreferences.dinner ?? '', ...draft.household.cuisines]) };
     });
     if (draft.household.budget) { setBudgetPreference('custom_monthly'); const amount = draft.household.budget.match(/\d[\d,]*/)?.[0]; if (amount) setCustomMonthlyFoodBudget(amount.replace(/,/g, '')); }
     if (draft.mealHistory.length) { setRecentMealHistory(mergeRecentMealHistory(draft.mealHistory)); setRecentMealHistoryStatus('manual'); }
