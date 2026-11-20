@@ -765,6 +765,7 @@ export default function FamilyProfilePage() {
   const [mealHistoryHasExtractedDraft, setMealHistoryHasExtractedDraft] = useState(false);
   const [mealHistoryReviewApproved, setMealHistoryReviewApproved] = useState(false);
   const [nonVegPreferredFoods, setNonVegPreferredFoods] = useState<string[]>([]);
+  const [favoriteFoodTags, setFavoriteFoodTags] = useState<string[]>([]);
   const [otherNonVegInput, setOtherNonVegInput] = useState('');
   const [nonVegFrequency, setNonVegFrequency] = useState<NonVegFrequency>('occasionally');
   const [nonVegAvoidDays, setNonVegAvoidDays] = useState<string[]>([]);
@@ -819,6 +820,7 @@ export default function FamilyProfilePage() {
         setRecentMealHistoryStatus(Array.isArray(parsedCustomer.recentMealHistory) && parsedCustomer.recentMealHistory.length ? 'manual' : 'skip');
         setRecentMealHistory(mergeRecentMealHistory(parsedCustomer.recentMealHistory));
         setNonVegPreferredFoods(Array.isArray(parsedCustomer.nonVegPreferredFoods) ? parsedCustomer.nonVegPreferredFoods : []);
+        setFavoriteFoodTags(Array.isArray(parsedCustomer.favoriteFoodTags) ? parsedCustomer.favoriteFoodTags : []);
         setBudgetPreference(parsedCustomer.budgetPreference ?? 'moderate');
         setCustomMonthlyFoodBudget(parsedCustomer.customMonthlyFoodBudget ? String(parsedCustomer.customMonthlyFoodBudget) : '');
       }
@@ -845,6 +847,7 @@ export default function FamilyProfilePage() {
         setRecentMealHistoryStatus(draft.recentMealHistoryStatus === 'add' || draft.recentMealHistoryStatus === 'manual' || draft.recentMealHistoryStatus === 'photo' ? draft.recentMealHistoryStatus === 'add' ? 'manual' : draft.recentMealHistoryStatus : 'skip');
         setRecentMealHistory(mergeRecentMealHistory(draft.recentMealHistory));
         setNonVegPreferredFoods(Array.isArray(draft.nonVegPreferredFoods) ? draft.nonVegPreferredFoods : []);
+        setFavoriteFoodTags(Array.isArray(draft.favoriteFoodTags) ? draft.favoriteFoodTags : []);
         setOtherNonVegInput(String(draft.otherNonVegInput ?? ''));
         setNonVegFrequency(draft.nonVegFrequency ?? 'occasionally');
         setNonVegAvoidDays(Array.isArray(draft.nonVegAvoidDays) ? draft.nonVegAvoidDays : []);
@@ -878,6 +881,7 @@ export default function FamilyProfilePage() {
             setRecentMealHistoryStatus(Array.isArray(serverCustomer.recentMealHistory) && serverCustomer.recentMealHistory.length ? 'manual' : 'skip');
             setRecentMealHistory(mergeRecentMealHistory(serverCustomer.recentMealHistory));
             setNonVegPreferredFoods(Array.isArray(serverCustomer.nonVegPreferredFoods) ? serverCustomer.nonVegPreferredFoods : []);
+            setFavoriteFoodTags(Array.isArray(serverCustomer.favoriteFoodTags) ? serverCustomer.favoriteFoodTags : []);
             setBudgetPreference(serverCustomer.budgetPreference ?? 'moderate');
             setCustomMonthlyFoodBudget(serverCustomer.customMonthlyFoodBudget ? String(serverCustomer.customMonthlyFoodBudget) : '');
           }
@@ -1037,7 +1041,7 @@ export default function FamilyProfilePage() {
   };
 
   const applyDocumentDraft = (draft: ImportedProfileReview) => {
-    const dietMap: Record<string, NonNullable<FamilyMemberProfile['foodPreference']>> = { vegetarian: 'vegetarian', eggetarian: 'eggetarian', non_vegetarian: 'non_vegetarian', semi_vegetarian: 'semi_vegetarian', vegan: 'vegan', other: 'other' };
+    const dietMap: Record<string, NonNullable<FamilyMemberProfile['foodPreference']>> = { vegetarian: 'vegetarian', eggetarian: 'eggetarian', non_vegetarian: 'non_vegetarian', semi_vegetarian: 'semi_vegetarian', vegan: 'vegan', pescatarian: 'pescatarian', jain: 'jain', other: 'other' };
     setMembers((current) => {
       const importedNames = new Set(draft.members.map((item) => item.name.trim().toLowerCase()));
       const mergedExisting = current.map((member) => {
@@ -1052,7 +1056,10 @@ export default function FamilyProfilePage() {
       const merge = (value: string, additions: string[]) => Array.from(new Set([...splitCsv(value), ...additions.flatMap(splitCsv)])).join(', ');
       return { breakfast: merge(current.breakfast, [draft.household.mealPreferences.breakfast ?? '']), lunch: merge(current.lunch, [draft.household.mealPreferences.lunch ?? '', ...draft.household.cuisines]), snacks: merge(current.snacks, [draft.household.mealPreferences.snacks ?? '']), dinner: merge(current.dinner, [draft.household.mealPreferences.dinner ?? '', ...draft.household.cuisines]) };
     });
-    if (draft.household.budget) { setBudgetPreference('custom_monthly'); const amount = draft.household.budget.match(/\d[\d,]*/)?.[0]; if (amount) setCustomMonthlyFoodBudget(amount.replace(/,/g, '')); }
+    if (draft.members.some((item) => item.favouriteFoods.length)) setFavoriteFoodTags((current) => Array.from(new Set([...current, ...draft.members.flatMap((item) => item.favouriteFoods)])));
+    const importedHouseholdDiet = draft.household.dietaryPractices.map((value) => value.toLowerCase().replace(/[ -]/g, '_')).find((value): value is HouseholdFoodPreference => ['vegetarian', 'eggetarian', 'non_vegetarian', 'semi_vegetarian', 'vegan', 'mixed', 'other'].includes(value));
+    if (importedHouseholdDiet) setHouseholdFoodPreference(importedHouseholdDiet);
+    if (draft.household.budget) { const amount = draft.household.budget.match(/\d[\d,]*/)?.[0]; if (amount) { setBudgetPreference('custom_monthly'); setCustomMonthlyFoodBudget(amount.replace(/,/g, '')); } }
     if (draft.mealHistory.length) { setRecentMealHistory(mergeRecentMealHistory(draft.mealHistory)); setRecentMealHistoryStatus('manual'); }
     // The document component only enables Apply after its own required review
     // checks. Once applied, it is ordinary editable form data; unlike the
@@ -1164,6 +1171,7 @@ export default function FamilyProfilePage() {
         recentMealHistory:
           recentMealHistoryStatus !== 'skip' ? cleanRecentMealHistory(recentMealHistory) : [],
         nonVegPreferredFoods,
+        favoriteFoodTags,
       };
       const response = await fetch('/api/customer/family-profile', {
         method: 'POST',

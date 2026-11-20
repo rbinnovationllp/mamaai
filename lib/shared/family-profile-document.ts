@@ -3,7 +3,7 @@ import { z } from "zod";
 export const FAMILY_PROFILE_DOCUMENT_ACCEPT = ".png,.jpg,.jpeg,.webp,.pdf,.docx,image/png,image/jpeg,image/webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 export const familyDocumentMemberSchema = z.object({
   name: z.string().trim().min(1), relation: z.string().trim().default("Family member"), age: z.number().int().min(0).max(120).optional(),
-  dietType: z.enum(["vegetarian", "eggetarian", "non_vegetarian", "semi_vegetarian", "vegan", "other"]).optional(),
+  dietType: z.enum(["vegetarian", "eggetarian", "non_vegetarian", "semi_vegetarian", "vegan", "pescatarian", "jain", "other"]).optional(),
   favouriteFoods: z.array(z.string()).default([]), dislikes: z.array(z.string()).default([]), allergies: z.array(z.string()).default([]), allergyStatus: z.enum(["provided", "no_known", "unanswered"]).default("unanswered"),
   healthConditions: z.array(z.string()).default([]), doctorAdvice: z.array(z.string()).default([]), uncertain: z.array(z.string()).default([]),
 });
@@ -40,8 +40,8 @@ export function parseFamilyProfileDocumentText(text: string): FamilyDocumentImpo
       if (key.includes("relation")) member.relation = value || member.relation;
       else if (key === "age" || key.includes("age group")) { const age = Number(value.match(/\d{1,3}/)?.[0]); if (Number.isFinite(age)) member.age = age; else member.uncertain.push("age"); }
       else if (key.includes("doctor") || key.includes("dietitian") || key.includes("clinician")) member.doctorAdvice = list(value);
-      else if (key.includes("diet") || key.includes("foodpreference")) { const diet = value.toLowerCase().replace(/^(?:leave|keep|is)\s+/, "").replace(/[ -]/g, "_"); member.dietType = (["vegetarian","eggetarian","non_vegetarian","semi_vegetarian","vegan","other"] as string[]).includes(diet) ? diet as typeof member.dietType : undefined; if (!member.dietType && value) member.uncertain.push("diet type"); }
-      else if (key.includes("favourite") || key.includes("favorite")) member.favouriteFoods = list(value);
+      else if (key.includes("diet") || key.includes("foodpreference")) { const diet = value.toLowerCase().replace(/^(?:leave|keep|is)\s+/, "").replace(/[ -]/g, "_"); member.dietType = (["vegetarian","eggetarian","non_vegetarian","semi_vegetarian","vegan","pescatarian","jain","other"] as string[]).includes(diet) ? diet as typeof member.dietType : undefined; if (!member.dietType && value) member.uncertain.push("diet type"); }
+      else if (key.includes("favourite") || key.includes("favorite") || key.includes("foodlikes")) member.favouriteFoods = list(value);
       else if (key.includes("dislike") || key.includes("avoid")) member.dislikes = list(value);
       else if (key.includes("allerg") || key.includes("intoleran")) { member.allergyStatus = /^no\s+(known\s+)?allerg/i.test(value) ? "no_known" : value ? "provided" : "unanswered"; member.allergies = member.allergyStatus === "provided" ? list(value) : []; if (!value) member.uncertain.push("allergies"); }
       else if (key.includes("health") || key.includes("condition")) member.healthConditions = list(value);
