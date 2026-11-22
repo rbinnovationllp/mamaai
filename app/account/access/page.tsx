@@ -54,7 +54,7 @@ async function fetchAuthResponse(input: RequestInfo | URL, init: RequestInit) {
   }
 }
 
-type SafeDestination = "/planner" | "/profile/family" | "/subscription" | "/subscription?plan=starter" | "/subscription?plan=premium" | "/subscription?plan=family_plus";
+type SafeDestination = "/planner" | "/today" | "/profile/family" | "/subscription" | "/subscription?plan=starter" | "/subscription?plan=premium" | "/subscription?plan=family_plus";
 
 function requestedDestination(): SafeDestination | null {
   if (typeof window === "undefined") return null;
@@ -63,7 +63,7 @@ function requestedDestination(): SafeDestination | null {
   const target = new URL(next, window.location.origin);
   if (target.origin !== window.location.origin) return null;
   const pathname = target.pathname;
-  if (pathname === "/planner" || pathname === "/profile/family") return pathname;
+  if (pathname === "/planner" || pathname === "/today" || pathname === "/profile/family") return pathname;
   if (pathname !== "/subscription") return null;
   const plan = target.searchParams.get("plan");
   return plan === "starter" || plan === "premium" || plan === "family_plus" ? `/subscription?plan=${plan}` : "/subscription";
