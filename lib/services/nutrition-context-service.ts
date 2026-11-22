@@ -22,7 +22,12 @@ export class NutritionContextService {
 
   private analyzeMember(member: FamilyMember): NutritionContext {
     const notes: string[] = [];
+    // The free daily flow deliberately permits an omitted age. Its temporary
+    // member representation uses 0 as the absence sentinel, so it must never
+    // be treated as an infant or used for personalised nutrition estimates.
+    const hasKnownAge = Number.isFinite(member.age) && member.age > 0;
     const specialPopulation =
+      !hasKnownAge ||
       member.age < 18 ||
       member.age > 70 ||
       member.specialStatuses.some((status) =>
@@ -33,7 +38,7 @@ export class NutritionContextService {
     let estimatedCalories: number | undefined;
     let proteinGuidanceGrams: number | undefined;
 
-    if (member.heightCm && member.weightKg) {
+    if (hasKnownAge && member.heightCm && member.weightKg) {
       bmi = Number((member.weightKg / (member.heightCm / 100) ** 2).toFixed(1));
       notes.push("BMI is an estimate from supplied height and weight.");
       proteinGuidanceGrams = Math.round(member.weightKg * (member.activityLevel === "heavy" || member.activityLevel === "athlete" ? 1.4 : 0.9));
@@ -43,6 +48,8 @@ export class NutritionContextService {
       const base = 10 * member.weightKg + 6.25 * member.heightCm - 5 * member.age + (member.gender === "male" ? 5 : -161);
       estimatedCalories = Math.round(base * activityMultiplier[member.activityLevel]);
       notes.push("Adult calorie estimate uses Mifflin-St Jeor style BMR with activity multiplier.");
+    } else if (!hasKnownAge) {
+      notes.push("Age was not provided; personalised nutrition and hydration estimates are not calculated.");
     } else {
       notes.push("Detailed calorie formulas are avoided for children, elderly, pregnancy, lactation, and recovery contexts.");
     }
@@ -51,6 +58,7 @@ export class NutritionContextService {
       member.healthConditions.length > 0 ||
       member.doctorRestrictions.length > 0 ||
       member.specialStatuses.length > 0 ||
+      !hasKnownAge ||
       member.age < 18 ||
       member.age > 70;
 
@@ -65,7 +73,7 @@ export class NutritionContextService {
         : "Use balanced portions of grains or millets with vegetables and protein.",
       fatGuidance: "Prefer moderate visible fats and home-style preparation.",
       fiberGuidance: "Include vegetables, pulses, and whole foods as tolerated.",
-      hydrationGuidanceMl: member.age < 12 ? 1400 : member.age > 70 ? 1800 : 2200,
+      hydrationGuidanceMl: !hasKnownAge ? undefined : member.age < 12 ? 1400 : member.age > 70 ? 1800 : 2200,
       calculationNotes: notes,
       requiresProfessionalGuidance
     };

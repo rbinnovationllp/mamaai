@@ -1,0 +1,28 @@
+{
+  "id": "dpl_ACLy27F71NiXjN2MWjgkifV6FYb8",
+  "name": "mamaai-preview-isolated",
+  "url": "mamaai-preview-isolated-fvoqfcoe3-rbinnovationllps-projects.vercel.app",
+  "target": "production",
+  "readyState": "ERROR",
+  "createdAt": 1795183774508,
+  "aliases": [
+    "mamaai-preview-isolated-rbinnovationllps-projects.vercel.app",
+    "mamaai-preview-isolated-git-main-rbinnovationllps-projects.vercel.app"
+  ],
+  "builds": [
+    {
+      "id": "bld_kyplctg99",
+      "deploymentId": "dpl_ACLy27F71NiXjN2MWjgkifV6FYb8",
+      "entrypoint": ".",
+      "readyState": "READY",
+      "readyStateAt": 1795183774450,
+      "createdAt": 1795183774450,
+      "createdIn": "sfo1",
+      "use": "@vercel/vc-build",
+      "config": {},
+      "output": [],
+      "fingerprint": null
+    }
+  ],
+  "contextName": "rbinnovationllps-projects"
+}

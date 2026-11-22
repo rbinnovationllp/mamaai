@@ -1863,7 +1863,17 @@ Do not attempt all future features at once.
 
 ---
 
-# 62. FINAL PRODUCT PRINCIPLE
+# 62. Daily planning and conversion amendment — November 2026
+
+New registered households may complete one authenticated **What to Cook Today?** experience before payment. It collects only today’s available ingredients, optional household/member details, selected meals, tiffins, and restrictions; it generates and durably saves one day only after successful generation. A free entitlement is bound server-side to the account and recognised browser device. Failed generation releases the reservation. Browser storage alone is never an entitlement control; clearing browser data or using another browser remains a documented limitation of web-only device recognition.
+
+An active subscriber can use the same daily planner at any time without consuming the free entitlement. It resolves their saved family profile and restrictions, and remains independent from weekly planning. A daily plan must not overwrite the current weekly plan without a separate confirmation flow.
+
+Before paid checkout, an account must have a complete family profile, an age for each human member, and either seven-day meal history or an explicit **Do not remember** answer. Details captured in the free experience are prefilled for customer review; they are not silently saved as the permanent profile.
+
+Indian monthly plans are Small Family (₹399, 1–4 humans), Medium Family (₹599, 5–6 humans), and Large Family / Family Plus (₹999, 7+ humans). Pets are separate profiles and never count toward this human threshold. Large Family has no product-imposed human cap. Existing international pricing and billing mappings remain unchanged: US$4.99 / US$7.99 / US$12.99.
+
+# 63. FINAL PRODUCT PRINCIPLE
 
 MAMA AI should not become another generic diet app.
 

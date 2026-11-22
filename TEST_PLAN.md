@@ -36,6 +36,15 @@
 
 ## Unit Tests
 
+## Daily planner and conversion tests
+
+- New account can reach `/today`, select ingredients, and generate/reopen exactly one saved free day.
+- Failed generation and concurrent requests do not consume the free entitlement.
+- Second account on the same recognised device is rejected without leaking the first account’s plan.
+- Paid account can generate a daily plan without a weekly plan and respects saved allergies/restrictions.
+- Four, five, six, seven, and twelve human-member households receive Starter, Premium, Premium, Plus, and Plus recommendations; pets do not change the result.
+- Checkout rejects missing ages, missing meal-history outcome, and undersized plans.
+
 - Subscription member limits.
 - BMI and nutrition context calculation.
 - Structured AI output validation.

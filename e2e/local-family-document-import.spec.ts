@@ -4,7 +4,9 @@ test.use({ screenshot: "only-on-failure", trace: "retain-on-failure" });
 
 const password = "Qa!202611";
 
-async function api(page: Page, path: string, init?: RequestInit) {
+type BrowserFetchInit = { method?: string; headers?: Record<string, string>; body?: string };
+
+async function api(page: Page, path: string, init?: BrowserFetchInit) {
   return page.evaluate(async ({ path, init }) => {
     const response = await fetch(path, init);
     return { status: response.status, body: await response.json().catch(() => ({})) };

@@ -166,6 +166,7 @@ const familyProfileSchema = z.object({
         })
       )
       .default([]),
+    mealHistoryOnboardingStatus: z.enum(["not_started", "complete", "do_not_remember"]).default("not_started"),
     nonVegPreferredFoods: z.array(z.string()).default([]),
   }),
   members: z.array(familyMemberSchema).min(1),
@@ -255,7 +256,10 @@ export async function POST(request: Request) {
     }));
     const userId = (await requireUser(request)).userId;
     const subscription = await new SubscriptionRepository().getLatestSubscriptionForUser(userId);
-    if (subscription && hasCurrentEntitlement(subscription) && members.length > subscription.memberLimit) {
+    // Family Plus is the approved Indian Large Family tier (7+ people), not a
+    // legacy 10-person ceiling. Older entitlement rows can keep their billing
+    // history without constraining a current Plus household.
+    if (subscription && hasCurrentEntitlement(subscription) && subscription.plan !== "family_plus" && members.length > subscription.memberLimit) {
       return NextResponse.json({ error: { code: "HOUSEHOLD_MEMBER_LIMIT", message: `Your ${subscription.plan} plan allows up to ${subscription.memberLimit} family members.` } }, { status: 409 });
     }
     const repository = new CustomerProfileRepository();
@@ -306,6 +310,7 @@ export async function POST(request: Request) {
           dinner: entry.dinner || undefined,
         }))
         .filter((entry) => entry.breakfast || entry.lunch || entry.snacks || entry.dinner),
+      mealHistoryOnboardingStatus: customer.mealHistoryOnboardingStatus,
       nonVegPreferredFoods: customer.nonVegPreferredFoods,
     });
     const familyProfile = await repository.saveFamilyProfile({ userId, members });

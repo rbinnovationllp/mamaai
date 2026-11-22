@@ -16,7 +16,7 @@ export default function HomePage() {
 
   const handlePlanMyFamilyMeals = async () => {
     setLoading(true);
-    router.push("/planner?start=simple");
+    router.push("/today");
     setLoading(false);
   };
 
@@ -70,6 +70,12 @@ export default function HomePage() {
               >
                 {loading ? "लोड हो रहा है..." : t.primaryCta}
               </button>
+              <Link
+                href="/today"
+                className="rounded-full bg-emerald-800 px-7 py-3.5 text-sm font-black text-white shadow-xl shadow-emerald-900/20 transition hover:bg-emerald-900"
+              >
+                {language === "hi" ? "आज क्या बनाएं? पहली मील प्लानिंग मुफ्त" : language === "kn" ? "ಇಂದು ಏನು ಅಡುಗೆ ಮಾಡೋಣ? ಉಚಿತವಾಗಿ ಪ್ರಯತ್ನಿಸಿ" : "What to Cook Today? Try your first family meal plan FREE!"}
+              </Link>
               <Link
                 href="/profile/family"
                 className="rounded-full border border-emerald-200 bg-white px-7 py-3.5 text-sm font-black text-emerald-900 shadow-sm transition hover:border-emerald-400"

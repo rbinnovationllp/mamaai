@@ -70,6 +70,12 @@ export function AppPageNav({ plannerHref = '/planner', showPlanner = true }: App
           >
             {copy.home}
           </Link>
+          <Link
+            href="/today"
+            className="rounded-xl border border-emerald-200 px-4 py-2 text-sm font-bold text-emerald-800 transition hover:bg-emerald-50"
+          >
+            {copy.today}
+          </Link>
           {showPlanner ? (
             <Link
               href={plannerHref}

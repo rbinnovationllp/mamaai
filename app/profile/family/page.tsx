@@ -25,7 +25,7 @@ export interface FamilyMemberProfile {
   relation: string;
   age?: number;
   activityLevel?: ActivityLevel;
-  foodPreference?: 'vegetarian' | 'eggetarian' | 'non_vegetarian' | 'semi_vegetarian' | 'vegan' | 'other';
+  foodPreference?: 'vegetarian' | 'eggetarian' | 'non_vegetarian' | 'semi_vegetarian' | 'vegan' | 'pescatarian' | 'jain' | 'other';
   nonVegFrequency?: 'occasionally' | '1_2_days_per_week' | '3_4_days_per_week' | '4_5_days_per_week' | 'most_days' | 'custom';
   nonVegAvoidDays?: string[];
   nonVegCustomRule?: string;
@@ -124,14 +124,14 @@ const copy = {
     favoriteFoodCustom: 'Other favourite foods',
     favoriteFoodCustomPlaceholder: 'Example: Thai curry, tacos, millet dosa',
     addFavoriteFood: '+ Add favourite',
-    recentHistoryTitle: 'Optional: what did your family eat in the last 7 days?',
+    recentHistoryTitle: 'What did your family eat in the last 7 days?',
     recentHistoryQuestion: 'Would you like MAMAAI to avoid repeating recent meals?',
     recentHistoryHelp:
-      'Providing the last 7 days helps MAMAAI understand your actual eating pattern, repeated dishes and family favourites. You can type it, upload a clear photo, or skip it.',
+      'Providing the last 7 days helps MAMAAI understand your actual eating pattern, repeated dishes and family favourites. You can type it, upload a clear photo, or explicitly choose “Do not remember”. This is required before paid checkout.',
     recentHistoryOptions: {
       manual: 'Manual entry',
       photo: 'Upload photo / screenshot / file',
-      skip: 'Skip for now',
+      skip: 'Do not remember',
     },
     recentHistoryPhotoTitle: 'Upload Your Last 7 Days Meal History',
     recentHistoryPhotoHelp:
@@ -885,6 +885,37 @@ export default function FamilyProfilePage() {
             setBudgetPreference(serverCustomer.budgetPreference ?? 'moderate');
             setCustomMonthlyFoodBudget(serverCustomer.customMonthlyFoodBudget ? String(serverCustomer.customMonthlyFoodBudget) : '');
           }
+          if (!profile.familyProfile?.members?.length) {
+            const freeDailyResponse = await fetch('/api/daily-meal-plan', { cache: 'no-store' });
+            const freeDaily = await freeDailyResponse.json().catch(() => ({}));
+            const questionnaire = freeDaily?.experience?.questionnaire;
+            if (freeDailyResponse.ok && questionnaire) {
+              const importedMembers: FamilyMemberProfile[] = Array.from({ length: Number(questionnaire.memberCount) || 0 }, (_, index) => {
+                const item = questionnaire.members?.[index] ?? {};
+                const importedFoodPreference: NonNullable<FamilyMemberProfile['foodPreference']> = item.diet === 'eggetarian' ? 'eggetarian' : item.diet === 'non_vegetarian' ? 'non_vegetarian' : item.diet === 'semi_vegetarian' ? 'semi_vegetarian' : item.diet === 'vegan' ? 'vegan' : item.diet === 'pescatarian' ? 'pescatarian' : item.diet === 'jain' ? 'jain' : item.diet === 'vegetarian' ? 'vegetarian' : 'vegetarian';
+                return {
+                  id: item.id || `free_daily_member_${index + 1}`,
+                  name: item.name || `Family member ${index + 1}`,
+                  relation: index === 0 ? 'Primary household member' : 'Family member',
+                  age: item.age,
+                  activityLevel: 'moderate' as const,
+                  foodPreference: importedFoodPreference,
+                  allergies: Array.isArray(item.allergies) ? item.allergies : [],
+                  doctorAdvisedRestrictions: Array.isArray(item.restrictions) ? item.restrictions : [],
+                  dislikes: Array.isArray(item.dislikes) ? item.dislikes : [],
+                  mealStrategyPreference: item.needsSeparateMeal ? 'allow_separate' as const : 'common' as const,
+                  scheduleRole: item.needsTiffin ? 'working' as const : 'other' as const,
+                  tiffinPreferences: item.needsTiffin ? ['Tiffin requested during free daily plan'] : [],
+                };
+              });
+              if (importedMembers.length) {
+                setMembers(importedMembers);
+                setHouseholdFoodPreference(questionnaire.householdDiet ?? 'vegetarian');
+                setFavoriteFoodTags(Array.from(new Set([...(questionnaire.ingredients ?? []), ...(questionnaire.otherIngredients ?? [])])));
+                setSaveStatus('Your free daily-plan details were added for review. Complete missing ages and the seven-day history before paid checkout.');
+              }
+            }
+          }
         })
         .catch(() => undefined)
         .finally(() => setStorageHydrated(true));
@@ -1140,6 +1171,15 @@ export default function FamilyProfilePage() {
       return;
     }
 
+    // Human-member ages are required for the permanent household profile.
+    // The free daily experience may use general suggestions when an age is
+    // unknown, but it must not silently create an incomplete saved profile.
+    const memberWithoutAge = members.find((member) => !Number.isInteger(member.age) || (member.age ?? -1) < 0 || (member.age ?? 0) > 120);
+    if (memberWithoutAge) {
+      setFormError(`Please add a valid age for ${memberWithoutAge.name || 'each family member'} before saving your family profile.`);
+      return;
+    }
+
     if (!cleanCustomerName) {
       setFormError('Please enter your name before continuing.');
       return;
@@ -1170,6 +1210,7 @@ export default function FamilyProfilePage() {
         mealTimings: cleanMealTimings(mealTimingInputs),
         recentMealHistory:
           recentMealHistoryStatus !== 'skip' ? cleanRecentMealHistory(recentMealHistory) : [],
+        mealHistoryOnboardingStatus: recentMealHistoryStatus === 'skip' ? 'do_not_remember' : cleanRecentMealHistory(recentMealHistory).length >= 7 ? 'complete' : 'not_started',
         nonVegPreferredFoods,
         favoriteFoodTags,
       };
@@ -1190,7 +1231,7 @@ export default function FamilyProfilePage() {
         const next = new URL(window.location.href).searchParams.get('next');
         const target = next ? new URL(next, window.location.origin) : null;
         const allowedPlan = target?.pathname === '/subscription' && ['starter', 'premium', 'family_plus'].includes(target.searchParams.get('plan') ?? '');
-        const destination = target?.origin === window.location.origin && (target.pathname === '/planner' || target.pathname === '/subscription' && (allowedPlan || !target.search)) ? `${target.pathname}${target.search}` : '/planner';
+        const destination = target?.origin === window.location.origin && (target.pathname === '/planner' || target.pathname === '/subscription' && (allowedPlan || !target.search)) ? `${target.pathname}${target.search}` : '/subscription';
         window.location.href = destination;
       }, 500);
     } catch (error) {

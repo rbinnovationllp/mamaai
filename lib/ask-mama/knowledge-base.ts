@@ -32,7 +32,7 @@ export type AskMamaCategory =
   | "support"
   | "unknown";
 
-export type AskMamaActionType = "try_demo" | "add_family" | "contact_support" | "none";
+export type AskMamaActionType = "try_demo" | "add_family" | "open_daily_planner" | "contact_support" | "none";
 
 export interface AskMamaAnswer {
   category: AskMamaCategory;
@@ -562,7 +562,7 @@ export function answerAskMama(question: string, detailed = false, language: AppL
     return {
       category: "getting_started",
       answer: localized.gettingStarted,
-      action: { type: "add_family", label: "Add Family" },
+      action: { type: "open_daily_planner", label: "What to Cook Today?" },
       suggestions: localized.quickSuggestions,
     };
   }

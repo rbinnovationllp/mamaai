@@ -158,6 +158,26 @@ export class FamilyMealRepository {
     return response.Item?.record as FamilyMealPlan | undefined;
   }
 
+  /** Removes a transient plan generated only to assemble a free daily experience. */
+  async deleteMealPlan(mealPlanId: string): Promise<void> {
+    await mamaAiDynamoDb.send(new DeleteCommand({
+      TableName: getMamaAiTableName(),
+      Key: { PK: `MEAL_PLAN#${mealPlanId}`, SK: "MEAL_PLAN#CURRENT" },
+    }));
+  }
+
+  /** The free daily planner uses an ephemeral family context, never a permanent profile. */
+  async deleteFamilyContext(familyId: string): Promise<void> {
+    const response = await mamaAiDynamoDb.send(new QueryCommand({
+      TableName: getMamaAiTableName(),
+      KeyConditionExpression: "PK = :pk",
+      ExpressionAttributeValues: { ":pk": familyPk(familyId) },
+    }));
+    await Promise.all((response.Items ?? []).map((item) => mamaAiDynamoDb.send(new DeleteCommand({
+      TableName: getMamaAiTableName(), Key: { PK: item.PK, SK: item.SK },
+    }))));
+  }
+
   async saveWeeklyMealPlan(plan: WeeklyFamilyMealPlan, expectedVersion?: number): Promise<WeeklyFamilyMealPlan> {
     const updatedAt = nowIso();
     const PK = familyPk(plan.familyId);

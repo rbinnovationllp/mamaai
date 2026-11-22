@@ -1812,6 +1812,7 @@ export default function PlannerPage() {
             <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">MAMAAI Planner</p>
             <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">{t.title}</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">{t.subtitle}</p>
+            {paidAccess === true ? <Link href="/today" className="mt-3 mr-3 inline-flex min-h-10 items-center rounded-xl bg-emerald-800 px-4 text-sm font-black text-white">What to Cook Today? / आज क्या बनाएं?</Link> : null}
             <Link href="/tiffin" className="mt-3 inline-flex min-h-10 items-center rounded-xl bg-amber-100 px-4 text-sm font-black text-amber-950">आज टिफिन में क्या बनाऊँ? / What Can I Pack Today?</Link>
           </div>
           <LanguageSelector />

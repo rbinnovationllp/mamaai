@@ -150,6 +150,10 @@ Detailed generated meal plans use a 15-day retention policy. The plan includes `
 
 Do not expire long-term personalization and safety records just because a detailed meal plan expires. Keep family profiles, allergies, dietary restrictions, disliked/rejected foods, fasting preferences, favourite meals, feedback, subscription/account data, and lightweight meal-preference patterns until the user deletes or changes them.
 
+## Daily meal planning amendment
+
+The `app/today` client collects only the current-day questionnaire and calls the authenticated `POST /api/daily-meal-plan` route. That route validates consent and input, resolves the current account/device, and uses `FreeDailyExperienceRepository` for an atomic free reservation or `SubscriptionRepository` for paid entitlement. It delegates generation to the existing `MealPlanningService`; the UI never calls DynamoDB or AI providers directly. Permanent profile prefill reads the completed free questionnaire from the authenticated route and remains unsaved until the normal family-profile submit.
+
 ## Runtime Flow
 
 Frontend screens call API routes only. UI components must not call database SDKs or AI clients directly.

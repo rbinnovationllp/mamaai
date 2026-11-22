@@ -19,3 +19,4 @@ test('actual Ask MAMA route answers offered product-help suggestions without AI 
  }
 });
 test('actual Ask MAMA route continues to reject pet-feeding requests',async()=>{const response=await POST(new Request('http://localhost/api/ask-mama',{method:'POST',body:JSON.stringify({message:'What food should I feed my dog?'})}));assert.equal(response.status,400)});
+test('what-to-cook requests route customers into the reviewed daily planner',async()=>{const response=await POST(new Request('http://localhost/api/ask-mama',{method:'POST',body:JSON.stringify({message:'What can I cook tonight?',language:'en'})}));const body=await response.json();assert.equal(response.status,200);assert.equal(body.action,'/today');assert.match(body.response,/review a family plan/i)});

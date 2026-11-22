@@ -28,6 +28,8 @@ export interface CustomerAccountRecord {
   mealTimings?: MealTimingPattern;
   favoriteFoodTags?: string[];
   recentMealHistory?: RecentMealHistoryDay[];
+  /** Required before paid checkout; "do_not_remember" is an explicit, honest answer. */
+  mealHistoryOnboardingStatus?: "not_started" | "complete" | "do_not_remember";
   regularAttendancePattern?: DayAttendancePlan;
   nonVegPreferredFoods?: string[];
   snapMealEntries?: SnapMealEntry[];
@@ -104,6 +106,7 @@ export class CustomerProfileRepository {
     mealTimings?: CustomerAccountRecord["mealTimings"];
     favoriteFoodTags?: CustomerAccountRecord["favoriteFoodTags"];
     recentMealHistory?: CustomerAccountRecord["recentMealHistory"];
+    mealHistoryOnboardingStatus?: CustomerAccountRecord["mealHistoryOnboardingStatus"];
     regularAttendancePattern?: CustomerAccountRecord["regularAttendancePattern"];
     nonVegPreferredFoods?: CustomerAccountRecord["nonVegPreferredFoods"];
     snapMealEntries?: CustomerAccountRecord["snapMealEntries"];
@@ -126,6 +129,7 @@ export class CustomerProfileRepository {
       mealTimings: input.mealTimings ?? existing?.mealTimings ?? {},
       favoriteFoodTags: input.favoriteFoodTags ?? existing?.favoriteFoodTags ?? [],
       recentMealHistory: input.recentMealHistory ?? existing?.recentMealHistory ?? [],
+      mealHistoryOnboardingStatus: input.mealHistoryOnboardingStatus ?? existing?.mealHistoryOnboardingStatus ?? "not_started",
       regularAttendancePattern: input.regularAttendancePattern ?? existing?.regularAttendancePattern,
       nonVegPreferredFoods: input.nonVegPreferredFoods ?? existing?.nonVegPreferredFoods ?? [],
       snapMealEntries: input.snapMealEntries ?? existing?.snapMealEntries ?? [],

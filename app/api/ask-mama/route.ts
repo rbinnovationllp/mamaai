@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { retrieveKnowledgeChunks } from "@/lib/ai/knowledge-retriever";
-import { answerAskMama } from "@/lib/ask-mama/knowledge-base";
+import { answerAskMama, type AskMamaActionType } from "@/lib/ask-mama/knowledge-base";
 import { classifyAskMamaSafetyRequest } from "@/lib/ai/ask-mama-safety";
 import { classifyAskMamaRequest, validateAskMamaModelResponse } from "@/lib/ai/ask-mama-response-safety";
 import { askMamaUnavailableMessage, isAskMamaPreviewBlocked } from "@/lib/ai/ask-mama-runtime-safety";
@@ -17,6 +17,23 @@ import { configuredAskMamaGeminiModel } from "@/lib/ai/gemini-model";
 import { askMamaProviderBusyMessage, isAskMamaProviderBusy } from "@/lib/ai/ask-mama-provider-failure";
 
 export const dynamic = "force-dynamic";
+
+function askMamaActionHref(actionType: AskMamaActionType | undefined) {
+  if (actionType === "add_family") return "/profile/family";
+  if (actionType === "open_daily_planner") return "/today";
+  if (actionType === "try_demo") return "/#planner";
+  return undefined;
+}
+
+function isDailyPlannerIntent(query: string) {
+  return /\b(what (?:should|can) i cook|what to cook|cook today|cook tonight|plan (?:today'?s )?(?:meal|meals)|family meal)\b/i.test(query);
+}
+
+function dailyPlannerRoutingMessage(language: AppLanguage) {
+  if (language === "hi") return "आज क्या बनाएं खोलें, उपलब्ध सामग्री चुनें, कौन खाएगा इसकी पुष्टि करें और पकाने से पहले परिवार के लिए प्लान की समीक्षा करें।";
+  if (language === "kn") return "ಇಂದು ಏನು ಅಡುಗೆ ಮಾಡೋಣ ತೆರೆಯಿರಿ, ಲಭ್ಯವಿರುವ ಪದಾರ್ಥಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ, ಯಾರು ಊಟ ಮಾಡುತ್ತಾರೆ ಎಂದು ದೃಢೀಕರಿಸಿ ಮತ್ತು ಅಡುಗೆ ಮಾಡುವ ಮೊದಲು ಕುಟುಂಬದ ಯೋಜನೆಯನ್ನು ಪರಿಶೀಲಿಸಿ.";
+  return "Open What to Cook Today to choose the ingredients you have, confirm who is eating, and review a family plan before cooking.";
+}
 
 interface RequestPayload {
   message?: string;
@@ -181,6 +198,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: { code: "ASK_MAMA_PREVIEW_DISABLED", message: "Ask MAMA is disabled in this preview until its safety configuration is explicitly validated." } }, { status: 503 });
     }
 
+    // A direct “what should I cook?” request should lead a customer into the
+    // reviewed, authenticated daily-planning flow. This avoids giving an
+    // ungrounded one-off answer before MAMAAI has their ingredients, household
+    // restrictions, and consent.
+    if (isDailyPlannerIntent(queryText)) {
+      const response = dailyPlannerRoutingMessage(targetLanguage);
+      return NextResponse.json({
+        success: true,
+        role: "assistant",
+        response,
+        answer: response,
+        responseLanguage: targetLanguage,
+        category: "getting_started",
+        suggestions: ["What ingredients should I select?", "How are allergies handled?", "How do I create my family profile?"],
+        action: "/today",
+        unresolved: false,
+        fallbackSource: "reviewed_daily_planner_routing",
+      });
+    }
+
     const session = await getSession();
     const authenticatedUser = await (async () => { try { return await requireUser(request); } catch { return undefined; } })();
     if (authenticatedUser?.userId) {
@@ -207,12 +244,7 @@ export async function POST(request: Request) {
           responseLanguage: targetLanguage,
           category: localAnswer.category,
           suggestions: localAnswer.suggestions,
-          action:
-            localAnswer.action?.type === "add_family"
-              ? "/profile/family"
-              : localAnswer.action?.type === "try_demo"
-                ? "/#planner"
-                : undefined,
+          action: askMamaActionHref(localAnswer.action?.type),
           unresolved: false,
           fallbackSource: "reviewed_local_mamaai_knowledge_base",
         });
@@ -223,7 +255,7 @@ export async function POST(request: Request) {
       if (requestKind === "general") {
         const localAnswer = answerAskMama(queryText, true, targetLanguage);
         if (!localAnswer.unresolved) {
-          return NextResponse.json({ success: true, role: "model", response: localAnswer.answer, answer: localAnswer.answer, responseLanguage: targetLanguage, category: localAnswer.category, suggestions: localAnswer.suggestions, unresolved: false, fallbackSource: "local_mamaai_knowledge_base" });
+          return NextResponse.json({ success: true, role: "model", response: localAnswer.answer, answer: localAnswer.answer, responseLanguage: targetLanguage, category: localAnswer.category, suggestions: localAnswer.suggestions, action: askMamaActionHref(localAnswer.action?.type), unresolved: false, fallbackSource: "local_mamaai_knowledge_base" });
         }
       }
       return NextResponse.json({ success: false, error: { code: "ASK_MAMA_FOOD_ADVICE_UNAVAILABLE", message: askMamaUnavailableMessage(requestKind, targetLanguage) }, response: askMamaUnavailableMessage(requestKind, targetLanguage), unresolved: true }, { status: 503 });
@@ -372,7 +404,7 @@ ${clientContext}
       responseLanguage: targetLanguage,
       category: matchedChunks[0]?.domain || "general_inquiry",
       suggestions: getLocalizedSuggestions(targetLanguage),
-      action: queryText.toLowerCase().includes("plan") ? "/planner" : undefined,
+      action: isDailyPlannerIntent(queryText) ? "/today" : queryText.toLowerCase().includes("plan") ? "/planner" : undefined,
       matchedKnowledgeIds: matchedChunks.map((c) => c.id),
       unresolved: false,
     });
@@ -394,12 +426,7 @@ ${clientContext}
           responseLanguage: targetLanguage,
           category: localAnswer.category,
           suggestions: localAnswer.suggestions,
-          action:
-            localAnswer.action?.type === "add_family"
-              ? "/profile/family"
-              : localAnswer.action?.type === "try_demo"
-                ? "/#planner"
-                : undefined,
+          action: askMamaActionHref(localAnswer.action?.type),
           unresolved: false,
           fallbackSource: "local_mamaai_knowledge_base",
         });

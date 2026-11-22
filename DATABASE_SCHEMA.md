@@ -61,6 +61,16 @@ export interface ProactivePlanSettings {
 
 ## Production Database
 
+## Daily-planner amendment
+
+Additional items use the same DynamoDB table and ownership model:
+
+- `USER#{userId}` / `FREE_DAILY#CURRENT`: free experience state and completed plans.
+- `DEVICE#{deviceId}` / `FREE_DAILY#CURRENT`: recognised-device claim for the same record.
+- `USER#{userId}` / `DAILY_MEAL#LATEST`: latest paid daily planner result.
+
+All three records are private account data. The five-minute in-progress lock is a record attribute only; it is not an automatic deletion policy for a completed customer plan.
+
 Preferred production database: AWS DynamoDB.
 
 Table name: `MAMA_AI_APP`

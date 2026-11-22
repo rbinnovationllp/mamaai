@@ -76,6 +76,14 @@ Query:
 
 ## POST /api/razorpay/subscriptions
 
+## GET /api/daily-meal-plan
+
+Returns the authenticated account’s saved free experience or latest subscribed daily plan. No request returns another customer’s data.
+
+## POST /api/daily-meal-plan
+
+Requires an authenticated recognised device and same-origin request. Accepts reviewed available ingredients, members, selected meals/tiffins, restrictions, language, and explicit AI-processing consent. A non-subscriber receives one atomically reserved free plan; a subscriber uses their stored profile and may generate within fair-use controls. A failed generation releases the free reservation. The response never represents a generated plan as complete until it is durably saved.
+
 Creates a Razorpay test-mode subscription for Indian web/PWA billing when MAMAAI-specific Razorpay environment variables are configured. Secrets stay server-side.
 
 Request:

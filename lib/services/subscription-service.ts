@@ -8,7 +8,9 @@ export const subscriptionLimits: Record<SubscriptionPlan, number> = {
   // Canonical tiers
   starter: 4,
   premium: 6,
-  family_plus: 10,
+  // Approved Large Family tier: 7+ humans. There is no product-imposed
+  // ceiling; operational fair-use controls remain separate from membership.
+  family_plus: Number.MAX_SAFE_INTEGER,
 
   // Legacy Aliases for Backward Compatibility
   family_starter: 4,
@@ -57,7 +59,7 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
     displayName: "Family Plus",
     priceMonthlyInr: 999,
     priceMonthlyUsd: 12.99,
-    memberLimit: 10,
+    memberLimit: Number.MAX_SAFE_INTEGER,
     revenueCatEntitlementId: "plus_access",
     revenueCatProductId: "mamaai_plus_monthly",
     googlePlayProductId: "mamaai_plus_monthly",
@@ -111,7 +113,7 @@ export class SubscriptionService {
     switch (canonical) {
       case "family_plus":
         return [
-          "Up to 10 family profiles",
+          "7 or more human family profiles",
           "Unlimited AI meal plan revisions",
           "Advanced nutrient & allergy balancing",
           "Automated smart grocery list",

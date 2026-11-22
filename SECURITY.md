@@ -121,6 +121,14 @@ DynamoDB TTL should expire detailed meal-plan history after 15 days, but TTL mus
 
 ## Rate Limiting
 
+## Free daily-plan entitlement
+
+- Do not trust client flags, local storage, IP address, or a visible plan result as an entitlement decision.
+- Require authenticated account and recognised-device session server-side.
+- Atomically reserve and finalize the one-time free entitlement; release it on a failed generation.
+- Never collect IMEI, MAC address, or hardware serial number.
+- Treat browser resets and distinct browsers as a documented web-device limitation; apply rate limits and support review without logging food/health contents.
+
 Production APIs should rate limit:
 
 - AI meal generation
